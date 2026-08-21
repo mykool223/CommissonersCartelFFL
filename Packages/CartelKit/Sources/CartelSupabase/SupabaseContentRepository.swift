@@ -48,6 +48,18 @@ public struct SupabaseContentRepository: ContentRepository {
         return rows.map(\.model)
     }
 
+    public func externalArticles(limit: Int) async throws -> [ExternalArticle] {
+        let rows: [ExternalArticleRow] = try await client.select(
+            "external_articles",
+            query: [
+                "select": "*",
+                "order": "published_at.desc",
+                "limit": String(limit),
+            ]
+        )
+        return rows.compactMap(\.model)
+    }
+
     public func vote(pollID: UUID, optionID: UUID) async throws {
         try await client.rpcVoid(
             "cast_vote",
@@ -110,6 +122,35 @@ private struct RecapRow: Decodable {
             body: body,
             authorName: author_name ?? "The Commissioner",
             createdAt: created_at
+        )
+    }
+}
+
+private struct ExternalArticleRow: Decodable {
+    let id: UUID
+    let source_key: String
+    let source_name: String
+    let title: String
+    let url: String
+    let excerpt: String?
+    let author: String?
+    let image_url: String?
+    let published_at: Date
+
+    /// Nil when the stored URL will not parse. Dropping the row beats handing
+    /// the UI a headline that cannot be opened.
+    var model: ExternalArticle? {
+        guard let link = URL(string: url) else { return nil }
+        return ExternalArticle(
+            id: id,
+            sourceKey: source_key,
+            sourceName: source_name,
+            title: title,
+            url: link,
+            excerpt: excerpt,
+            author: author,
+            imageURL: image_url.flatMap(URL.init(string:)),
+            publishedAt: published_at
         )
     }
 }

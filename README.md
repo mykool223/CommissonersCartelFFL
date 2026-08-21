@@ -79,6 +79,7 @@ That split is also what lets every screen run on mock data. Views depend on
 | Check the database schema and its security rules | `./Scripts/test-database.sh` |
 | Regenerate the Xcode project | `./Scripts/generate.sh` |
 | Apply database migrations | `supabase db push` |
+| Preview the news ingest without writing | `DRY_RUN=1 ./Scripts/ingest_news.py` |
 | Deploy the ESPN proxy | `supabase functions deploy espn-proxy` |
 | Lint | `swiftlint` |
 
@@ -118,6 +119,7 @@ league.
 - [x] Settings with Keychain-stored ESPN credentials
 - [x] League crest as the app icon, and brand gold throughout
 - [x] Launch screen — native, so there's no white flash before the crest
+- [x] "Around the league" — daily headlines from The Fantasy Footballers' RSS feed
 - [ ] Writing posts and polls from inside the app (read-only today)
 - [ ] Sign-in — see [docs/ROADMAP.md](docs/ROADMAP.md)
 - [ ] Push notifications

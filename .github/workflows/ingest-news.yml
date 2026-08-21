@@ -1,0 +1,42 @@
+# Pulls the day's articles from publisher RSS feeds into Supabase.
+#
+# Only the reference is stored — headline, excerpt, link. The app links out to
+# the publisher, which is the arrangement an RSS feed implies. No scraping.
+#
+# This also keeps the Supabase project awake: a daily write is activity, so the
+# free tier's one-week inactivity pause never triggers during the offseason.
+# keep-supabase-awake.yml stays as a fallback for when no news lands.
+name: Ingest news
+
+on:
+  schedule:
+    # 12:00 UTC — around 7am Central. GitHub's scheduler is best-effort and can
+    # run late under load, which is fine for a once-a-day job.
+    - cron: "0 12 * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Parse the feeds and print what would be stored, without writing"
+        type: boolean
+        default: false
+
+jobs:
+  ingest:
+    name: Fetch and store
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Ingest
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          # Writes bypass row level security by design: external_articles has
+          # no insert policy, so nothing carrying the anon key can write here.
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          DRY_RUN: ${{ inputs.dry_run && '1' || '' }}
+        run: |
+          if [ -z "$SUPABASE_URL" ] && [ -z "$DRY_RUN" ]; then
+            echo "Supabase secrets are not set; nothing to ingest into."
+            exit 0
+          fi
+          ./Scripts/ingest_news.py

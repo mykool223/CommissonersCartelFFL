@@ -81,6 +81,15 @@ public actor MockContentRepository: ContentRepository {
             .sorted { $0.createdAt > $1.createdAt }
     }
 
+    public func externalArticles(limit: Int) async throws -> [ExternalArticle] {
+        try await simulate()
+        return Array(
+            MockData.externalArticles
+                .sorted { $0.publishedAt > $1.publishedAt }
+                .prefix(limit)
+        )
+    }
+
     public func vote(pollID: UUID, optionID: UUID) async throws {
         try await simulate()
         guard let index = polls.firstIndex(where: { $0.id == pollID }) else {

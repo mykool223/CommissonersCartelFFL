@@ -189,6 +189,29 @@ public enum MockData {
         ]
     }
 
+    public static let externalArticles: [ExternalArticle] = [
+        ExternalArticle(
+            id: uuid(300),
+            sourceKey: "fantasy_footballers",
+            sourceName: "The Fantasy Footballers",
+            title: "10 Tips and Tricks to Win Your League",
+            url: URL(string: "https://www.thefantasyfootballers.com/")!,
+            excerpt: "Can you smell that? There is a shift in the air. From sea breeze and sunscreen to something far more important.",
+            author: "Maggie Thraen",
+            publishedAt: referenceDate.addingTimeInterval(-3_600 * 5)
+        ),
+        ExternalArticle(
+            id: uuid(301),
+            sourceKey: "fantasy_footballers",
+            sourceName: "The Fantasy Footballers",
+            title: "Bust & Value Picks for the Season",
+            url: URL(string: "https://www.thefantasyfootballers.com/")!,
+            excerpt: "Bust and value picks for the fantasy football season, plus a look at where the consensus is wrong.",
+            author: "The Fantasy Footballers",
+            publishedAt: referenceDate.addingTimeInterval(-3_600 * 14)
+        ),
+    ]
+
     public static let polls: [Poll] = [
         Poll(
             id: uuid(10),
