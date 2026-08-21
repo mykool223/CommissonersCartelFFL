@@ -15,6 +15,7 @@ struct SettingsView: View {
     @State private var didSave = false
 
     @State private var isShowingSignIn = false
+    @State private var isShowingClaimTeam = false
 
     var body: some View {
         NavigationStack {
@@ -22,6 +23,11 @@ struct SettingsView: View {
                 Section {
                     if let session = environment.session {
                         LabeledContent("Signed in as", value: session.email ?? "this device")
+                        Button {
+                            isShowingClaimTeam = true
+                        } label: {
+                            Label("Which team is yours?", systemImage: "flag.checkered")
+                        }
                         Button("Sign out", role: .destructive) {
                             Task { await environment.signOut() }
                         }
@@ -120,6 +126,7 @@ struct SettingsView: View {
             }
             .navigationTitle("Settings")
             .sheet(isPresented: $isShowingSignIn) { SignInView() }
+            .sheet(isPresented: $isShowingClaimTeam) { ClaimTeamView() }
             .alert("Saved", isPresented: $didSave) {
                 Button("OK", role: .cancel) {}
             } message: {
