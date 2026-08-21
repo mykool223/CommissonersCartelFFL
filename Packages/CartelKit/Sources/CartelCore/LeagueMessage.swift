@@ -44,6 +44,12 @@ public protocol LeagueChatRepository: Sendable {
     /// The SWID the signed-in member has claimed, if any.
     func claimedESPNTeam() async throws -> String?
 
+    /// Creates a poll. Any member may, not only a commissioner.
+    ///
+    /// Options arrive as typed, blanks included — a form with a fixed number of
+    /// boxes normally has some empty. The server drops them before counting.
+    func createPoll(question: String, options: [String], closesAt: Date?) async throws
+
     /// Whether the signed-in account is actually on the league roster.
     ///
     /// Signing in and being a member are different things: anyone can

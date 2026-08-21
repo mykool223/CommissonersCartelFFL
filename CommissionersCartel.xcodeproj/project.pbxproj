@@ -32,6 +32,7 @@
 		94A01FAD9CF58E3161976C91 /* MatchupsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19CAF352C89479A5D8415900 /* MatchupsViewModel.swift */; };
 		9B30FC45D6A0E6FA51305F58 /* PollsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E4D03F3F048E702B1FEEE14 /* PollsViewModel.swift */; };
 		9B31A35278D954D5A2CDB369 /* ClaimTeamView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E86DC157594C0AA807FB016 /* ClaimTeamView.swift */; };
+		A5492B9492A9D86A52D247D2 /* CreatePollView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B1DCADEB27EFF3B6943804B /* CreatePollView.swift */; };
 		A960A5FCEE9901CE00DC540C /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D3EA656F6D507B3748C1377F /* Assets.xcassets */; };
 		B11A87F46FFEAAEAC971C3C9 /* NewsFeedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C45E44EFEFD22E3FAF3CF11 /* NewsFeedView.swift */; };
 		BD2DBD997CF0F39A2D7FE030 /* SectionPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6685FC13C6BDCFF3928269DF /* SectionPicker.swift */; };
@@ -47,6 +48,7 @@
 /* Begin PBXFileReference section */
 		096F4868120CB3CBD155E561 /* Loadable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Loadable.swift; sourceTree = "<group>"; };
 		19CAF352C89479A5D8415900 /* MatchupsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MatchupsViewModel.swift; sourceTree = "<group>"; };
+		1B1DCADEB27EFF3B6943804B /* CreatePollView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatePollView.swift; sourceTree = "<group>"; };
 		1E4D03F3F048E702B1FEEE14 /* PollsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PollsViewModel.swift; sourceTree = "<group>"; };
 		1E86DC157594C0AA807FB016 /* ClaimTeamView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaimTeamView.swift; sourceTree = "<group>"; };
 		2BB2006E986A9040A4FFD91A /* NewsFeedViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewsFeedViewModel.swift; sourceTree = "<group>"; };
@@ -216,6 +218,7 @@
 		E08B1508902FB4D9CE4DE837 /* Polls */ = {
 			isa = PBXGroup;
 			children = (
+				1B1DCADEB27EFF3B6943804B /* CreatePollView.swift */,
 				F225F33D365B0F36C742B203 /* PollsView.swift */,
 				1E4D03F3F048E702B1FEEE14 /* PollsViewModel.swift */,
 			);
@@ -333,6 +336,7 @@
 				12A315BCEF72BF1BAEA5D515 /* AppEnvironment.swift in Sources */,
 				9B31A35278D954D5A2CDB369 /* ClaimTeamView.swift in Sources */,
 				65F8592486F245A19B3066DF /* CommissionersCartelApp.swift in Sources */,
+				A5492B9492A9D86A52D247D2 /* CreatePollView.swift in Sources */,
 				E5332F1273FE03A1F9CDE25E /* Formatters.swift in Sources */,
 				507E57CB1AC3A1CCA0648BDE /* KeychainStore.swift in Sources */,
 				C7B013AA42E98992D0791121 /* LeagueChatView.swift in Sources */,

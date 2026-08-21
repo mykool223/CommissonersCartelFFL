@@ -227,6 +227,20 @@ extension SupabaseContentRepository: LeagueChatRepository {
         ])
     }
 
+    public func createPoll(question: String, options: [String], closesAt: Date?) async throws {
+        var parameters: [String: AnyEncodable] = [
+            "p_question": AnyEncodable(question),
+            "p_options": AnyEncodable(options),
+        ]
+        if let closesAt {
+            parameters["p_closes_at"] = AnyEncodable(
+                closesAt.formatted(.iso8601)
+            )
+        }
+        // Discards the returned id: the list is reloaded straight afterwards.
+        try await client.rpcVoid("create_poll", parameters: parameters)
+    }
+
     public func isLeagueMember() async -> Bool {
         // RLS returns the caller's own profile and nothing else, so a row here
         // means "invited and signed in".

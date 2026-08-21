@@ -6,6 +6,7 @@ import CartelCore
 struct PollsView: View {
     @Environment(AppEnvironment.self) private var environment
     @State private var model = PollsViewModel()
+    @State private var isComposing = false
 
     var body: some View {
         NavigationStack {
@@ -20,6 +21,24 @@ struct PollsView: View {
             }
             .screenStyle()
             .navigationTitle("Polls")
+            .toolbar {
+                // Any member can start one, so this is not gated on being the
+                // commissioner — only on being signed in at all.
+                if environment.isLeagueMember {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            isComposing = true
+                        } label: {
+                            Label("New poll", systemImage: "square.and.pencil")
+                        }
+                    }
+                }
+            }
+            .sheet(isPresented: $isComposing) {
+                CreatePollView {
+                    await model.load(using: environment, showSpinner: false)
+                }
+            }
             // Keyed on the session: polls require a signed-in member, and
             // restoration finishes after this view first appears. A bare
             // .task would load once while signed out, hit a permission error,

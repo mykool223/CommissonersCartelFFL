@@ -180,6 +180,48 @@ begin
 end $$;
 
 \echo ''
+\echo '--- creating polls ---'
+do $$
+declare
+    member   constant text := '22222222-2222-2222-2222-222222222222';
+    outsider constant text := '33333333-3333-3333-3333-333333333333';
+    v_id     uuid;
+begin
+    -- Any member, not only a commissioner: the league wanted polls to come
+    -- from anyone.
+    perform set_config('request.jwt.claim.sub', member, true);
+    select public.create_poll('Best waiver pickup?', array['A','B','C']) into v_id;
+    perform assert(v_id is not null, 'an ordinary member can create a poll');
+    perform assert(
+        (select count(*) from public.poll_options where poll_id = v_id) = 3,
+        'the options are created with it'
+    );
+    perform assert(
+        (select created_by from public.polls where id = v_id) = member::uuid,
+        'the author is taken from the session, not the client'
+    );
+
+    -- Blank boxes are normal in a form with a fixed number of fields.
+    select public.create_poll('Two of three?', array['A','','B']) into v_id;
+    perform assert(
+        (select count(*) from public.poll_options where poll_id = v_id) = 2,
+        'blank options are dropped rather than rejected'
+    );
+
+    perform assert(blocked($q$ select public.create_poll('One?', array['Only one']) $q$),
+                   'a poll with one option is refused');
+    perform assert(blocked($q$ select public.create_poll('', array['A','B']) $q$),
+                   'a poll with no question is refused');
+    perform assert(blocked($q$
+        select public.create_poll('Past?', array['A','B'], now() - interval '1 hour') $q$),
+        'a closing time in the past is refused');
+
+    perform set_config('request.jwt.claim.sub', outsider, true);
+    perform assert(blocked($q$ select public.create_poll('Sneaky?', array['A','B']) $q$),
+                   'a non-member cannot create a poll');
+end $$;
+
+\echo ''
 \echo '--- anon (the key shipped in the app) ---'
 reset role;
 set role anon;
