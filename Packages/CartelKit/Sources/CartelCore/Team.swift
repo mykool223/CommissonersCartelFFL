@@ -11,6 +11,8 @@ public struct Team: Identifiable, Hashable, Sendable, Codable {
     public let record: TeamRecord
     /// Standings position as ESPN computes it. Nil before the season starts.
     public let playoffSeed: Int?
+    /// Which division the team belongs to. Nil in leagues without divisions.
+    public let divisionID: Int?
 
     public init(
         id: Int,
@@ -19,7 +21,8 @@ public struct Team: Identifiable, Hashable, Sendable, Codable {
         logoURL: URL? = nil,
         ownerIDs: [String] = [],
         record: TeamRecord = .empty,
-        playoffSeed: Int? = nil
+        playoffSeed: Int? = nil,
+        divisionID: Int? = nil
     ) {
         self.id = id
         self.name = name
@@ -28,6 +31,7 @@ public struct Team: Identifiable, Hashable, Sendable, Codable {
         self.ownerIDs = ownerIDs
         self.record = record
         self.playoffSeed = playoffSeed
+        self.divisionID = divisionID
     }
 }
 

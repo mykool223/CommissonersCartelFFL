@@ -49,6 +49,10 @@ public struct ESPNConfiguration: Sendable {
     /// when `baseURL` points at the `espn-proxy` edge function instead of ESPN.
     public let additionalHeaders: [String: String]
 
+    /// Base for rewriting cookie-protected team logos. Nil when talking to ESPN
+    /// directly, since the app has no way to authenticate an image request.
+    public let imageProxyBase: URL?
+
     /// The read-optimised host ESPN's own web client uses. The older
     /// `fantasy.espn.com` host still works but is slower and rate-limited harder.
     public static let defaultBaseURL = URL(string: "https://lm-api-reads.fantasy.espn.com")!
@@ -59,7 +63,8 @@ public struct ESPNConfiguration: Sendable {
         credentials: ESPNCredentials? = nil,
         cacheTTL: Duration = .seconds(120),
         baseURL: URL = ESPNConfiguration.defaultBaseURL,
-        additionalHeaders: [String: String] = [:]
+        additionalHeaders: [String: String] = [:],
+        imageProxyBase: URL? = nil
     ) {
         self.leagueID = leagueID
         self.season = season
@@ -67,6 +72,7 @@ public struct ESPNConfiguration: Sendable {
         self.cacheTTL = cacheTTL
         self.baseURL = baseURL
         self.additionalHeaders = additionalHeaders
+        self.imageProxyBase = imageProxyBase
     }
 
     /// Routes requests through the `espn-proxy` edge function, which holds the
@@ -85,7 +91,13 @@ public struct ESPNConfiguration: Sendable {
             credentials: nil,
             cacheTTL: cacheTTL,
             baseURL: supabaseURL.appending(path: "/functions/v1/espn-proxy"),
-            additionalHeaders: ["Authorization": "Bearer \(accessToken)"]
+            additionalHeaders: ["Authorization": "Bearer \(accessToken)"],
+            // Uploaded logos 401 without ESPN cookies, so they go through the
+            // same function. Fetching them needs the same Authorization header
+            // as any other call, which is why the app loads logos with
+            // URLSession rather than AsyncImage — AsyncImage cannot set headers,
+            // and Supabase rejects the request before the function ever runs.
+            imageProxyBase: supabaseURL.appending(path: "/functions/v1/espn-proxy")
         )
     }
 

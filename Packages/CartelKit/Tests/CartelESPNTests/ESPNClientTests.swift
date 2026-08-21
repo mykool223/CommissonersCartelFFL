@@ -429,3 +429,84 @@ struct ESPNPreseasonTests {
         #expect(!league.isPlayoffs)
     }
 }
+
+@Suite("Divisions and logos")
+struct ESPNDivisionAndLogoTests {
+    private static let proxyBase = URL(string: "https://abc.supabase.co/functions/v1/espn-proxy")!
+
+    private func client(imageProxy: URL? = nil) throws -> ESPNClient {
+        let data = try Fixture.data("preseason")
+        return ESPNClient(
+            configuration: ESPNConfiguration(
+                leagueID: "1", season: 2026, imageProxyBase: imageProxy
+            ),
+            transport: StubTransport(data: data)
+        )
+    }
+
+    @Test("Divisions map off the schedule settings")
+    func divisions() async throws {
+        let league = try await client().league()
+        #expect(league.hasDivisions)
+        #expect(league.divisions.map(\.name) == ["Division A", "Division B"])
+        #expect(league.divisions.map(\.id) == [0, 1])
+    }
+
+    @Test("Teams carry their division id")
+    func teamDivisions() async throws {
+        let teams = try await client().teams()
+        #expect(teams[0].divisionID == 0)
+        #expect(teams[1].divisionID == 1)
+    }
+
+    @Test("A league without divisions reports none")
+    func noDivisions() async throws {
+        // The mid-season fixture has no divisions block at all.
+        let league = try await makeClient().league()
+        #expect(league.divisions.isEmpty)
+        #expect(!league.hasDivisions)
+    }
+
+    /// Public CDN logos need no help and must not be rewritten — routing them
+    /// through the proxy would 400, since the function only allows ESPN's own
+    /// image path.
+    @Test("Public CDN logos are left alone")
+    func publicLogoUntouched() async throws {
+        let teams = try await client(imageProxy: Self.proxyBase).teams()
+        #expect(teams[0].logoURL?.absoluteString == "https://example.com/a.png")
+    }
+
+    @Test("Uploaded logos are rewritten through the proxy")
+    func uploadedLogoIsProxied() throws {
+        let dto = ESPNLeagueResponse.TeamDTO(
+            id: 1, abbrev: "A", name: "A", location: nil, nickname: nil,
+            logo: "https://mystique-api.fantasy.espn.com/apis/v1/domains/lm/images/abc123",
+            owners: nil, primaryOwner: nil, playoffSeed: nil, divisionId: nil, record: nil
+        )
+        let url = ESPNMapper.logoURL(for: dto, imageProxyBase: Self.proxyBase)
+        #expect(url?.absoluteString ==
+                "https://abc.supabase.co/functions/v1/espn-proxy/apis/v1/domains/lm/images/abc123")
+    }
+
+    /// Without a proxy the app has no way to authenticate the request, so
+    /// reporting no logo beats handing the UI a URL that always 401s.
+    @Test("Uploaded logos report nil when there is no proxy")
+    func uploadedLogoWithoutProxy() throws {
+        let dto = ESPNLeagueResponse.TeamDTO(
+            id: 1, abbrev: "A", name: "A", location: nil, nickname: nil,
+            logo: "https://mystique-api.fantasy.espn.com/apis/v1/domains/lm/images/abc123",
+            owners: nil, primaryOwner: nil, playoffSeed: nil, divisionId: nil, record: nil
+        )
+        #expect(ESPNMapper.logoURL(for: dto, imageProxyBase: nil) == nil)
+    }
+
+    @Test("A team with no logo stays nil")
+    func missingLogo() throws {
+        let dto = ESPNLeagueResponse.TeamDTO(
+            id: 1, abbrev: "A", name: "A", location: nil, nickname: nil,
+            logo: nil, owners: nil, primaryOwner: nil, playoffSeed: nil,
+            divisionId: nil, record: nil
+        )
+        #expect(ESPNMapper.logoURL(for: dto, imageProxyBase: Self.proxyBase) == nil)
+    }
+}

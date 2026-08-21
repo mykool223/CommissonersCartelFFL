@@ -19,6 +19,7 @@
 		52336F7120F8E612A2A04EBB /* MemberDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C25E5646CF454142CCA9E361 /* MemberDetailView.swift */; };
 		65F8592486F245A19B3066DF /* CommissionersCartelApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D256F9DE3A680438DD5AE32 /* CommissionersCartelApp.swift */; };
 		6B997AC61DA6A4FF0F83170F /* SplashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FCB96C6D0B45F65D335B2F0 /* SplashView.swift */; };
+		6BE2AE9F104DD5C28320496A /* TeamLogoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAE8F39CCE2C0B567F46F6B9 /* TeamLogoView.swift */; };
 		72C5C8E3896104D244C9B4B5 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FD2A5DD48CE6331EFA0E30A /* Theme.swift */; };
 		76513565B7F0C8AEF2962505 /* MembersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D03469EA43F8E378196C04CA /* MembersView.swift */; };
 		7B0F47FD6B319E75B8BE692C /* NewsFeedViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2BB2006E986A9040A4FFD91A /* NewsFeedViewModel.swift */; };
@@ -58,6 +59,7 @@
 		D15561B9A02063BAAA0B9131 /* Formatters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Formatters.swift; sourceTree = "<group>"; };
 		D3EA656F6D507B3748C1377F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		D7DB9556C510CA5B9958FBD1 /* MembersViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MembersViewModel.swift; sourceTree = "<group>"; };
+		DAE8F39CCE2C0B567F46F6B9 /* TeamLogoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TeamLogoView.swift; sourceTree = "<group>"; };
 		DEBB7DEF09A6C7CC04FDE783 /* CommissionersCartel.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = CommissionersCartel.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		F225F33D365B0F36C742B203 /* PollsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PollsView.swift; sourceTree = "<group>"; };
 		FAA13BA485C41B4F90F30286 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
@@ -208,6 +210,7 @@
 			children = (
 				D15561B9A02063BAAA0B9131 /* Formatters.swift */,
 				6169B7B9F9F50A43F4E6F14A /* StateViews.swift */,
+				DAE8F39CCE2C0B567F46F6B9 /* TeamLogoView.swift */,
 				7FD2A5DD48CE6331EFA0E30A /* Theme.swift */,
 			);
 			path = DesignSystem;
@@ -318,6 +321,7 @@
 				2B08802C61FFA4EDBAC0B1D8 /* SettingsView.swift in Sources */,
 				6B997AC61DA6A4FF0F83170F /* SplashView.swift in Sources */,
 				DF1DC7BCF83E1E3EE2256B45 /* StateViews.swift in Sources */,
+				6BE2AE9F104DD5C28320496A /* TeamLogoView.swift in Sources */,
 				72C5C8E3896104D244C9B4B5 /* Theme.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

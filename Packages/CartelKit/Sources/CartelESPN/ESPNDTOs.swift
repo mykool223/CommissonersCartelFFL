@@ -27,6 +27,13 @@ struct ESPNLeagueResponse: Decodable {
 
         struct ScheduleSettings: Decodable {
             let matchupPeriodCount: Int?
+            let divisions: [DivisionDTO]?
+        }
+
+        struct DivisionDTO: Decodable {
+            let id: Int
+            let name: String?
+            let size: Int?
         }
     }
 
@@ -50,6 +57,7 @@ struct ESPNLeagueResponse: Decodable {
         let owners: [String]?
         let primaryOwner: String?
         let playoffSeed: Int?
+        let divisionId: Int?
         let record: RecordDTO?
 
         struct RecordDTO: Decodable {

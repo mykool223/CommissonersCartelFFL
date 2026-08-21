@@ -11,13 +11,17 @@ enum ESPNMapper {
         // `currentMatchupPeriod` runs ahead of reality once the season ends, so
         // clamp it to the schedule length we know about.
         let current = dto.status?.currentMatchupPeriod ?? 1
+        let divisions = (dto.settings?.scheduleSettings?.divisions ?? []).map {
+            Division(id: $0.id, name: $0.name ?? "Division \($0.id + 1)", size: $0.size ?? 0)
+        }
         return League(
             id: String(dto.id),
             name: dto.settings?.name ?? "Fantasy League",
             season: dto.seasonId ?? fallbackSeason,
             currentWeek: max(1, current),
             regularSeasonWeeks: regularSeasonWeeks,
-            teamCount: dto.teams?.count ?? 0
+            teamCount: dto.teams?.count ?? 0,
+            divisions: divisions
         )
     }
 
@@ -37,21 +41,48 @@ enum ESPNMapper {
         }
     }
 
-    static func teams(from dto: ESPNLeagueResponse) -> [Team] {
+    /// - Parameter imageProxyBase: when set, logos that ESPN serves behind
+    ///   authentication are rewritten to go through the proxy, which holds the
+    ///   cookies. Public CDN logos are left alone.
+    static func teams(from dto: ESPNLeagueResponse, imageProxyBase: URL? = nil) -> [Team] {
         (dto.teams ?? []).map { team in
             Team(
                 id: team.id,
                 name: displayName(for: team),
                 abbreviation: team.abbrev ?? "T\(team.id)",
-                logoURL: team.logo.flatMap(URL.init(string:)),
+                logoURL: logoURL(for: team, imageProxyBase: imageProxyBase),
                 ownerIDs: ownerIDs(for: team),
                 record: record(from: team.record?.overall),
                 // ESPN reports 0 before the season starts, not null. Treated as
                 // a real seed it renders as "#0" and makes the standings sort
                 // meaningless, since every team ties at zero.
-                playoffSeed: (team.playoffSeed ?? 0) > 0 ? team.playoffSeed : nil
+                playoffSeed: (team.playoffSeed ?? 0) > 0 ? team.playoffSeed : nil,
+                divisionID: team.divisionId
             )
         }
+    }
+
+    /// ESPN serves team logos from two places, and they behave differently.
+    ///
+    /// Logos a manager uploaded live on `mystique-api.fantasy.espn.com` and
+    /// return **401 without session cookies** — so the app cannot fetch them
+    /// directly. Those get rewritten through the proxy, which has the cookies.
+    ///
+    /// Everything else comes from the public `g.espncdn.com` CDN and needs no
+    /// help. (Those are SVGs, which SwiftUI cannot render — the UI falls back
+    /// to initials for them.)
+    static func logoURL(
+        for team: ESPNLeagueResponse.TeamDTO,
+        imageProxyBase: URL?
+    ) -> URL? {
+        guard let raw = team.logo, let url = URL(string: raw) else { return nil }
+        guard let host = url.host(), host.contains("mystique") else { return url }
+        guard let base = imageProxyBase else {
+            // Without a proxy this would 401, so report no logo rather than
+            // leaving the UI to fail a fetch it can never satisfy.
+            return nil
+        }
+        return base.appending(path: url.path())
     }
 
     /// ESPN moved from `location` + `nickname` to a single `name` field around

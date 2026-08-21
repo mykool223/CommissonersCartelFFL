@@ -47,7 +47,11 @@ struct MemberDetailView: View {
 
     private var header: some View {
         VStack(spacing: Theme.Spacing.small) {
-            InitialsAvatar(initials: entry.manager.initials, size: 72)
+            TeamLogoView(
+                logoURL: entry.team?.logoURL,
+                fallbackInitials: entry.manager.initials,
+                size: 72
+            )
             Text(entry.team?.name ?? entry.manager.fullName)
                 .font(.title3.bold())
                 .multilineTextAlignment(.center)

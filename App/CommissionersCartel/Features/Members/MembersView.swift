@@ -20,12 +20,17 @@ struct MembersView: View {
                         state: model.state,
                         emptyMessage: "No managers found in this league.",
                         retry: { await model.load(using: environment) }
-                    ) { entries in
-                        ForEach(entries) { entry in
-                            NavigationLink(value: entry.manager.id) {
-                                MemberRow(entry: entry)
+                    ) { groups in
+                        ForEach(groups) { group in
+                            if let title = group.title {
+                                DivisionHeader(title: title, teamCount: group.entries.count)
                             }
-                            .buttonStyle(.plain)
+                            ForEach(group.entries) { entry in
+                                NavigationLink(value: entry.manager.id) {
+                                    MemberRow(entry: entry)
+                                }
+                                .buttonStyle(.plain)
+                            }
                         }
                     }
                 }
@@ -34,7 +39,7 @@ struct MembersView: View {
             .screenStyle()
             .navigationTitle("Members")
             .navigationDestination(for: String.self) { managerID in
-                if let entry = model.state.value?.first(where: { $0.id == managerID }) {
+                if let entry = model.allEntries.first(where: { $0.id == managerID }) {
                     MemberDetailView(entry: entry)
                 } else {
                     EmptyStateView(message: "That member is no longer in the league.")
@@ -43,6 +48,26 @@ struct MembersView: View {
             .refreshable { await model.load(using: environment, showSpinner: false) }
             .task { await model.load(using: environment) }
         }
+    }
+}
+
+/// Divider between divisions. Deliberately not a pinned section header — the
+/// list is twelve rows, and a sticky header would cost more than it gives.
+private struct DivisionHeader: View {
+    let title: String
+    let teamCount: Int
+
+    var body: some View {
+        HStack(spacing: Theme.Spacing.small) {
+            Text(title)
+                .font(.subheadline.weight(.semibold))
+            Text("\(teamCount)")
+                .font(.caption.monospacedDigit())
+                .foregroundStyle(.secondary)
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, Theme.Spacing.tight)
+        .padding(.top, Theme.Spacing.small)
     }
 }
 
@@ -59,7 +84,10 @@ private struct MemberRow: View {
                         .frame(width: 20)
                 }
 
-                InitialsAvatar(initials: entry.manager.initials)
+                TeamLogoView(
+                    logoURL: entry.team?.logoURL,
+                    fallbackInitials: entry.manager.initials
+                )
 
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: Theme.Spacing.small) {

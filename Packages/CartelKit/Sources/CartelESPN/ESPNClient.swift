@@ -45,7 +45,10 @@ public actor ESPNClient: LeagueDataSource {
     }
 
     public func teams() async throws -> [Team] {
-        ESPNMapper.teams(from: try await payload())
+        ESPNMapper.teams(
+            from: try await payload(),
+            imageProxyBase: configuration.imageProxyBase
+        )
     }
 
     public func matchups(week: Int) async throws -> [Matchup] {

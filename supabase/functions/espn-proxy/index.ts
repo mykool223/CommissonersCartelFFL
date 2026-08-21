@@ -25,6 +25,13 @@ const ESPN_PATH_MARKER = "/apis/";
 // would be an open relay to any ESPN URL an attacker chose.
 const ALLOWED_PATH = /^\/apis\/v3\/games\/ffl\/seasons\/\d{4}\/segments\/0\/leagues\/\d+$/;
 
+// Uploaded team logos. ESPN serves these from a different host and returns 401
+// without session cookies, so the app cannot fetch them directly. Stock logos
+// come from the public CDN and never reach this function.
+const ALLOWED_IMAGE_PATH =
+  /^\/apis\/v1\/domains\/lm\/images\/[A-Za-z0-9-]+$/;
+const ESPN_IMAGE_HOST = "https://mystique-api.fantasy.espn.com";
+
 const ALLOWED_VIEWS = new Set([
   "mSettings",
   "mTeam",
@@ -106,7 +113,9 @@ Deno.serve(async (request: Request) => {
     ? url.pathname.slice(markerIndex)
     : url.pathname;
 
-  if (!ALLOWED_PATH.test(path)) {
+  const isImage = ALLOWED_IMAGE_PATH.test(path);
+
+  if (!isImage && !ALLOWED_PATH.test(path)) {
     return json({ message: `Path not allowed: ${path}` }, 400);
   }
 
@@ -125,7 +134,7 @@ Deno.serve(async (request: Request) => {
   }
   // No secrets configured is fine for a public league — just forward without.
 
-  const target = new URL(ESPN_HOST + path);
+  const target = new URL((isImage ? ESPN_IMAGE_HOST : ESPN_HOST) + path);
   for (const view of views) {
     target.searchParams.append("view", view);
   }
@@ -135,6 +144,19 @@ Deno.serve(async (request: Request) => {
     upstream = await fetch(target, { headers });
   } catch (error) {
     return json({ message: `Could not reach ESPN: ${error}` }, 502);
+  }
+
+  // Images are binary, so they must not go through .text().
+  if (isImage) {
+    return new Response(upstream.body, {
+      status: upstream.status,
+      headers: {
+        ...CORS_HEADERS,
+        "Content-Type": upstream.headers.get("Content-Type") ?? "image/jpeg",
+        // Logos change rarely; a day of caching keeps them off ESPN entirely.
+        "Cache-Control": "public, max-age=86400",
+      },
+    });
   }
 
   const body = await upstream.text();

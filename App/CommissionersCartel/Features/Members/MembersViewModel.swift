@@ -14,13 +14,25 @@ final class MembersViewModel {
         var id: String { manager.id }
     }
 
-    private(set) var state: Loadable<[Entry]> = .idle
+    /// Entries grouped under a division heading. A league without divisions
+    /// produces a single unnamed group, so the view renders one flat list
+    /// without needing a separate code path.
+    struct Group: Identifiable {
+        let division: Division?
+        let entries: [Entry]
+
+        var id: Int { division?.id ?? -1 }
+        var title: String? { division?.name }
+    }
+
+    private(set) var state: Loadable<[Group]> = .idle
 
     func load(using environment: AppEnvironment, showSpinner: Bool = true) async {
         if showSpinner, state.isInitialLoad { state = .loading }
 
         let leagueData = environment.leagueData
-        let result = await loadState { () -> [Entry] in
+        let result = await loadState { () -> [Group] in
+            async let league = leagueData.league()
             async let managers = leagueData.managers()
             async let teams = leagueData.teams()
 
@@ -33,7 +45,7 @@ final class MembersViewModel {
                 }
             }
 
-            return try await managers
+            let entries = try await managers
                 .map { Entry(manager: $0, team: teamByOwner[$0.id]) }
                 // Standings order where ESPN gives us one. Before the season
                 // starts every seed is absent, so fall back to record and then
@@ -57,8 +69,36 @@ final class MembersViewModel {
                         return lhs.manager.fullName < rhs.manager.fullName
                     }
                 }
+
+            let divisions = try await league.divisions
+            guard divisions.count > 1 else {
+                return [Group(division: nil, entries: entries)]
+            }
+
+            // Managers whose team ESPN did not place in a division would
+            // otherwise vanish from a grouped list entirely.
+            var grouped = divisions.map { division in
+                Group(
+                    division: division,
+                    entries: entries.filter { $0.team?.divisionID == division.id }
+                )
+            }
+            let knownIDs = Set(divisions.map(\.id))
+            let ungrouped = entries.filter { entry in
+                guard let id = entry.team?.divisionID else { return true }
+                return !knownIDs.contains(id)
+            }
+            if !ungrouped.isEmpty {
+                grouped.append(Group(division: nil, entries: ungrouped))
+            }
+            return grouped.filter { !$0.entries.isEmpty }
         }
 
         if let result { state = result }
+    }
+
+    /// Flattened, for the navigation destination lookup.
+    var allEntries: [Entry] {
+        state.value?.flatMap(\.entries) ?? []
     }
 }

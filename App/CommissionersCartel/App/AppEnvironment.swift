@@ -23,6 +23,18 @@ final class AppEnvironment {
 
     var season: Int { configuration.season }
 
+    /// Headers required to fetch team logos through the proxy. Empty when
+    /// talking to ESPN directly, where uploaded logos are unreachable anyway.
+    var espnImageHeaders: [String: String] {
+        guard configuration.usesESPNProxy, !configuration.supabaseAnonKey.isEmpty else {
+            return [:]
+        }
+        return [
+            "Authorization": "Bearer \(configuration.supabaseAnonKey)",
+            "apikey": configuration.supabaseAnonKey,
+        ]
+    }
+
     init(
         configuration: AppConfiguration,
         leagueData: (any LeagueDataSource)? = nil,
