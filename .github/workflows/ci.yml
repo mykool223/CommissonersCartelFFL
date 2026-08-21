@@ -15,7 +15,7 @@ jobs:
     name: CartelKit tests
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Show toolchain
         run: swift --version
@@ -31,7 +31,7 @@ jobs:
     name: Build iOS app
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Install XcodeGen
         run: brew install xcodegen
@@ -64,7 +64,7 @@ jobs:
     name: SwiftLint
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - name: Install SwiftLint
         run: brew install swiftlint
       # Style should not block a fix from landing, so this reports but does not fail.
