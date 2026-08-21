@@ -48,19 +48,17 @@ jobs:
             exit 1
           fi
 
+      # 'generic/platform=iOS Simulator' rather than a named device: runner
+      # images rotate which simulators they ship, and pinning to one means the
+      # build breaks on a device name rather than on the code.
       - name: Build
         run: |
-          set -o pipefail
           xcodebuild build \
             -project CommissionersCartel.xcodeproj \
             -scheme CommissionersCartel \
-            -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest' \
+            -destination 'generic/platform=iOS Simulator' \
             CODE_SIGNING_ALLOWED=NO \
-            | xcbeautify || xcodebuild build \
-              -project CommissionersCartel.xcodeproj \
-              -scheme CommissionersCartel \
-              -destination 'generic/platform=iOS Simulator' \
-              CODE_SIGNING_ALLOWED=NO
+            -quiet
 
   lint:
     name: SwiftLint
