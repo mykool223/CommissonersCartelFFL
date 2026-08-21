@@ -23,6 +23,8 @@ port = 54323
 
 [auth]
 enabled = true
+# Where the emailed magic link sends people back to. A custom URL scheme, so
+# the link opens the app directly rather than a web page.
 site_url = "commissionerscartel://auth-callback"
 additional_redirect_urls = ["commissionerscartel://auth-callback"]
 jwt_expiry = 3600
@@ -30,7 +32,8 @@ enable_signup = true
 
 [auth.email]
 enable_signup = true
-# Magic links suit a 12-person league better than passwords.
+# Magic links suit a 12-person league better than passwords: nothing to choose,
+# forget, or reset, and no password to leak.
 enable_confirmations = true
 
 [functions.espn-proxy]

@@ -19,6 +19,15 @@ final class AppEnvironment {
     /// when the league itself is running on sample data.
     let nflScoreboard: any NFLScoreboardSource
 
+    /// Nil when Supabase is not configured, in which case the app runs
+    /// signed-out on sample content.
+    let auth: SupabaseAuth?
+    /// The signed-in member, or nil. Observed by the UI.
+    private(set) var session: AuthSession?
+    /// True once the stored session has been checked, so the UI does not flash
+    /// a sign-in screen at someone who is already signed in.
+    private(set) var hasCheckedSession = false
+
     /// True when either backend is running on sample data, so the UI can say so
     /// rather than quietly showing fake standings as if they were real.
     private(set) var isUsingMockLeagueData: Bool
@@ -64,22 +73,58 @@ final class AppEnvironment {
         }
 
         if let content {
+            self.auth = nil
             self.content = content
             self.isUsingMockContent = false
         } else if let url = configuration.supabaseURL, configuration.hasSupabase, !forceMock {
+            let supabase = SupabaseConfiguration(url: url, anonKey: configuration.supabaseAnonKey)
+            let auth = SupabaseAuth(configuration: supabase, store: KeychainSessionStore())
+            self.auth = auth
             self.content = SupabaseContentRepository(
                 client: SupabaseClient(
-                    configuration: SupabaseConfiguration(
-                        url: url, anonKey: configuration.supabaseAnonKey
-                    )
+                    configuration: supabase,
+                    // Read per request rather than captured once, so a token
+                    // refreshed mid-session is picked up without rebuilding
+                    // anything.
+                    accessToken: { await auth.accessToken() }
                 )
             )
             self.isUsingMockContent = false
         } else {
+            self.auth = nil
             self.content = MockContentRepository()
             self.isUsingMockContent = true
         }
     }
+
+    // MARK: - Sign-in
+
+    /// Restores a stored session at launch.
+    func restoreSession() async {
+        session = await auth?.currentSession()
+        hasCheckedSession = true
+    }
+
+    /// Emails a sign-in link.
+    func sendMagicLink(to email: String) async throws {
+        guard let auth else {
+            throw CartelError.notConfigured("Supabase isn't set up in this build.")
+        }
+        try await auth.sendMagicLink(to: email)
+    }
+
+    /// Completes sign-in from the URL the emailed link opens.
+    func handleAuthCallback(url: URL) async throws {
+        guard let auth else { return }
+        session = try await auth.handleCallback(url: url)
+    }
+
+    func signOut() async {
+        await auth?.signOut()
+        session = nil
+    }
+
+    var isSignedIn: Bool { session != nil }
 
     /// Rebuilds the ESPN client after credentials change in Settings, so a
     /// private league starts working without relaunching the app.

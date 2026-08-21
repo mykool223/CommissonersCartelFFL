@@ -14,9 +14,35 @@ struct SettingsView: View {
     @State private var swid: String = KeychainStore.string(for: .espnSWID) ?? ""
     @State private var didSave = false
 
+    @State private var isShowingSignIn = false
+
     var body: some View {
         NavigationStack {
             Form {
+                Section {
+                    if let session = environment.session {
+                        LabeledContent("Signed in as", value: session.email ?? "this device")
+                        Button("Sign out", role: .destructive) {
+                            Task { await environment.signOut() }
+                        }
+                    } else {
+                        Button {
+                            isShowingSignIn = true
+                        } label: {
+                            Label("Sign in", systemImage: "person.crop.circle.badge.plus")
+                        }
+                        .disabled(environment.auth == nil)
+                    }
+                } header: {
+                    Text("Account")
+                } footer: {
+                    if environment.auth == nil {
+                        Text("Connect Supabase to enable sign-in.")
+                    } else if environment.session == nil {
+                        Text("Sign in to vote in polls and see who's who. Everything else works signed out.")
+                    }
+                }
+
                 Section("League") {
                     LabeledContent("Season", value: String(environment.season))
                     LabeledContent(
@@ -93,6 +119,7 @@ struct SettingsView: View {
                 }
             }
             .navigationTitle("Settings")
+            .sheet(isPresented: $isShowingSignIn) { SignInView() }
             .alert("Saved", isPresented: $didSave) {
                 Button("OK", role: .cancel) {}
             } message: {

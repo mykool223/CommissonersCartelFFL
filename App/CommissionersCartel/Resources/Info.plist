@@ -55,5 +55,19 @@
 	<string>$(SUPABASE_ANON_KEY)</string>
 	<key>ESPNViaProxy</key>
 	<string>$(ESPN_VIA_PROXY)</string>
+
+	<!-- The magic link redirects here, which is what opens the app from the
+	     email. Must match the redirect URL allowed in supabase/config.toml. -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.commissionerscartel.app</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>commissionerscartel</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>

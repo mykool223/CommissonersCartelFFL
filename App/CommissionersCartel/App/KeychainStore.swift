@@ -1,3 +1,4 @@
+import CartelCore
 import Foundation
 import OSLog
 import Security
@@ -10,6 +11,7 @@ enum KeychainStore {
     enum Key: String {
         case espnS2 = "espn_s2"
         case espnSWID = "espn_swid"
+        case authSession = "auth_session"
     }
 
     private static let service = "com.commissionerscartel.credentials"
@@ -118,3 +120,41 @@ extension KeychainStore {
     }
 }
 #endif
+
+
+/// Keeps the Supabase session in the Keychain.
+///
+/// A refresh token is a long-lived credential — anyone holding it can mint
+/// access tokens until it is revoked — so it does not belong in UserDefaults,
+/// which is readable from a device backup.
+actor KeychainSessionStore: SessionStore {
+    private let log = Logger(subsystem: "com.commissionerscartel.app", category: "auth")
+
+    func load() async -> AuthSession? {
+        guard let raw = KeychainStore.string(for: .authSession),
+              let data = raw.data(using: .utf8)
+        else { return nil }
+        do {
+            return try JSONDecoder().decode(AuthSession.self, from: data)
+        } catch {
+            // A session that cannot be decoded is worse than none: it would
+            // fail every request forever. Drop it and make the user sign in.
+            log.error("Stored session could not be decoded, clearing it: \(error)")
+            KeychainStore.set(nil, for: .authSession)
+            return nil
+        }
+    }
+
+    func save(_ session: AuthSession) async {
+        guard let data = try? JSONEncoder().encode(session),
+              let raw = String(data: data, encoding: .utf8)
+        else { return }
+        if !KeychainStore.set(raw, for: .authSession) {
+            log.error("Could not write the session to the Keychain")
+        }
+    }
+
+    func clear() async {
+        KeychainStore.set(nil, for: .authSession)
+    }
+}

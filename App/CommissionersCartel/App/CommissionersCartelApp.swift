@@ -9,6 +9,20 @@ struct CommissionersCartelApp: App {
     /// Kept as a factory so debug credential seeding happens *before* the
     /// environment is constructed — AppEnvironment reads the Keychain when it
     /// builds the ESPN client, so seeding afterwards would be a launch too late.
+    #if DEBUG
+    /// Reads `-name value` out of argv. Not UserDefaults: it parses values that
+    /// look like property lists, and a URL with a fragment is close enough to
+    /// trip it.
+    static func launchArgument(_ name: String) -> String? {
+        let arguments = ProcessInfo.processInfo.arguments
+        guard let index = arguments.firstIndex(of: "-\(name)"),
+              arguments.index(after: index) < arguments.endIndex
+        else { return nil }
+        let value = arguments[arguments.index(after: index)]
+        return value.isEmpty ? nil : value
+    }
+    #endif
+
     private static func makeEnvironment() -> AppEnvironment {
         #if DEBUG
         KeychainStore.seedFromLaunchArgumentsIfNeeded()
@@ -20,6 +34,22 @@ struct CommissionersCartelApp: App {
         WindowGroup {
             RootContainerView()
                 .environment(environment)
+                .task {
+                    await environment.restoreSession()
+                    #if DEBUG
+                    // `-authCallback <url>` completes sign-in without tapping
+                    // through the system's "Open in Cartel?" prompt, which
+                    // cannot be automated. Debug builds only.
+                    if let raw = CommissionersCartelApp.launchArgument("authCallback"),
+                       let url = URL(string: raw) {
+                        try? await environment.handleAuthCallback(url: url)
+                    }
+                    #endif
+                }
+                .onOpenURL { url in
+                    // The emailed magic link lands here.
+                    Task { try? await environment.handleAuthCallback(url: url) }
+                }
         }
     }
 }

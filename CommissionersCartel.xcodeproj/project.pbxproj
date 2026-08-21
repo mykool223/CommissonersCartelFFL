@@ -14,6 +14,7 @@
 		2B08802C61FFA4EDBAC0B1D8 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAA13BA485C41B4F90F30286 /* SettingsView.swift */; };
 		2D06F93A1EA160D9EF648840 /* CartelESPN in Frameworks */ = {isa = PBXBuildFile; productRef = 6E0714EA86BA5918D9AB8AE2 /* CartelESPN */; };
 		31A809E0CA27524EC2EAA406 /* AppConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6400996C8909B068E1496C1C /* AppConfiguration.swift */; };
+		38B95E0B54C1885AC2758A7F /* SignInView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 722EC606D4D20DB5CACCE5E1 /* SignInView.swift */; };
 		4417DB5BC76A27D7892D3EB8 /* NewsPostDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C073D09C67256CF6F6B1711 /* NewsPostDetailView.swift */; };
 		4B45F6825D3EE456218A14E5 /* CartelCore in Frameworks */ = {isa = PBXBuildFile; productRef = 594DBDFAD60BBE9EF7E46561 /* CartelCore */; };
 		507E57CB1AC3A1CCA0648BDE /* KeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 457FE48CBCFD9A680A7A0B00 /* KeychainStore.swift */; };
@@ -55,6 +56,7 @@
 		6169B7B9F9F50A43F4E6F14A /* StateViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StateViews.swift; sourceTree = "<group>"; };
 		6400996C8909B068E1496C1C /* AppConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfiguration.swift; sourceTree = "<group>"; };
 		6685FC13C6BDCFF3928269DF /* SectionPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SectionPicker.swift; sourceTree = "<group>"; };
+		722EC606D4D20DB5CACCE5E1 /* SignInView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignInView.swift; sourceTree = "<group>"; };
 		7D337817B4D94977D9118686 /* Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Debug.xcconfig; sourceTree = "<group>"; };
 		7FD2A5DD48CE6331EFA0E30A /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		8D39D479E5AFA1FCB607E5ED /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
@@ -162,6 +164,7 @@
 			isa = PBXGroup;
 			children = (
 				FAA13BA485C41B4F90F30286 /* SettingsView.swift */,
+				722EC606D4D20DB5CACCE5E1 /* SignInView.swift */,
 			);
 			path = Settings;
 			sourceTree = "<group>";
@@ -333,6 +336,7 @@
 				0173B3B98B368FCABE7418E5 /* RootView.swift in Sources */,
 				BD2DBD997CF0F39A2D7FE030 /* SectionPicker.swift in Sources */,
 				2B08802C61FFA4EDBAC0B1D8 /* SettingsView.swift in Sources */,
+				38B95E0B54C1885AC2758A7F /* SignInView.swift in Sources */,
 				6B997AC61DA6A4FF0F83170F /* SplashView.swift in Sources */,
 				6D8C8AE37F76E495623A1128 /* StandingsView.swift in Sources */,
 				DF1DC7BCF83E1E3EE2256B45 /* StateViews.swift in Sources */,
