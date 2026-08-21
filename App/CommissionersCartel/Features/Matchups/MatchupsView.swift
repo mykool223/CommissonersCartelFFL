@@ -139,9 +139,15 @@ private struct TeamScoreRow: View {
     var body: some View {
         let team = board.team(side.teamID)
         HStack(spacing: Theme.Spacing.medium) {
-            // The whole abbreviation, not the first two letters — "BEAR" and
-            // "TRAP" are recognisable, "BE" and "TR" are not.
-            InitialsAvatar(initials: team?.abbreviation.uppercased() ?? "?", size: 34)
+            // Falls back to the whole abbreviation, not the first two letters —
+            // "BEAR" and "TRAP" are recognisable, "BE" and "TR" are not. Most
+            // teams land on that fallback: only managers who uploaded their own
+            // image have a logo the app can decode.
+            TeamLogoView(
+                logoURL: team?.logoURL,
+                fallbackInitials: team?.abbreviation.uppercased() ?? "?",
+                size: 34
+            )
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(team?.name ?? "Team \(side.teamID)")
