@@ -81,6 +81,9 @@ That split is also what lets every screen run on mock data. Views depend on
 | Deploy the ESPN proxy | `supabase functions deploy espn-proxy` |
 | Lint | `swiftlint` |
 
+Work happens on `dev`; `main` is the stable branch. See
+[CONTRIBUTING.md](CONTRIBUTING.md#branches).
+
 **Edit `project.yml`, not the `.xcodeproj`.** The project file is committed so
 the repo opens without extra tooling, but it's generated. CI fails a PR where
 the two have drifted.

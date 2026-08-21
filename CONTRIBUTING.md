@@ -12,6 +12,33 @@ open CommissionersCartel.xcodeproj
 
 ⌘R runs on sample data with no configuration.
 
+## Branches
+
+- **`dev`** — the default branch, and where work lands. Feature branches merge
+  here, and PRs target it automatically.
+- **`main`** — stable. Merge `dev` into it when the app is in a state you'd be
+  happy to install on your phone and leave there.
+
+```bash
+git switch dev && git pull
+git switch -c fix-bye-week-crash
+# ... work ...
+git push -u origin fix-bye-week-crash
+gh pr create            # targets dev automatically
+```
+
+The two branches are protected differently on purpose:
+
+| | `dev` | `main` |
+|---|---|---|
+| Force-push / delete | blocked | blocked |
+| CI must be green | no — it runs and reports | **yes** |
+
+`dev` is allowed to be briefly broken; that's what it's for. `main` is not.
+Both rules can be bypassed by a repo admin, so a direct push still works — you
+just get a `Bypassed rule violations` warning in the push output telling you
+that you did it.
+
 ## Before you open a PR
 
 ```bash
