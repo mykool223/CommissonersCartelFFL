@@ -87,10 +87,10 @@ different — the user needs to fix credentials, not retry.
 `Sendable` value types; the two stateful types (`ESPNClient`,
 `MockContentRepository`) are actors; view models are `@MainActor`.
 
-The **app target** is on Swift 5 language mode with
-`SWIFT_STRICT_CONCURRENCY = complete`, so concurrency problems appear as
-warnings rather than errors. To finish the migration, set `SWIFT_VERSION: "6.0"`
-in `project.yml` and fix what it flags.
+The **app target** is also on full Swift 6 language mode, with
+`SWIFT_STRICT_CONCURRENCY = complete`. It compiles with zero concurrency
+warnings. Don't drop `SWIFT_VERSION` back to `5.0` for convenience — that
+silently downgrades every data-race error to a warning.
 
 ## Testing strategy
 

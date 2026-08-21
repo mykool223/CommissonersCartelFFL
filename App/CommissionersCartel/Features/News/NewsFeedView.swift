@@ -10,6 +10,11 @@ struct NewsFeedView: View {
         NavigationStack {
             ScrollView {
                 LazyVStack(spacing: Theme.Spacing.medium) {
+                    // Masthead. Scrolls away rather than pinning, so it sets the
+                    // tone without permanently costing a third of the screen.
+                    LeagueCrest(size: 132)
+                        .padding(.bottom, Theme.Spacing.tight)
+
                     if environment.isUsingMockContent {
                         SampleDataBanner(
                             detail: "Showing sample posts. Connect Supabase in Settings to publish real ones."
@@ -33,6 +38,7 @@ struct NewsFeedView: View {
             }
             .screenStyle()
             .navigationTitle("League News")
+            .navigationBarTitleDisplayMode(.inline)
             .navigationDestination(for: NewsPost.self) { NewsPostDetailView(post: $0) }
             .refreshable { await model.load(using: environment, showSpinner: false) }
             .task { await model.load(using: environment) }

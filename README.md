@@ -110,6 +110,7 @@ league.
 - [x] Polls with optimistic voting
 - [x] League members and manager detail
 - [x] Settings with Keychain-stored ESPN credentials
+- [x] League crest as the app icon, and brand gold throughout
 - [ ] Writing posts and polls from inside the app (read-only today)
 - [ ] Sign-in — see [docs/ROADMAP.md](docs/ROADMAP.md)
 - [ ] Push notifications

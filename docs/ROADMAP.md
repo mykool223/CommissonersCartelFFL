@@ -56,12 +56,12 @@ triggered on insert. Worth doing once people actually use the app.
 
 - **No snapshot tests.** Views are covered only by `#Preview`, including
   failure states via `AppEnvironment.previewFailing()`.
-- **App target is Swift 5 language mode.** `CartelKit` is fully Swift 6. To
-  finish: set `SWIFT_VERSION: "6.0"` in `project.yml` and fix the warnings
-  that `SWIFT_STRICT_CONCURRENCY = complete` is already surfacing.
 - **No offline persistence.** Two-minute in-memory cache and nothing else.
 - **ESPN client is unproven against a live league.** It's tested thoroughly
   against a realistic fixture, but fixtures only cover the shapes we thought
   of. Expect to touch `ESPNDTOs.swift` the first time you point it at your
   real league.
-- **No app icon.** `AppIcon.appiconset` is an empty placeholder.
+- **The crest is used at a single size.** iOS 18 supports dark and tinted
+  icon variants; only the standard one is provided. A version of the artwork
+  with a transparent background would also let the crest sit on a light
+  surface without its black field.

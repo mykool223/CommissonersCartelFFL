@@ -18,14 +18,49 @@ enum Theme {
 }
 
 extension Color {
-    /// Brand tint, defined in Assets.xcassets so it can be tuned per appearance.
+    /// Brand tint, sampled from the league crest and defined in
+    /// Assets.xcassets. Deliberately different per appearance: the crest's
+    /// bright gold (#D8B868) fails contrast against a white background, so
+    /// light mode uses a deeper gold (#8A6A24) and dark mode gets the bright one.
     static let brand = Color("AccentColor")
+
+    /// Crest golds, for use *on black* — where the contrast problem above
+    /// doesn't apply. Fixed values, not appearance-dependent.
+    static let crestGold = Color(red: 0xD8 / 255, green: 0xB8 / 255, blue: 0x68 / 255)
+    static let crestGoldShadow = Color(red: 0x78 / 255, green: 0x58 / 255, blue: 0x28 / 255)
+    /// The crest artwork's own background.
+    static let crestBlack = Color.black
 
     static let cardBackground = Color(.secondarySystemGroupedBackground)
     static let screenBackground = Color(.systemGroupedBackground)
 
     static let win = Color.green
     static let loss = Color.red
+}
+
+/// The league crest.
+///
+/// The artwork has a solid black background rather than transparency, so it is
+/// deliberately framed as a rounded badge sitting on its own black field. Drawn
+/// straight onto a light-mode screen it would read as a stray black square.
+struct LeagueCrest: View {
+    var size: CGFloat = 120
+
+    private var cornerRadius: CGFloat { size * 0.18 }
+
+    var body: some View {
+        Image("LeagueLogo")
+            .resizable()
+            .scaledToFit()
+            .frame(width: size, height: size)
+            .background(Color.crestBlack)
+            .clipShape(.rect(cornerRadius: cornerRadius))
+            .overlay {
+                RoundedRectangle(cornerRadius: cornerRadius)
+                    .strokeBorder(Color.crestGoldShadow, lineWidth: 1)
+            }
+            .accessibilityLabel("Commissioners Cartel")
+    }
 }
 
 /// Rounded container used for every content block in the app.

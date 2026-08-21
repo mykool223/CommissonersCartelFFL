@@ -64,6 +64,21 @@ struct SettingsView: View {
                 }
 
                 Section {
+                    HStack {
+                        Spacer(minLength: 0)
+                        VStack(spacing: Theme.Spacing.small) {
+                            LeagueCrest(size: 96)
+                            Text("Commissioners Cartel")
+                                .font(.footnote.weight(.semibold))
+                            Text("Fantasy League")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer(minLength: 0)
+                    }
+                    .padding(.vertical, Theme.Spacing.small)
+                    .listRowBackground(Color.clear)
+
                     LabeledContent("Version", value: Bundle.main.versionText)
                 } header: {
                     Text("About")
