@@ -6,7 +6,10 @@ import Foundation
 /// Replace the names here with your league's once you wire up the real
 /// backends — nothing else in the app depends on these values.
 public enum MockData {
-    public static let season = 2025
+    /// Derived, not hardcoded. A pinned year silently empties every
+    /// season-filtered screen the moment the calendar rolls over — the sample
+    /// posts are still there, they just never match the season being asked for.
+    public static let season = Season.current()
     public static let currentWeek = 11
 
     /// Stable UUIDs so previews and snapshot tests don't churn.
@@ -15,8 +18,10 @@ public enum MockData {
         return UUID(uuidString: "00000000-0000-0000-0000-\(suffix)")!
     }
 
-    /// Fixed clock: 2025-11-18 17:00:00 UTC, a Tuesday in week 11.
-    public static let referenceDate = Date(timeIntervalSince1970: 1_763_485_200)
+    /// Anchor for every sample date. Captured once at launch rather than
+    /// pinned, so posts read as "2 days ago" instead of drifting years stale.
+    /// Stable for the lifetime of the process, which is what previews need.
+    public static let referenceDate = Date()
 
     public static let league = League(
         id: "0000000",

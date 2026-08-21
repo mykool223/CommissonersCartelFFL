@@ -251,3 +251,68 @@ struct MockDataTests {
         #expect(currentNoneComplete)
     }
 }
+
+@Suite("Season")
+struct SeasonTests {
+    private func date(_ iso: String) -> Date {
+        try! Date.ISO8601FormatStyle().parse(iso)
+    }
+
+    private var utc: Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "UTC")!
+        return calendar
+    }
+
+    @Test("September through December belong to that calendar year")
+    func inSeason() {
+        #expect(Season.current(now: date("2026-09-10T12:00:00Z"), calendar: utc) == 2026)
+        #expect(Season.current(now: date("2026-12-28T12:00:00Z"), calendar: utc) == 2026)
+    }
+
+    @Test("January and February still belong to the previous season")
+    func januaryRollsBack() {
+        // Playoffs run into the new calendar year; the season has not changed.
+        #expect(Season.current(now: date("2027-01-15T12:00:00Z"), calendar: utc) == 2026)
+        #expect(Season.current(now: date("2027-02-08T12:00:00Z"), calendar: utc) == 2026)
+    }
+
+    @Test("March is the rollover point")
+    func marchRollsForward() {
+        #expect(Season.current(now: date("2027-02-28T12:00:00Z"), calendar: utc) == 2026)
+        #expect(Season.current(now: date("2027-03-01T12:00:00Z"), calendar: utc) == 2027)
+    }
+
+    @Test("The offseason still reports a season rather than nothing")
+    func offseason() {
+        #expect(Season.current(now: date("2026-06-01T12:00:00Z"), calendar: utc) == 2026)
+    }
+}
+
+@Suite("Sample data stays current")
+struct SampleDataFreshnessTests {
+    /// The bug this guards: a hardcoded `MockData.season` matched nothing once
+    /// the calendar rolled over, so every season-filtered screen went empty
+    /// while the sample data sat there unused.
+    @Test("MockData's season matches what the app will ask for")
+    func seasonAgrees() {
+        #expect(MockData.season == Season.current())
+    }
+
+    @Test("Sample content is actually reachable through the repository")
+    func contentIsReachable() async throws {
+        let repo = MockContentRepository(latency: .zero)
+        let posts = try await repo.newsPosts(season: MockData.season, limit: 50)
+        let polls = try await repo.polls(season: MockData.season)
+
+        #expect(!posts.isEmpty, "News tab would render an empty state")
+        #expect(!polls.isEmpty, "Polls tab would render an empty state")
+    }
+
+    @Test("Sample recaps are reachable for the current week")
+    func recapsReachable() async throws {
+        let repo = MockContentRepository(latency: .zero)
+        let recaps = try await repo.recaps(season: MockData.season, week: MockData.currentWeek)
+        #expect(!recaps.isEmpty)
+    }
+}

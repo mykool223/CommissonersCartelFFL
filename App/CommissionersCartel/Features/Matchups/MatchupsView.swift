@@ -120,10 +120,15 @@ private struct TeamScoreRow: View {
     let board: MatchupsViewModel.Board
     let isWinner: Bool
 
+    /// True once there are points on the board for this side.
+    private var hasStarted: Bool { side.points > 0 }
+
     var body: some View {
         let team = board.team(side.teamID)
         HStack(spacing: Theme.Spacing.medium) {
-            InitialsAvatar(initials: team?.abbreviation.prefix(2).uppercased() ?? "??", size: 34)
+            // The whole abbreviation, not the first two letters — "BEAR" and
+            // "TRAP" are recognisable, "BE" and "TR" are not.
+            InitialsAvatar(initials: team?.abbreviation.uppercased() ?? "?", size: 34)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(team?.name ?? "Team \(side.teamID)")
@@ -139,9 +144,18 @@ private struct TeamScoreRow: View {
             Spacer(minLength: 0)
 
             VStack(alignment: .trailing, spacing: 2) {
-                Text(side.points.pointsText)
-                    .font(.headline.monospacedDigit())
-                    .foregroundStyle(isWinner ? Color.win : .primary)
+                // A game that hasn't kicked off has 0.0 points, which reads as
+                // "scored nothing" rather than "hasn't started". Show an em
+                // dash instead and let the projection carry the information.
+                if hasStarted {
+                    Text(side.points.pointsText)
+                        .font(.headline.monospacedDigit())
+                        .foregroundStyle(isWinner ? Color.win : .primary)
+                } else {
+                    Text("—")
+                        .font(.headline)
+                        .foregroundStyle(.tertiary)
+                }
                 // Only meaningful before the games are final.
                 if let projected = side.projectedPoints {
                     Text("proj \(projected.pointsText)")

@@ -28,8 +28,10 @@ extension Color {
     /// doesn't apply. Fixed values, not appearance-dependent.
     static let crestGold = Color(red: 0xD8 / 255, green: 0xB8 / 255, blue: 0x68 / 255)
     static let crestGoldShadow = Color(red: 0x78 / 255, green: 0x58 / 255, blue: 0x28 / 255)
-    /// The crest artwork's own background.
-    static let crestBlack = Color.black
+    /// The crest artwork's own field. Measured from the source PNG's border
+    /// ring — it is #0D0D0D, not pure black. Painting the surround #000000
+    /// leaves the crest's square edge faintly visible against it.
+    static let crestField = Color(red: 0x0D / 255, green: 0x0D / 255, blue: 0x0D / 255)
 
     static let cardBackground = Color(.secondarySystemGroupedBackground)
     static let screenBackground = Color(.systemGroupedBackground)
@@ -53,7 +55,7 @@ struct LeagueCrest: View {
             .resizable()
             .scaledToFit()
             .frame(width: size, height: size)
-            .background(Color.crestBlack)
+            .background(Color.crestField)
             .clipShape(.rect(cornerRadius: cornerRadius))
             .overlay {
                 RoundedRectangle(cornerRadius: cornerRadius)
@@ -106,6 +108,11 @@ struct InitialsAvatar: View {
                 Text(initials)
                     .font(.system(size: size * 0.4, weight: .semibold, design: .rounded))
                     .foregroundStyle(Color.brand)
+                    // Team abbreviations run to four characters; shrink to fit
+                    // rather than truncating something already abbreviated.
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.5)
+                    .padding(.horizontal, size * 0.1)
             }
     }
 }

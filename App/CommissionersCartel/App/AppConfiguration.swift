@@ -37,12 +37,10 @@ struct AppConfiguration {
         )
     }
 
-    /// The NFL season rolls over in the spring: before March, "this season" is
-    /// still last calendar year.
+    /// Delegates to `Season.current` so the app and the sample data can never
+    /// disagree about which season it is.
     static func currentSeason(now: Date = Date(), calendar: Calendar = .current) -> Int {
-        let components = calendar.dateComponents([.year, .month], from: now)
-        let year = components.year ?? 2025
-        return (components.month ?? 1) < 3 ? year - 1 : year
+        Season.current(now: now, calendar: calendar)
     }
 
     var hasESPN: Bool { !espnLeagueID.isEmpty }
