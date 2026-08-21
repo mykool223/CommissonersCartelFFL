@@ -79,6 +79,7 @@ That split is also what lets every screen run on mock data. Views depend on
 | Check the database schema and its security rules | `./Scripts/test-database.sh` |
 | Regenerate the Xcode project | `./Scripts/generate.sh` |
 | Apply database migrations | `supabase db push` |
+| Configure sign-in email | see [docs/EMAIL_SETUP.md](docs/EMAIL_SETUP.md) |
 | Preview the news ingest without writing | `DRY_RUN=1 ./Scripts/ingest_news.py` |
 | Deploy the ESPN proxy | `supabase functions deploy espn-proxy` |
 | Lint | `swiftlint` |

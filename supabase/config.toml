@@ -36,6 +36,39 @@ enable_signup = true
 # forget, or reset, and no password to leak.
 enable_confirmations = true
 
+# Supabase's built-in mailer is throttled to a handful of messages an hour and
+# is not meant for real use. Twelve people signing in on draft night would not
+# all get a link. This routes through Brevo instead.
+#
+# Setup, once:
+#   1. brevo.com — free account, no card, 300 emails/day.
+#   2. Senders & IP > Senders > Add a sender: your own address. Brevo emails you
+#      a link to click. No domain needed, which is why Brevo rather than Resend.
+#   3. SMTP & API > SMTP: copy the SMTP key. It is not your account password.
+#   4. export SUPABASE_AUTH_SMTP_PASS='the-smtp-key'
+#      supabase config push
+#
+# Note: an Outlook.com address cannot be used as the SMTP *server* — Microsoft
+# retired basic auth for personal accounts, and Supabase has no OAuth2 option.
+# An Outlook alias does not change that: an alias is the same account with
+# another address on it, so it inherits the same restriction.
+#
+# An alias is a good From address though, and Brevo will verify one — the
+# verification email arrives in the same inbox. Set admin_email to whichever
+# address you verify.
+[auth.email.smtp]
+enabled = true
+host = "smtp-relay.brevo.com"
+port = 587
+# Brevo's SMTP login, shown next to the key. Usually the signup email.
+user = "env(SUPABASE_AUTH_SMTP_USER)"
+pass = "env(SUPABASE_AUTH_SMTP_PASS)"
+# Who the league sees the mail from. Must be whichever address you verified
+# with Brevo — an alias like commissionerscartel@outlook.com reads better in
+# twelve inboxes than a personal address.
+admin_email = "env(SUPABASE_AUTH_SMTP_FROM)"
+sender_name = "Commissioners Cartel"
+
 [functions.espn-proxy]
 # Supabase checks the caller's JWT before the function runs.
 verify_jwt = true
