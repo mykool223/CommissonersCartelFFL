@@ -60,6 +60,34 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             -quiet
 
+  # Ubuntu, not macOS: this needs no Xcode, and Linux runners bill at 1x
+  # against 10x for macOS.
+  database:
+    name: Database schema and security
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    steps:
+      - uses: actions/checkout@v7
+
+      # Applies every migration to a real Postgres and asserts the properties
+      # the app depends on but cannot enforce itself: non-members see nothing,
+      # re-voting cannot inflate a tally, anon cannot reach the RPCs.
+      - name: Apply migrations and check security expectations
+        env:
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
+        run: ./Scripts/test-database.sh
+
   lint:
     name: SwiftLint
     runs-on: macos-latest

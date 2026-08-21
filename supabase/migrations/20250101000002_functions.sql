@@ -116,7 +116,17 @@ $$;
 
 -- PostgREST exposes functions to whichever role calls them; restrict to
 -- signed-in users.
-revoke execute on function public.polls_with_results(int) from anon;
-revoke execute on function public.cast_vote(uuid, uuid) from anon;
+--
+-- Revoke from PUBLIC, not from `anon`. Postgres grants EXECUTE on new
+-- functions to PUBLIC by default and every role inherits from PUBLIC, so
+-- `revoke ... from anon` is silently a no-op — `anon` keeps the PUBLIC grant.
+-- Verified against a real Postgres: revoking from `anon` alone left the ACL as
+-- `=X/postgres` (PUBLIC can execute); revoking from PUBLIC removes it.
+--
+-- Both functions guard themselves internally as well (`is_member()` and an
+-- `auth.uid() is null` check), so this is defence in depth rather than the only
+-- thing standing between anon and the vote tallies.
+revoke execute on function public.polls_with_results(int) from public;
+revoke execute on function public.cast_vote(uuid, uuid) from public;
 grant execute on function public.polls_with_results(int) to authenticated;
 grant execute on function public.cast_vote(uuid, uuid) to authenticated;

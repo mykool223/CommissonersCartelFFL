@@ -76,6 +76,7 @@ That split is also what lets every screen run on mock data. Views depend on
 | Task | Command |
 |---|---|
 | Run the shared package's tests | `./Scripts/test-package.sh` |
+| Check the database schema and its security rules | `./Scripts/test-database.sh` |
 | Regenerate the Xcode project | `./Scripts/generate.sh` |
 | Apply database migrations | `supabase db push` |
 | Deploy the ESPN proxy | `supabase functions deploy espn-proxy` |

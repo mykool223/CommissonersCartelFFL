@@ -1,0 +1,48 @@
+# Supabase pauses free-tier projects after one week of inactivity.
+#
+# A fantasy league app is seasonal: heavy use September to January, then nothing
+# until the next preseason. Left alone, the project pauses in February and
+# whoever opens the app in September finds it dead until someone restores it by
+# hand from the dashboard.
+#
+# One query a week is enough to count as activity and keep it live year-round.
+# Runs on Ubuntu, so it costs nothing.
+name: Keep Supabase awake
+
+on:
+  schedule:
+    # Mondays at 12:00 UTC. Weekly, comfortably inside the one-week window.
+    - cron: "0 12 * * 1"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    name: Ping the database
+    runs-on: ubuntu-latest
+    steps:
+      - name: Query Supabase
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_ANON_KEY" ]; then
+            echo "SUPABASE_URL / SUPABASE_ANON_KEY are not set — nothing to ping yet."
+            echo "Add them under Settings > Secrets and variables > Actions once"
+            echo "the Supabase project exists."
+            exit 0
+          fi
+
+          # Hits an actual table rather than the API root, so the query reaches
+          # Postgres. Row level security means anon gets zero rows back, which
+          # is fine — the point is that the database did some work.
+          status=$(curl -sS -o /dev/null -w '%{http_code}' \
+            "$SUPABASE_URL/rest/v1/news_posts?select=id&limit=1" \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            -H "Authorization: Bearer $SUPABASE_ANON_KEY")
+
+          echo "HTTP $status"
+          # 200 and 401/403 both prove the project is awake and serving.
+          case "$status" in
+            200|401|403) echo "Project is awake." ;;
+            *) echo "Unexpected status — the project may be paused." >&2; exit 1 ;;
+          esac

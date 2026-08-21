@@ -4,7 +4,47 @@ Supabase stores everything the league writes: news posts, matchup recaps, polls
 and votes. It does **not** store scores, rosters or standings — those are read
 live from ESPN.
 
-Free tier is plenty for a 12-person league.
+## Cost
+
+The free tier is genuinely enough, and it stays free. As of August 2026:
+
+| | Free | What this league needs |
+|---|---|---|
+| Database | 500 MB | Text posts and votes. Thousands of seasons' worth. |
+| Egress | 5 GB/month | Twelve people checking a few times a day is a rounding error. |
+| Monthly active users | 50,000 | Twelve. |
+| Projects | 2 active | One. |
+
+Paid ("Pro") starts at **$25/month** and buys headroom this league will never
+need. Don't.
+
+**The one catch: free projects pause after 1 week of inactivity.** That matters
+here more than it would for most apps, because a fantasy league is seasonal —
+heavy use September to January, then silence. Left alone the project pauses in
+February, and whoever opens the app in September finds it dead until someone
+restores it by hand from the dashboard.
+
+`.github/workflows/keep-supabase-awake.yml` handles it: one query a week, which
+counts as activity. It runs on Ubuntu so it costs nothing, and it no-ops
+quietly until you add the two secrets. To turn it on, go to **Settings →
+Secrets and variables → Actions** in GitHub and add:
+
+- `SUPABASE_URL` — the full `https://…supabase.co` URL
+- `SUPABASE_ANON_KEY` — the same anon key the app uses
+
+## Check it before you deploy it
+
+The schema is tested. Run this before touching your real project:
+
+```bash
+brew install postgresql@17     # once
+./Scripts/test-database.sh
+```
+
+It spins up a throwaway Postgres, applies every migration, and asserts the
+security properties the app depends on — that non-members see nothing, that
+re-voting cannot inflate a tally, that `anon` cannot reach the RPCs. No account
+and no network needed. CI runs the same script on every push.
 
 ## 1. Create the project
 
@@ -170,6 +210,26 @@ supabase functions deploy espn-proxy
 ```
 
 See [ESPN_API.md](ESPN_API.md) for when this is worth doing.
+
+## A bug this testing already caught
+
+The migrations originally ended with:
+
+```sql
+revoke execute on function public.polls_with_results(int) from anon;
+```
+
+That line does nothing. Postgres grants `EXECUTE` on new functions to `PUBLIC`
+by default, and every role inherits from `PUBLIC` — so `anon` kept the grant
+and the revoke was silently a no-op. It has to name `PUBLIC`:
+
+```sql
+revoke execute on function public.polls_with_results(int) from public;
+```
+
+It was never exploitable, because both functions also guard themselves
+internally. But the defence-in-depth layer the comment claimed simply was not
+there. `Scripts/test-database.sh` now asserts it, so it cannot come back.
 
 ## Troubleshooting
 
