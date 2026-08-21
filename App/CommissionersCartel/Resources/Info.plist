@@ -23,6 +23,12 @@
 	<!-- Drawn by iOS before any app code runs, which is what stops the white
 	     flash a SwiftUI-only splash would leave. SplashView continues from
 	     this exact image at this exact size, so the handoff is invisible. -->
+	<!-- The app only uses HTTPS provided by iOS, which is exempt from export
+	     compliance. Declaring it here stops App Store Connect asking on every
+	     single upload and holding the build in "Missing Compliance". -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+
 	<key>UILaunchScreen</key>
 	<dict>
 		<key>UIColorName</key>
