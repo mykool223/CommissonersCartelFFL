@@ -211,6 +211,27 @@ supabase functions deploy espn-proxy
 
 See [ESPN_API.md](ESPN_API.md) for when this is worth doing.
 
+## Helper functions live in a `private` schema
+
+Supabase exposes every function in `public` as an HTTP RPC endpoint. That
+applied to `is_member()`, `is_commissioner()` and — less good — the
+`handle_new_user()` trigger function, all of which were callable over the API.
+Supabase's own linter flags this as lints 0028/0029.
+
+They now live in `private`, which PostgREST does not expose. Policies still call
+them, because a policy is evaluated as the calling role and `authenticated`
+retains EXECUTE — revoking that would have broken every policy, which is why
+this is a schema move rather than a revoke.
+
+Check your own project any time with:
+
+```bash
+supabase db advisors --type security --linked
+```
+
+Two warnings are expected and correct: `authenticated` can execute `cast_vote`
+and `polls_with_results`. That is what they are for.
+
 ## A bug this testing already caught
 
 The migrations originally ended with:
