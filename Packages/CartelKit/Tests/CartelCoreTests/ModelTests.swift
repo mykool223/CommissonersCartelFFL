@@ -458,3 +458,25 @@ struct NFLScoreboardOrderingTests {
         #expect(board.gamesInReadingOrder.map(\.id) == ["dated", "undated"])
     }
 }
+
+@Suite("TeamBio")
+struct TeamBioTests {
+    @Test("Mock repository returns bios for the requested season")
+    func mockBios() async throws {
+        let repo = MockContentRepository(latency: .zero)
+        let bios = try await repo.teamBios(season: 2026)
+        let boss = try #require(bios[1])
+        #expect(boss.season == 2026)
+        #expect(boss.teamID == 1)
+        #expect(!boss.title.isEmpty)
+        #expect(!boss.bio.isEmpty)
+    }
+
+    @Test("Bios are keyed by ESPN team id, not by list position")
+    func keyedByTeamID() async throws {
+        let bios = try await MockContentRepository(latency: .zero).teamBios(season: 2026)
+        for (key, bio) in bios {
+            #expect(key == bio.teamID)
+        }
+    }
+}

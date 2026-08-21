@@ -294,4 +294,22 @@ public enum MockData {
             closesAt: referenceDate.addingTimeInterval(-86_400)
         ),
     ]
+
+    /// Sample bios. Production reads these from Supabase so they can be
+    /// rewritten without shipping a build; these exist so previews and the
+    /// no-credentials build show the same shape.
+    static func teamBios(season: Int) -> [Int: TeamBio] {
+        let entries: [(Int, String, String)] = [
+            (1, "The Boss", "Wrote the rules everyone else has to follow."),
+            (2, "The Cleaner", "Handles whatever is left over after a trade goes wrong."),
+            (3, "The Fixer", "Claims the defense is not among his ninety-nine problems."),
+            (4, "The Wildcard", "Put the word Daring in the name and meant it.")
+        ]
+        return Dictionary(
+            uniqueKeysWithValues: entries.map {
+                ($0.0, TeamBio(season: season, teamID: $0.0, title: $0.1, bio: $0.2))
+            }
+        )
+    }
+
 }

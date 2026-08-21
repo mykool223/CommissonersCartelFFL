@@ -9,6 +9,24 @@ struct MemberDetailView: View {
             VStack(spacing: Theme.Spacing.large) {
                 header
 
+                if let bio = entry.bio {
+                    Card {
+                        HStack(spacing: Theme.Spacing.small) {
+                            Image(systemName: "quote.opening")
+                                .font(.caption)
+                                .foregroundStyle(Color.brand)
+                            Text(bio.title.uppercased())
+                                .font(.caption.weight(.bold))
+                                .kerning(1.2)
+                                .foregroundStyle(Color.brand)
+                        }
+                        Text(bio.bio)
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+
                 if let team = entry.team {
                     Card {
                         Text("Season")

@@ -108,6 +108,11 @@ public actor MockContentRepository: ContentRepository {
         )
     }
 
+    public func teamBios(season: Int) async throws -> [Int: TeamBio] {
+        try await simulate()
+        return MockData.teamBios(season: season)
+    }
+
     public func vote(pollID: UUID, optionID: UUID) async throws {
         try await simulate()
         guard let index = polls.firstIndex(where: { $0.id == pollID }) else {

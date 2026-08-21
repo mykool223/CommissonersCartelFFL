@@ -10,6 +10,8 @@ final class MembersViewModel {
     struct Entry: Identifiable {
         let manager: Manager
         let team: Team?
+        /// Nil when Supabase has no bio for this team, or is unreachable.
+        var bio: TeamBio?
 
         var id: String { manager.id }
     }
@@ -38,10 +40,14 @@ final class MembersViewModel {
         if showSpinner, state.isInitialLoad { state = .loading }
 
         let leagueData = environment.leagueData
+        let content = environment.content
         let result = await loadState { () -> [Group] in
             async let league = leagueData.league()
             async let managers = leagueData.managers()
             async let teams = leagueData.teams()
+            // Flavour text is a nice-to-have. A Supabase outage should cost us
+            // the bios, not the whole members list.
+            async let bios = try? await content.teamBios(season: Season.current())
 
             let allTeams = try await teams
             // One lookup per owner id, since a team can be co-owned.
@@ -52,8 +58,16 @@ final class MembersViewModel {
                 }
             }
 
+            let bioByTeam = await bios ?? [:]
             let entries = try await managers
-                .map { Entry(manager: $0, team: teamByOwner[$0.id]) }
+                .map { manager -> Entry in
+                    let team = teamByOwner[manager.id]
+                    return Entry(
+                        manager: manager,
+                        team: team,
+                        bio: team.flatMap { bioByTeam[$0.id] }
+                    )
+                }
                 // Standings order where ESPN gives us one. Before the season
                 // starts every seed is absent, so fall back to record and then
                 // to name — otherwise the list order is whatever ESPN felt like.

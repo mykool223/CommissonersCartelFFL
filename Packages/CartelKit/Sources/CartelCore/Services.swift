@@ -34,6 +34,10 @@ public protocol ContentRepository: Sendable {
     /// Player news blurbs collected by the daily ingest job.
     func playerNews(limit: Int) async throws -> [PlayerNews]
 
+    /// Flavour text for each team, keyed by ESPN team id. Readable signed
+    /// out, so the members list can show it before anyone logs in.
+    func teamBios(season: Int) async throws -> [Int: TeamBio]
+
     /// Records the caller's vote. Replaces any previous vote on the same poll.
     func vote(pollID: UUID, optionID: UUID) async throws
 }

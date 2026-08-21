@@ -60,6 +60,14 @@ public struct SupabaseContentRepository: ContentRepository {
         return rows.compactMap(\.model)
     }
 
+    public func teamBios(season: Int) async throws -> [Int: TeamBio] {
+        let rows: [TeamBioRow] = try await client.select(
+            "team_bios",
+            query: ["select": "*", "season": "eq.\(season)"]
+        )
+        return Dictionary(uniqueKeysWithValues: rows.map { ($0.espn_team_id, $0.model) })
+    }
+
     public func vote(pollID: UUID, optionID: UUID) async throws {
         try await client.rpcVoid(
             "cast_vote",
@@ -123,6 +131,17 @@ private struct RecapRow: Decodable {
             authorName: author_name ?? "The Commissioner",
             createdAt: created_at
         )
+    }
+}
+
+private struct TeamBioRow: Decodable {
+    let season: Int
+    let espn_team_id: Int
+    let title: String
+    let bio: String
+
+    var model: TeamBio {
+        TeamBio(season: season, teamID: espn_team_id, title: title, bio: bio)
     }
 }
 
