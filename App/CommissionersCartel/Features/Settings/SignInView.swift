@@ -114,8 +114,23 @@ struct SignInView: View {
                     .multilineTextAlignment(.center)
             }
 
-            // The link only works on the device it is opened on, and that trips
-            // people up often enough to say out loud.
+            // The league sends from a plain address rather than its own domain,
+            // so there is no SPF or DKIM record vouching for it and providers
+            // routinely bin the first one. Cheaper to say so than to have
+            // eleven people conclude sign-in is broken.
+            Card {
+                Label {
+                    Text("Look in your junk folder")
+                        .font(.subheadline.weight(.semibold))
+                } icon: {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundStyle(Color.brand)
+                }
+                Text("The first link usually lands there. Mark it \u{201C}Not junk\u{201D} and the rest will come through normally.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+
             Text("Open the email on your phone, not a computer.")
                 .font(.caption)
                 .foregroundStyle(.tertiary)

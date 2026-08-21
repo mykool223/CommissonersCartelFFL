@@ -1,0 +1,54 @@
+<!--
+  Sign-in email.
+
+  Deliberately plain HTML with inline styles and no images: the league sends
+  from a plain address with no domain behind it, so there is no SPF or DKIM
+  record vouching for the mail. Filters weigh content heavily in that case, and
+  a bare one-line template with a naked link is close to the shape of a phishing
+  email. Real words, a clear sender, and an explanation of why it arrived all
+  help — as does saying out loud that it may land in junk.
+-->
+<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;max-width:520px;margin:0 auto;padding:32px 24px;color:#1c1c1e;">
+
+  <div style="background:#0d0d0d;border-radius:14px;padding:24px;text-align:center;">
+    <div style="color:#d8b868;font-size:20px;font-weight:700;letter-spacing:0.5px;">
+      COMMISSIONERS CARTEL
+    </div>
+    <div style="color:#8a7a4a;font-size:12px;letter-spacing:2px;margin-top:4px;">
+      FANTASY LEAGUE
+    </div>
+  </div>
+
+  <h1 style="font-size:20px;margin:28px 0 8px;">Your way in</h1>
+
+  <p style="font-size:15px;line-height:1.5;margin:0 0 20px;color:#3a3a3c;">
+    Someone asked to sign in to the Commissioners Cartel league app with this
+    address. Tap the button below on your phone and you're in — there's no
+    password to set or remember.
+  </p>
+
+  <p style="margin:0 0 24px;">
+    <a href="{{ .ConfirmationURL }}"
+       style="display:inline-block;background:#8a6a24;color:#ffffff;text-decoration:none;
+              padding:14px 28px;border-radius:999px;font-size:16px;font-weight:600;">
+      Sign in to the league
+    </a>
+  </p>
+
+  <p style="font-size:13px;line-height:1.5;color:#6e6e73;margin:0 0 8px;">
+    The link works once and expires in an hour. If it's expired, just ask for
+    another from the app.
+  </p>
+
+  <p style="font-size:13px;line-height:1.5;color:#6e6e73;margin:0 0 24px;">
+    If you didn't ask for this, you can ignore it — nothing happens until the
+    link is opened.
+  </p>
+
+  <hr style="border:none;border-top:1px solid #e5e5ea;margin:24px 0;">
+
+  <p style="font-size:12px;line-height:1.5;color:#8e8e93;margin:0;">
+    Sent by the Commissioners Cartel fantasy football league app. If this landed
+    in your junk folder, mark it "Not junk" so future sign-in links reach you.
+  </p>
+</div>

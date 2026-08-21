@@ -69,6 +69,13 @@ pass = "env(SUPABASE_AUTH_SMTP_PASS)"
 admin_email = "env(SUPABASE_AUTH_SMTP_FROM)"
 sender_name = "Commissioners Cartel"
 
+# A branded template rather than Supabase's default one-liner. Without a domain
+# there is no SPF or DKIM to vouch for the mail, so filters lean on content —
+# and a bare template with a naked link looks a lot like phishing.
+[auth.email.template.magic_link]
+subject = "Your sign-in link for the Commissioners Cartel"
+content_path = "./supabase/templates/magic_link.html"
+
 [functions.espn-proxy]
 # Supabase checks the caller's JWT before the function runs.
 verify_jwt = true
