@@ -1,5 +1,7 @@
 # Commissioners Cartel
 
+[![CI](https://github.com/mykool223/CommissonersCartelFFL/actions/workflows/ci.yml/badge.svg)](https://github.com/mykool223/CommissonersCartelFFL/actions/workflows/ci.yml)
+
 An iOS app for our fantasy football league — weekly news, matchup recaps,
 league polls, and who's who.
 
@@ -116,6 +118,15 @@ league.
 - [ ] Push notifications
 
 See [docs/ROADMAP.md](docs/ROADMAP.md) for what's next and why.
+
+## A note for visitors
+
+This is a private league's app, built for one specific ESPN league. It's public
+because the ESPN and Supabase plumbing may be useful to someone doing the same
+thing — `Packages/CartelKit` is self-contained and has no ties to this league.
+
+Issues and PRs are welcome but this isn't a supported project, so no promises
+on response time.
 
 ## License
 

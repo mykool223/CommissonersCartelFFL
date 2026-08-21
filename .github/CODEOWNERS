@@ -1,0 +1,9 @@
+# Everything is owned by the commissioner. This mainly exists so Dependabot
+# and any outside PRs automatically request a review rather than sitting
+# unnoticed.
+*       @mykool223
+
+# Areas where a wrong change is quietly dangerous rather than obviously broken.
+/supabase/migrations/   @mykool223
+/.github/workflows/     @mykool223
+/Config/                @mykool223
