@@ -25,9 +25,14 @@ public struct Manager: Identifiable, Hashable, Sendable, Codable {
     }
 
     /// Real name when ESPN has one, otherwise the display name.
+    ///
+    /// Each part is trimmed before joining: ESPN's name fields frequently carry
+    /// trailing spaces, which join into "Danny  Adams" with a visible double gap.
     public var fullName: String {
-        let parts = [firstName, lastName].compactMap { $0 }.filter { !$0.isEmpty }
-        return parts.isEmpty ? displayName : parts.joined(separator: " ")
+        let parts = [firstName, lastName]
+            .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        return parts.isEmpty ? displayName.trimmingCharacters(in: .whitespacesAndNewlines) : parts.joined(separator: " ")
     }
 
     /// First initial of the full name, for avatar placeholders.

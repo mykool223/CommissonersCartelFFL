@@ -28,6 +28,10 @@ enum ESPNMapper {
                 displayName: member.displayName ?? member.id,
                 firstName: member.firstName,
                 lastName: member.lastName,
+                // ESPN omits isLeagueManager from this payload entirely — it is
+                // absent rather than false, so nobody is ever flagged. Supabase
+                // (profiles.is_commissioner) is the authoritative source; this
+                // only fills in when ESPN happens to supply it.
                 isCommissioner: member.isLeagueManager ?? false
             )
         }
@@ -42,7 +46,10 @@ enum ESPNMapper {
                 logoURL: team.logo.flatMap(URL.init(string:)),
                 ownerIDs: ownerIDs(for: team),
                 record: record(from: team.record?.overall),
-                playoffSeed: team.playoffSeed
+                // ESPN reports 0 before the season starts, not null. Treated as
+                // a real seed it renders as "#0" and makes the standings sort
+                // meaningless, since every team ties at zero.
+                playoffSeed: (team.playoffSeed ?? 0) > 0 ? team.playoffSeed : nil
             )
         }
     }

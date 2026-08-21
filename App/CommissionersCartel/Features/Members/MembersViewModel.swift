@@ -35,13 +35,26 @@ final class MembersViewModel {
 
             return try await managers
                 .map { Entry(manager: $0, team: teamByOwner[$0.id]) }
-                // Standings order, with team-less members last.
+                // Standings order where ESPN gives us one. Before the season
+                // starts every seed is absent, so fall back to record and then
+                // to name — otherwise the list order is whatever ESPN felt like.
                 .sorted { lhs, rhs in
                     switch (lhs.team?.playoffSeed, rhs.team?.playoffSeed) {
-                    case let (l?, r?): return l < r
-                    case (nil, _?): return false
-                    case (_?, nil): return true
-                    case (nil, nil): return lhs.manager.fullName < rhs.manager.fullName
+                    case let (l?, r?):
+                        return l < r
+                    case (nil, _?):
+                        return false
+                    case (_?, nil):
+                        return true
+                    case (nil, nil):
+                        let left = lhs.team?.record, right = rhs.team?.record
+                        let leftPct = left?.winPercentage ?? -1
+                        let rightPct = right?.winPercentage ?? -1
+                        if leftPct != rightPct { return leftPct > rightPct }
+                        let leftFor = left?.pointsFor ?? 0
+                        let rightFor = right?.pointsFor ?? 0
+                        if leftFor != rightFor { return leftFor > rightFor }
+                        return lhs.manager.fullName < rhs.manager.fullName
                     }
                 }
         }

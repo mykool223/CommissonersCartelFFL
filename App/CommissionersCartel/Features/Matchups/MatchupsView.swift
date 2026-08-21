@@ -65,13 +65,26 @@ private struct MatchupCard: View {
     let matchup: Matchup
     let board: MatchupsViewModel.Board
 
+    private var statusLabel: String {
+        switch matchup.status {
+        case .scheduled: "Scheduled"
+        case .inProgress: "In progress"
+        case .final: "Final"
+        }
+    }
+
+    private var statusTint: Color {
+        switch matchup.status {
+        case .scheduled: .secondary
+        case .inProgress: .brand
+        case .final: .secondary
+        }
+    }
+
     var body: some View {
         Card {
             HStack {
-                Pill(
-                    text: matchup.isComplete ? "Final" : "In progress",
-                    tint: matchup.isComplete ? .secondary : .brand
-                )
+                Pill(text: statusLabel, tint: statusTint)
                 Spacer(minLength: 0)
                 if matchup.isComplete, matchup.margin > 0 {
                     Text("by \(matchup.margin.pointsText)")

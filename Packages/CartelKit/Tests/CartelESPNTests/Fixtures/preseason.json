@@ -1,0 +1,94 @@
+{
+  "id": 847540747,
+  "seasonId": 2026,
+  "status": {
+    "currentMatchupPeriod": 1,
+    "latestScoringPeriod": 1,
+    "finalScoringPeriod": 17
+  },
+  "settings": {
+    "name": "Preseason League",
+    "scheduleSettings": {
+      "matchupPeriodCount": 14,
+      "divisions": [
+        { "id": 0, "name": "Division A", "size": 2 },
+        { "id": 1, "name": "Division B", "size": 2 }
+      ]
+    }
+  },
+  "members": [
+    {
+      "id": "{AAAAAAAA-0000-0000-0000-000000000001}",
+      "displayName": "manager_one",
+      "firstName": "Alex",
+      "lastName": "One"
+    },
+    {
+      "id": "{BBBBBBBB-0000-0000-0000-000000000002}",
+      "displayName": "manager_two",
+      "firstName": "Blake",
+      "lastName": "Two"
+    }
+  ],
+  "teams": [
+    {
+      "id": 1,
+      "abbrev": "AAA",
+      "name": "Team Alpha",
+      "logo": "https://example.com/a.png",
+      "owners": ["{AAAAAAAA-0000-0000-0000-000000000001}"],
+      "primaryOwner": "{AAAAAAAA-0000-0000-0000-000000000001}",
+      "playoffSeed": 0,
+      "divisionId": 0,
+      "rankCalculatedFinal": 0,
+      "currentProjectedRank": 0,
+      "record": {
+        "overall": {
+          "gamesBack": 0.0, "losses": 0, "percentage": 0.0,
+          "pointsAgainst": 0.0, "pointsFor": 0.0,
+          "streakLength": 0, "streakType": "NONE", "ties": 0, "wins": 0
+        }
+      }
+    },
+    {
+      "id": 2,
+      "abbrev": "BBB",
+      "name": "Team Beta",
+      "owners": ["{BBBBBBBB-0000-0000-0000-000000000002}"],
+      "primaryOwner": "{BBBBBBBB-0000-0000-0000-000000000002}",
+      "playoffSeed": 0,
+      "divisionId": 1,
+      "record": {
+        "overall": {
+          "gamesBack": 0.0, "losses": 0, "percentage": 0.0,
+          "pointsAgainst": 0.0, "pointsFor": 0.0,
+          "streakLength": 0, "streakType": "NONE", "ties": 0, "wins": 0
+        }
+      }
+    }
+  ],
+  "schedule": [
+    {
+      "id": 1,
+      "matchupPeriodId": 1,
+      "winner": "UNDECIDED",
+      "playoffTierType": "NONE",
+      "home": {
+        "adjustment": 0.0,
+        "eliminationMatchupPeriod": 0,
+        "rosterForCurrentScoringPeriod": { "entries": [] },
+        "teamId": 1,
+        "tiebreak": 0.0,
+        "totalPoints": 0.0
+      },
+      "away": {
+        "adjustment": 0.0,
+        "eliminationMatchupPeriod": 0,
+        "rosterForCurrentScoringPeriod": { "entries": [] },
+        "teamId": 2,
+        "tiebreak": 0.0,
+        "totalPoints": 0.0
+      }
+    }
+  ]
+}

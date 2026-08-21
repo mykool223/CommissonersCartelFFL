@@ -316,3 +316,70 @@ struct SampleDataFreshnessTests {
         #expect(!recaps.isEmpty)
     }
 }
+
+@Suite("Matchup status")
+struct MatchupStatusTests {
+    private func matchup(home: Double, away: Double, isComplete: Bool) -> Matchup {
+        Matchup(
+            id: 1, week: 1,
+            home: MatchupSide(teamID: 1, points: home),
+            away: MatchupSide(teamID: 2, points: away),
+            isComplete: isComplete
+        )
+    }
+
+    /// The preseason case. Every matchup is unplayed, and reporting them as
+    /// "in progress" told the whole league that games were underway in August.
+    @Test("An unplayed game is scheduled, not in progress")
+    func unplayedIsScheduled() {
+        let game = matchup(home: 0, away: 0, isComplete: false)
+        #expect(game.status == .scheduled)
+        #expect(!game.hasStarted)
+    }
+
+    @Test("Points on the board mean it is underway")
+    func scoringMeansInProgress() {
+        #expect(matchup(home: 12.4, away: 0, isComplete: false).status == .inProgress)
+        #expect(matchup(home: 0, away: 9.1, isComplete: false).status == .inProgress)
+    }
+
+    @Test("A decided game is final regardless of score")
+    func decidedIsFinal() {
+        #expect(matchup(home: 110, away: 98, isComplete: true).status == .final)
+        // A forfeited or zeroed-out game is still final.
+        #expect(matchup(home: 0, away: 0, isComplete: true).status == .final)
+    }
+
+    @Test("A bye with no points is scheduled")
+    func byeStatus() {
+        let bye = Matchup(
+            id: 1, week: 1,
+            home: MatchupSide(teamID: 1, points: 0),
+            away: nil, isComplete: false
+        )
+        #expect(bye.status == .scheduled)
+    }
+}
+
+@Suite("Manager name cleanup")
+struct ManagerNameTests {
+    /// Real ESPN data: name fields routinely carry trailing spaces, which used
+    /// to render as "Danny  Adams" with a double gap.
+    @Test(arguments: [
+        ("Danny ", "Adams"),
+        ("Danny", " Adams"),
+        (" Danny ", " Adams "),
+        ("Danny", "Adams"),
+    ])
+    func trimsStrayWhitespace(name: (String, String)) {
+        let manager = Manager(id: "{X}", displayName: "d", firstName: name.0, lastName: name.1)
+        #expect(manager.fullName == "Danny Adams")
+        #expect(manager.initials == "DA")
+    }
+
+    @Test("A whitespace-only name falls back to the display name")
+    func blankNameFallsBack() {
+        let manager = Manager(id: "{X}", displayName: "boogeyman ", firstName: "  ", lastName: "")
+        #expect(manager.fullName == "boogeyman")
+    }
+}

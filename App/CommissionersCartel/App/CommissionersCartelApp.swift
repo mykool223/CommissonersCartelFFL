@@ -4,7 +4,17 @@ import SwiftUI
 struct CommissionersCartelApp: App {
     /// Built once from Info.plist. With no league id or Supabase project
     /// configured this wires up mock data, so a fresh clone runs immediately.
-    @State private var environment = AppEnvironment(configuration: .fromBundle())
+    @State private var environment = CommissionersCartelApp.makeEnvironment()
+
+    /// Kept as a factory so debug credential seeding happens *before* the
+    /// environment is constructed — AppEnvironment reads the Keychain when it
+    /// builds the ESPN client, so seeding afterwards would be a launch too late.
+    private static func makeEnvironment() -> AppEnvironment {
+        #if DEBUG
+        KeychainStore.seedFromLaunchArgumentsIfNeeded()
+        #endif
+        return AppEnvironment(configuration: .fromBundle())
+    }
 
     var body: some Scene {
         WindowGroup {

@@ -368,3 +368,64 @@ struct ESPNProxyTests {
         #expect(captured.value?.value(forHTTPHeaderField: "Authorization") == "Bearer xyz")
     }
 }
+
+/// A brand-new league before week 1, captured from a real ESPN response.
+///
+/// Preseason differs from mid-season in ways that are easy to get wrong and
+/// invisible until September: seeds are `0` rather than absent, records are all
+/// zeroes, `isLeagueManager` is missing from every member, and no side carries
+/// a projection.
+@Suite("ESPN preseason payload")
+struct ESPNPreseasonTests {
+    private func client() throws -> ESPNClient {
+        try makeClient(fixture: "preseason")
+    }
+
+    @Test("Seed 0 is treated as no seed, not as first place")
+    func zeroSeedIsNotASeed() async throws {
+        let teams = try await client().teams()
+        // Rendering 0 as a real seed shows "#0" and makes the standings sort
+        // meaningless, since every team ties at zero.
+        #expect(teams.allSatisfy { $0.playoffSeed == nil })
+    }
+
+    @Test("A league that hasn't played has empty records, not missing teams")
+    func emptyRecords() async throws {
+        let teams = try await client().teams()
+        #expect(teams.count == 2)
+        #expect(teams.allSatisfy { $0.record.gamesPlayed == 0 })
+        #expect(teams.allSatisfy { $0.record.summary == "0-0" })
+        #expect(teams[0].name == "Team Alpha")
+    }
+
+    @Test("Members still map when ESPN omits isLeagueManager entirely")
+    func membersWithoutCommissionerFlag() async throws {
+        let managers = try await client().managers()
+        #expect(managers.count == 2)
+        #expect(managers.allSatisfy { !$0.isCommissioner })
+        #expect(managers[0].fullName == "Alex One")
+    }
+
+    @Test("Week 1 is scheduled but unplayed, with no projections")
+    func unplayedSchedule() async throws {
+        let matchups = try await client().matchups(week: 1)
+        #expect(matchups.count == 1)
+
+        let game = try #require(matchups.first)
+        #expect(!game.isComplete)
+        #expect(game.winningTeamID == nil)
+        #expect(game.home.points == 0)
+        // Preseason payloads carry no totalProjectedPointsLive at all.
+        #expect(game.home.projectedPoints == nil)
+        #expect(game.away?.projectedPoints == nil)
+    }
+
+    @Test("League settings survive a preseason payload")
+    func leagueSettings() async throws {
+        let league = try await client().league()
+        #expect(league.currentWeek == 1)
+        #expect(league.regularSeasonWeeks == 14)
+        #expect(league.teamCount == 2)
+        #expect(!league.isPlayoffs)
+    }
+}

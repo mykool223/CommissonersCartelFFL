@@ -27,6 +27,26 @@ public struct Matchup: Identifiable, Hashable, Sendable, Codable {
 
     public var isBye: Bool { away == nil }
 
+    /// True once either side has points on the board.
+    ///
+    /// `isComplete == false` alone does not mean a game is underway — before
+    /// week 1 every matchup is scheduled but unplayed, and calling that
+    /// "in progress" is just wrong.
+    public var hasStarted: Bool {
+        home.points > 0 || (away?.points ?? 0) > 0
+    }
+
+    public enum Status: Hashable, Sendable {
+        case scheduled
+        case inProgress
+        case final
+    }
+
+    public var status: Status {
+        if isComplete { return .final }
+        return hasStarted ? .inProgress : .scheduled
+    }
+
     /// Team id of the winner, or nil for a bye, a tie, or an unfinished game.
     public var winningTeamID: Int? {
         guard isComplete, let away else { return nil }
