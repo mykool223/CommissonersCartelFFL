@@ -1,14 +1,53 @@
 import SwiftUI
 import CartelCore
 
-/// Who's in the league, in standings order.
+enum MembersSection: String, TabSection {
+    case roster
+    case thread
+
+    var title: String {
+        switch self {
+        case .roster: "Members"
+        case .thread: "League thread"
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .roster: "person.3"
+        case .thread: "bubble.left.and.bubble.right"
+        }
+    }
+}
+
+/// Who's in the league, and what they have to say about it.
 struct MembersView: View {
     @Environment(AppEnvironment.self) private var environment
     @State private var model = MembersViewModel()
+    @State private var section: MembersSection = .initial(default: .roster)
 
     var body: some View {
         NavigationStack {
-            ScrollView {
+            Group {
+                switch section {
+                case .roster: roster
+                case .thread: LeagueChatView()
+                }
+            }
+            .screenStyle()
+            .sectionPicker($section)
+            .navigationDestination(for: String.self) { managerID in
+                if let entry = model.allEntries.first(where: { $0.id == managerID }) {
+                    MemberDetailView(entry: entry)
+                } else {
+                    EmptyStateView(message: "That member is no longer in the league.")
+                }
+            }
+        }
+    }
+
+    private var roster: some View {
+        ScrollView {
                 LazyVStack(spacing: Theme.Spacing.medium) {
                     if environment.isUsingMockLeagueData {
                         SampleDataBanner(
@@ -36,18 +75,8 @@ struct MembersView: View {
                 }
                 .padding(Theme.Spacing.large)
             }
-            .screenStyle()
-            .navigationTitle("Members")
-            .navigationDestination(for: String.self) { managerID in
-                if let entry = model.allEntries.first(where: { $0.id == managerID }) {
-                    MemberDetailView(entry: entry)
-                } else {
-                    EmptyStateView(message: "That member is no longer in the league.")
-                }
-            }
             .refreshable { await model.refresh(using: environment) }
             .task { await model.load(using: environment) }
-        }
     }
 }
 

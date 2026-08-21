@@ -126,6 +126,12 @@ final class AppEnvironment {
 
     var isSignedIn: Bool { session != nil }
 
+    /// The league thread, when Supabase is configured. Nil on sample data,
+    /// where there is nobody to talk to.
+    var chat: (any LeagueChatRepository)? {
+        content as? any LeagueChatRepository
+    }
+
     /// Rebuilds the ESPN client after credentials change in Settings, so a
     /// private league starts working without relaunching the app.
     func reloadESPNCredentials() {

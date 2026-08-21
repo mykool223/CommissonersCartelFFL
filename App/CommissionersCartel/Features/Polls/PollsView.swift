@@ -36,7 +36,13 @@ struct PollsView: View {
             .screenStyle()
             .navigationTitle("Polls")
             .refreshable { await model.load(using: environment, showSpinner: false) }
-            .task { await model.load(using: environment) }
+            // Keyed on the session: polls require a signed-in member, and
+            // restoration finishes after this view first appears. A bare
+            // .task would load once while signed out, hit a permission error,
+            // and never retry.
+            .task(id: environment.session?.userID) {
+                await model.load(using: environment)
+            }
             .alert(
                 "Vote not saved",
                 isPresented: Binding(

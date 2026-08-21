@@ -70,6 +70,23 @@ public struct SupabaseClient: Sendable {
         return try await send(req)
     }
 
+    /// `DELETE /rest/v1/{table}` with PostgREST filters.
+    public func deleteRows(_ table: String, query: [String: String]) async throws {
+        var components = URLComponents(
+            url: configuration.url.appending(path: "/rest/v1/\(table)"),
+            resolvingAgainstBaseURL: false
+        )
+        components?.queryItems = query
+            .sorted { $0.key < $1.key }
+            .map { URLQueryItem(name: $0.key, value: $0.value) }
+        guard let url = components?.url else {
+            throw CartelError.notConfigured("Could not build a Supabase URL for \(table).")
+        }
+        var request = request(url: url, method: "DELETE")
+        request.setValue("return=minimal", forHTTPHeaderField: "Prefer")
+        _ = try await raw(request)
+    }
+
     /// RPC whose return value is discarded.
     public func rpcVoid(
         _ function: String,

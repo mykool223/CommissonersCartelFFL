@@ -41,7 +41,11 @@ struct NewsFeedView: View {
             .sectionPicker($section)
             .navigationDestination(for: NewsPost.self) { NewsPostDetailView(post: $0) }
             .refreshable { await model.load(using: environment, showSpinner: false) }
-            .task { await model.load(using: environment) }
+            // Reloads when a session lands, so signing in picks up
+            // anything the signed-out read could not see.
+            .task(id: environment.session?.userID) {
+                await model.load(using: environment)
+            }
         }
     }
 

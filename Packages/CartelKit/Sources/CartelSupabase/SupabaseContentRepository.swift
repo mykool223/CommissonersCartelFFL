@@ -190,3 +190,66 @@ private struct PollRow: Decodable {
         )
     }
 }
+
+
+// MARK: - League chat
+
+extension SupabaseContentRepository: LeagueChatRepository {
+    public func messages(limit: Int) async throws -> [LeagueMessage] {
+        let rows: [LeagueMessageRow] = try await client.select(
+            "league_messages",
+            query: [
+                "select": "*",
+                "order": "created_at.desc",
+                "limit": String(limit),
+            ]
+        )
+        // Fetched newest-first so the limit takes the most recent, then
+        // reversed so the view reads top to bottom.
+        return rows.map(\.model).reversed()
+    }
+
+    public func post(_ body: String) async throws {
+        let trimmed = body.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        try await client.rpcVoid("post_league_message", parameters: [
+            "p_body": AnyEncodable(trimmed),
+        ])
+    }
+
+    public func deleteMessage(id: UUID) async throws {
+        try await client.deleteRows("league_messages", query: ["id": "eq.\(id.uuidString)"])
+    }
+
+    public func claimESPNTeam(swid: String) async throws {
+        try await client.rpcVoid("claim_espn_team", parameters: [
+            "p_swid": AnyEncodable(swid),
+        ])
+    }
+
+    public func claimedESPNTeam() async throws -> String? {
+        let rows: [ClaimedTeamRow] = try await client.select(
+            "profiles", query: ["select": "espn_swid", "limit": "1"]
+        )
+        return rows.first?.espn_swid
+    }
+}
+
+private struct LeagueMessageRow: Decodable {
+    let id: UUID
+    let author_id: UUID
+    let author_name: String
+    let body: String
+    let created_at: Date
+
+    var model: LeagueMessage {
+        LeagueMessage(
+            id: id, authorID: author_id, authorName: author_name,
+            body: body, createdAt: created_at
+        )
+    }
+}
+
+private struct ClaimedTeamRow: Decodable {
+    let espn_swid: String?
+}
