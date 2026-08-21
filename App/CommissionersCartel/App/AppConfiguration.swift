@@ -15,6 +15,9 @@ struct AppConfiguration {
     let season: Int
     let supabaseURL: URL?
     let supabaseAnonKey: String
+    /// Route ESPN through the `espn-proxy` edge function rather than talking to
+    /// ESPN directly with on-device cookies.
+    let usesESPNProxy: Bool
 
     /// Placeholder text shipped in `Debug.xcconfig`. Treated as "unset" so a
     /// fresh clone runs on mock data instead of firing doomed requests.
@@ -33,7 +36,8 @@ struct AppConfiguration {
             // xcconfig can't hold "//" (it starts a comment), so the scheme is
             // stored without it and rebuilt here.
             supabaseURL: value("SupabaseHost").flatMap { URL(string: "https://\($0)") },
-            supabaseAnonKey: value("SupabaseAnonKey") ?? ""
+            supabaseAnonKey: value("SupabaseAnonKey") ?? "",
+            usesESPNProxy: (value("ESPNViaProxy") ?? "NO").uppercased() == "YES"
         )
     }
 

@@ -68,6 +68,25 @@ final class AppEnvironment {
     }
 
     private static func makeESPNClient(_ configuration: AppConfiguration) -> ESPNClient {
+        // Preferred path: the edge function holds the ESPN cookies as a
+        // server-side secret, so nothing sensitive ships in the app binary and
+        // an expired cookie is fixed once for the whole league rather than by
+        // twelve people each digging through developer tools.
+        if configuration.usesESPNProxy, let supabaseURL = configuration.supabaseURL {
+            return ESPNClient(
+                configuration: .viaProxy(
+                    leagueID: configuration.espnLeagueID,
+                    season: configuration.season,
+                    supabaseURL: supabaseURL,
+                    // The anon key until sign-in exists; swap in the user's
+                    // access token then, and flip ESPN_PROXY_REQUIRE_AUTH on
+                    // the function to lock anon out.
+                    accessToken: configuration.supabaseAnonKey
+                )
+            )
+        }
+
+        // Fallback: talk to ESPN directly with credentials from the Keychain.
         let stored = KeychainStore.espnCredentials
         return ESPNClient(
             configuration: ESPNConfiguration(
@@ -88,7 +107,7 @@ final class AppEnvironment {
         AppEnvironment(
             configuration: AppConfiguration(
                 espnLeagueID: "", season: MockData.season,
-                supabaseURL: nil, supabaseAnonKey: ""
+                supabaseURL: nil, supabaseAnonKey: "", usesESPNProxy: false
             ),
             leagueData: MockLeagueDataSource(latency: .zero),
             content: MockContentRepository(latency: .zero)
@@ -100,7 +119,7 @@ final class AppEnvironment {
         AppEnvironment(
             configuration: AppConfiguration(
                 espnLeagueID: "", season: MockData.season,
-                supabaseURL: nil, supabaseAnonKey: ""
+                supabaseURL: nil, supabaseAnonKey: "", usesESPNProxy: false
             ),
             leagueData: MockLeagueDataSource(latency: .zero, failure: error),
             content: MockContentRepository(latency: .zero, failure: error)

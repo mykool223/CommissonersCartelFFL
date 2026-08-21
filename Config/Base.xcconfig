@@ -17,6 +17,12 @@ SUPABASE_ANON_KEY = REPLACE_ME
 // https:// prefix is added back in AppConfiguration.
 SUPABASE_HOST = REPLACE_ME
 
+// YES routes ESPN requests through the espn-proxy edge function, so the ESPN
+// session cookies live in Supabase's secret store instead of on the device.
+// Requires a deployed function; leave NO to talk to ESPN directly using
+// credentials entered in Settings.
+ESPN_VIA_PROXY = NO
+
 // Empty means "work it out from today's date" (see AppConfiguration.currentSeason).
 LEAGUE_SEASON =
 

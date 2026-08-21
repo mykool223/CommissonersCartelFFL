@@ -14,7 +14,12 @@
 // matches ESPN's exactly, so nothing else in the client changes.
 
 const ESPN_HOST = "https://lm-api-reads.fantasy.espn.com";
-const PROXY_PREFIX = "/functions/v1/espn-proxy";
+
+// The request path is anchored on ESPN's own "/apis/" segment rather than by
+// stripping a known prefix. Supabase strips "/functions/v1" before invoking, so
+// the function actually sees "/espn-proxy/apis/...", and hardcoding the full
+// public prefix silently rejects every request as "Path not allowed".
+const ESPN_PATH_MARKER = "/apis/";
 
 // Only the read endpoints the app actually uses. Without this the function
 // would be an open relay to any ESPN URL an attacker chose.
@@ -36,6 +41,22 @@ const CORS_HEADERS: Record<string, string> = {
   "Access-Control-Allow-Methods": "GET, OPTIONS",
 };
 
+/// Reads the `role` claim without verifying the signature — Supabase already
+/// verified it before this function ran, so re-checking here would be theatre.
+function jwtRole(authorization: string): string | null {
+  const token = authorization.replace(/^Bearer\s+/i, "");
+  const parts = token.split(".");
+  if (parts.length !== 3) return null;
+  try {
+    const payload = JSON.parse(
+      atob(parts[1].replace(/-/g, "+").replace(/_/g, "/")),
+    );
+    return typeof payload.role === "string" ? payload.role : null;
+  } catch {
+    return null;
+  }
+}
+
 function json(body: unknown, status: number): Response {
   return new Response(JSON.stringify(body), {
     status,
@@ -54,13 +75,35 @@ Deno.serve(async (request: Request) => {
 
   // Supabase verifies the JWT before invoking this function (verify_jwt is on
   // by default). This check is a guard against that being switched off.
-  if (!request.headers.get("Authorization")) {
+  const authorization = request.headers.get("Authorization");
+  if (!authorization) {
     return json({ message: "Missing Authorization header." }, 401);
   }
 
+  // The anon key is a valid JWT and ships inside the app, so by default anyone
+  // holding it can read the league through here. That is still a large net win
+  // over shipping ESPN session cookies in the binary, but it is not the end
+  // state.
+  //
+  // Once sign-in exists, tighten it without touching this code:
+  //   supabase secrets set ESPN_PROXY_REQUIRE_AUTH=true
+  //
+  // after which only signed-in league members get through.
+  const requireAuthenticated =
+    (Deno.env.get("ESPN_PROXY_REQUIRE_AUTH") ?? "false").toLowerCase() === "true";
+  const role = jwtRole(authorization);
+
+  if (requireAuthenticated && role !== "authenticated") {
+    return json(
+      { message: "Sign in to view the league.", role },
+      403,
+    );
+  }
+
   const url = new URL(request.url);
-  const path = url.pathname.startsWith(PROXY_PREFIX)
-    ? url.pathname.slice(PROXY_PREFIX.length)
+  const markerIndex = url.pathname.indexOf(ESPN_PATH_MARKER);
+  const path = markerIndex >= 0
+    ? url.pathname.slice(markerIndex)
     : url.pathname;
 
   if (!ALLOWED_PATH.test(path)) {

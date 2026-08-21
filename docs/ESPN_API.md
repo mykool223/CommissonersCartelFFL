@@ -49,7 +49,7 @@ go into the iOS Keychain and never leave the device.
 Good for a personal build. The weakness: the cookies are on-device, so this
 doesn't scale to distributing the app to your whole league.
 
-### Option 2: The proxy function (better)
+### Option 2: The proxy function (better — and what this league uses)
 
 `supabase/functions/espn-proxy` holds the cookies server-side. The app sends its
 Supabase token; the function attaches the ESPN cookies and forwards the request.
@@ -64,9 +64,29 @@ Then build the client with `ESPNConfiguration.viaProxy(...)` instead of passing
 credentials directly. The proxy preserves ESPN's exact path shape, so only the
 base URL changes.
 
+Then set `ESPN_VIA_PROXY = YES` in `Config/Secrets.xcconfig`. The app builds the
+client with `ESPNConfiguration.viaProxy(...)` and never reads the Keychain at
+all — verified by wiping the app and watching the league still load.
+
 The function only forwards paths matching the league endpoint and only accepts
 known `view` parameters — otherwise it would be an open relay to any ESPN URL a
-caller chose.
+caller chose. Path handling anchors on ESPN's own `/apis/` segment rather than
+stripping a fixed prefix: Supabase strips `/functions/v1` before invoking, so a
+hardcoded public prefix rejects every request as "Path not allowed".
+
+**One gap while there is no sign-in.** The app authenticates to the function
+with the anon key, which is public, so anyone holding it can read the league
+through the proxy. That is still far better than shipping ESPN session cookies
+in the binary — those grant access to a whole ESPN account, not just scores.
+Close it the moment sign-in lands:
+
+```bash
+supabase secrets set ESPN_PROXY_REQUIRE_AUTH=true
+```
+
+The function then rejects any caller whose JWT role is not `authenticated`. No
+redeploy needed. Switch `accessToken:` in `AppEnvironment.makeESPNClient` from
+the anon key to the signed-in user's token at the same time.
 
 ### Cookies expire
 

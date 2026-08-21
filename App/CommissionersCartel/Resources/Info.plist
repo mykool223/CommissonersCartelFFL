@@ -53,5 +53,7 @@
 	<string>$(SUPABASE_HOST)</string>
 	<key>SupabaseAnonKey</key>
 	<string>$(SUPABASE_ANON_KEY)</string>
+	<key>ESPNViaProxy</key>
+	<string>$(ESPN_VIA_PROXY)</string>
 </dict>
 </plist>
