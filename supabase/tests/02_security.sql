@@ -45,10 +45,18 @@ declare
     outsider constant text := '33333333-3333-3333-3333-333333333333';
     member   constant text := '22222222-2222-2222-2222-222222222222';
 begin
-    perform assert(as_user(outsider, 'select count(*) from public.news_posts') = 0,
-                   'a signed-in non-member sees no news');
+    -- League news and recaps are deliberately readable without membership
+    -- (see 20260821000005) because there is no sign-in yet and the tab would
+    -- otherwise always be empty. Polls, votes and profiles are NOT, and this
+    -- asserts that the exception stayed narrow.
+    perform assert(as_user(outsider, 'select count(*) from public.news_posts') = 1,
+                   'league news is readable without membership (deliberate)');
     perform assert(as_user(outsider, 'select count(*) from public.polls') = 0,
-                   'a signed-in non-member sees no polls');
+                   'a signed-in non-member still sees no polls');
+    perform assert(as_user(outsider, 'select count(*) from public.profiles') = 0,
+                   'a signed-in non-member still sees no member list');
+    perform assert(as_user(outsider, 'select count(*) from public.poll_votes') = 0,
+                   'a signed-in non-member still sees no votes');
     perform assert(as_user(member, 'select count(*) from public.news_posts') = 1,
                    'a member sees the news');
     perform assert(as_user(member, 'select count(*) from public.polls') = 2,
@@ -131,6 +139,7 @@ begin
                 '22222222-2222-2222-2222-222222222222') $q$),
         'writing to poll_votes directly is refused');
 
+    -- Reading league news is open; writing it is emphatically not.
     perform assert(blocked($q$
         insert into public.news_posts (title, body, author_name, season)
         values ('Sneaky', 'Body', 'Member', 2026) $q$),
@@ -153,8 +162,13 @@ begin
         select public.cast_vote('aaaaaaaa-0000-0000-0000-000000000001',
                                 'bbbbbbbb-0000-0000-0000-000000000001') $q$),
         'anon cannot execute cast_vote');
-    perform assert((select count(*) from public.news_posts) = 0,
-                   'anon reads no news');
+    -- anon can read league news by design now; it must still not write.
+    perform assert((select count(*) from public.news_posts) = 1,
+                   'anon can read league news (deliberate)');
+    perform assert(blocked($q$
+        insert into public.news_posts (title, body, author_name, season)
+        values ('anon post', 'Body', 'anon', 2026) $q$),
+        'anon cannot publish news');
 end $$;
 
 reset role;
