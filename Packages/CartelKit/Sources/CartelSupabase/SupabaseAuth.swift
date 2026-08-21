@@ -120,6 +120,53 @@ public actor SupabaseAuth {
         return session
     }
 
+    /// Completes sign-in with the six-digit code from the email.
+    ///
+    /// The link is the nicer path, but it only works on the device holding the
+    /// app — open it on a laptop and nothing happens, because the browser has
+    /// no `commissionerscartel://` to hand off to. The code works from
+    /// anywhere, which also makes the app reviewable without a mailbox.
+    @discardableResult
+    public func signIn(email: String, code: String) async throws -> AuthSession {
+        let address = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let token = code.trimmingCharacters(in: .whitespacesAndNewlines)
+            .replacingOccurrences(of: " ", with: "")
+        guard token.count >= 6 else {
+            throw CartelError.notConfigured("That code looks too short.")
+        }
+
+        var request = URLRequest(url: configuration.url.appending(path: "/auth/v1/verify"))
+        request.httpMethod = "POST"
+        request.setValue(configuration.anonKey, forHTTPHeaderField: "apikey")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONEncoder().encode(
+            VerifyRequest(type: "email", email: address, token: token)
+        )
+
+        let (data, response) = try await transport.send(request)
+        guard (200...299).contains(response.statusCode) else {
+            throw CartelError.server(
+                statusCode: response.statusCode,
+                message: AuthErrorPayload.message(from: data) ?? "That code didn't work."
+            )
+        }
+
+        guard let payload = try? JSONDecoder().decode(TokenResponse.self, from: data) else {
+            throw CartelError.decoding("Couldn't read the sign-in response.")
+        }
+
+        let session = AuthSession(
+            accessToken: payload.access_token,
+            refreshToken: payload.refresh_token ?? "",
+            expiresAt: now().addingTimeInterval(Double(payload.expires_in ?? 3_600)),
+            userID: try userID(fromAccessToken: payload.access_token),
+            email: payload.user?.email ?? address
+        )
+        cached = session
+        await store.save(session)
+        return session
+    }
+
     // MARK: - Refresh
 
     private func refreshed(_ session: AuthSession) async -> AuthSession? {
@@ -197,6 +244,12 @@ public actor SupabaseAuth {
 private struct MagicLinkRequest: Encodable {
     let email: String
     let create_user: Bool
+}
+
+private struct VerifyRequest: Encodable {
+    let type: String
+    let email: String
+    let token: String
 }
 
 private struct RefreshRequest: Encodable {

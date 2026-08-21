@@ -132,6 +132,16 @@ final class AppEnvironment {
         await refreshMembership()
     }
 
+    /// Sign in with the six-digit code from the email, for anyone who opened it
+    /// somewhere the link cannot work.
+    func signIn(email: String, code: String) async throws {
+        guard let auth else {
+            throw CartelError.notConfigured("Supabase isn't set up in this build.")
+        }
+        session = try await auth.signIn(email: email, code: code)
+        await refreshMembership()
+    }
+
     func signOut() async {
         await auth?.signOut()
         session = nil

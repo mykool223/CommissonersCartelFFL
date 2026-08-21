@@ -10,14 +10,17 @@ struct SignInView: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var email = ""
+    @State private var code = ""
     @State private var phase: Phase = .entering
     @FocusState private var emailFocused: Bool
+    @FocusState private var codeFocused: Bool
 
     private enum Phase: Equatable {
         case entering
         case sending
-        /// The link is out; the app is waiting for it to be tapped.
+        /// The link and code are out; waiting for either to be used.
         case sent
+        case verifying
         case failed(String)
     }
 
@@ -29,7 +32,8 @@ struct SignInView: View {
                         .padding(.top, Theme.Spacing.section)
 
                     switch phase {
-                    case .sent: sentState
+                    case .sent, .verifying: sentState
+                    case .failed where !code.isEmpty: sentState
                     default: entryState
                     }
                 }
@@ -108,16 +112,15 @@ struct SignInView: View {
             VStack(spacing: Theme.Spacing.small) {
                 Text("Check your email")
                     .font(.title3.bold())
-                Text("We sent a link to \(email). Tap it on this device and you'll be signed in.")
+                Text("We sent a link and a 6-digit code to \(email).")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
             }
 
-            // The league sends from a plain address rather than its own domain,
-            // so there is no SPF or DKIM record vouching for it and providers
-            // routinely bin the first one. Cheaper to say so than to have
-            // eleven people conclude sign-in is broken.
+            // The league sends from a plain address with no domain behind it,
+            // so there is no SPF or DKIM vouching for the mail and providers
+            // routinely bin the first one.
             Card {
                 Label {
                     Text("Look in your junk folder")
@@ -126,19 +129,70 @@ struct SignInView: View {
                     Image(systemName: "exclamationmark.triangle.fill")
                         .foregroundStyle(Color.brand)
                 }
-                Text("The first link usually lands there. Mark it \u{201C}Not junk\u{201D} and the rest will come through normally.")
+                Text("The first one usually lands there. Mark it \u{201C}Not junk\u{201D} and the rest will come through.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
 
-            Text("Open the email on your phone, not a computer.")
-                .font(.caption)
-                .foregroundStyle(.tertiary)
+            // The link only works on the device holding the app. The code works
+            // anywhere, which is the fix for reading email on a laptop.
+            Card {
+                Text("Tap the link on this phone — or type the code")
+                    .font(.subheadline.weight(.semibold))
+
+                TextField("000000", text: $code)
+                    .textContentType(.oneTimeCode)
+                    .keyboardType(.numberPad)
+                    .font(.title2.monospacedDigit())
+                    .multilineTextAlignment(.center)
+                    .focused($codeFocused)
+                    .padding(.vertical, Theme.Spacing.small)
+                    .onChange(of: code) { _, value in
+                        // Six digits is the whole code; submit without making
+                        // anyone hunt for a button.
+                        let digits = value.filter(\.isNumber)
+                        if digits.count >= 6 { Task { await submitCode() } }
+                    }
+
+                if case let .failed(message) = phase {
+                    Text(message)
+                        .font(.footnote)
+                        .foregroundStyle(Color.loss)
+                }
+
+                Button {
+                    Task { await submitCode() }
+                } label: {
+                    HStack {
+                        if phase == .verifying { ProgressView() }
+                        Text(phase == .verifying ? "Checking\u{2026}" : "Sign in with code")
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(code.filter(\.isNumber).count < 6 || phase == .verifying)
+            }
 
             Button("Use a different address") {
+                code = ""
                 phase = .entering
             }
             .buttonStyle(.bordered)
+        }
+    }
+
+    private func submitCode() async {
+        let digits = code.filter(\.isNumber)
+        guard digits.count >= 6, phase != .verifying else { return }
+        codeFocused = false
+        phase = .verifying
+        do {
+            try await environment.signIn(email: email, code: digits)
+            // The sheet dismisses itself on isSignedIn changing.
+        } catch let error as CartelError {
+            phase = .failed(error.errorDescription ?? "That code didn't work.")
+        } catch {
+            phase = .failed(error.localizedDescription)
         }
     }
 
