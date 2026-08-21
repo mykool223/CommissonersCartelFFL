@@ -126,11 +126,20 @@ private struct MessageRow: View {
                 InitialsAvatar(initials: message.initials, size: 30)
             }
 
-            VStack(alignment: isMine ? .trailing : .leading, spacing: 2) {
-                if !isMine {
+            VStack(alignment: isMine ? .trailing : .leading, spacing: 3) {
+                // Named on every message, including your own. A twelve-person
+                // thread is not a two-way chat — leaving your own posts
+                // unlabelled makes a run of them look anonymous.
+                HStack(spacing: Theme.Spacing.tight) {
                     Text(message.authorName)
                         .font(.caption2.weight(.semibold))
                         .foregroundStyle(.secondary)
+                    Text("·")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                    Text(message.createdAt.relativeText)
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
                 }
 
                 Text(message.body)
@@ -142,10 +151,6 @@ private struct MessageRow: View {
                         isMine ? Color.brand : Color.cardBackground,
                         in: .rect(cornerRadius: Theme.Radius.card)
                     )
-
-                Text(message.createdAt.relativeText)
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
             }
 
             if !isMine { Spacer(minLength: 40) }
