@@ -9,33 +9,17 @@ struct PollsView: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                LazyVStack(spacing: Theme.Spacing.medium) {
-                    if environment.isUsingMockContent {
-                        SampleDataBanner(
-                            detail: "Votes are stored on this device only until Supabase is connected."
-                        )
-                    }
-
-                    LoadableView(
-                        state: model.state,
-                        emptyMessage: "No polls yet. Start one and settle an argument.",
-                        retry: { await model.load(using: environment) }
-                    ) { polls in
-                        ForEach(polls) { poll in
-                            PollCard(poll: poll) { optionID in
-                                await model.vote(
-                                    pollID: poll.id, optionID: optionID, using: environment
-                                )
-                            }
-                        }
-                    }
+            Group {
+                if !environment.isSignedIn {
+                    signedOutState
+                } else if !environment.isLeagueMember {
+                    notAMemberState
+                } else {
+                    pollList
                 }
-                .padding(Theme.Spacing.large)
             }
             .screenStyle()
             .navigationTitle("Polls")
-            .refreshable { await model.load(using: environment, showSpinner: false) }
             // Keyed on the session: polls require a signed-in member, and
             // restoration finishes after this view first appears. A bare
             // .task would load once while signed out, hit a permission error,
@@ -55,6 +39,55 @@ struct PollsView: View {
                 Text(model.voteError ?? "")
             }
         }
+    }
+
+    /// Voting needs to know who is voting, so this is a sign-in prompt rather
+    /// than an error. Previously the failed request surfaced as CartelError
+    /// .notAuthorized, which the shared error view renders as "This league is
+    /// private. Add your ESPN credentials in Settings" — wrong twice over, and
+    /// it sends people to a screen that cannot fix it.
+    private var signedOutState: some View {
+        ContentUnavailableView {
+            Label("Sign in to vote", systemImage: "chart.bar")
+        } description: {
+            Text("Polls are for league members. Sign in from Settings — it takes a moment and there's no password.")
+        }
+    }
+
+    private var notAMemberState: some View {
+        ContentUnavailableView {
+            Label("Not on the roster", systemImage: "person.crop.circle.badge.exclamationmark")
+        } description: {
+            Text("You're signed in as \(environment.session?.email ?? "this account"), but that address isn't on the league list. Ask the commissioner to add you.")
+        }
+    }
+
+    private var pollList: some View {
+        ScrollView {
+            LazyVStack(spacing: Theme.Spacing.medium) {
+                if environment.isUsingMockContent {
+                    SampleDataBanner(
+                        detail: "Votes are stored on this device only until Supabase is connected."
+                    )
+                }
+
+                LoadableView(
+                    state: model.state,
+                    emptyMessage: "No polls yet. Start one and settle an argument.",
+                    retry: { await model.load(using: environment) }
+                ) { polls in
+                    ForEach(polls) { poll in
+                        PollCard(poll: poll) { optionID in
+                            await model.vote(
+                                pollID: poll.id, optionID: optionID, using: environment
+                            )
+                        }
+                    }
+                }
+            }
+            .padding(Theme.Spacing.large)
+        }
+        .refreshable { await model.load(using: environment, showSpinner: false) }
     }
 }
 
