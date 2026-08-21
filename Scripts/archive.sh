@@ -40,6 +40,9 @@ echo "==> Build $BUILD_NUMBER"
 
 rm -rf "$ARCHIVE"
 echo "==> Archiving"
+# -allowProvisioningUpdates is needed on the archive too, not only the export:
+# without it Xcode refuses to create the provisioning profile and fails with
+# "No profiles for ... were found".
 xcodebuild archive \
   -project "$PROJECT" \
   -scheme "$SCHEME" \
@@ -47,6 +50,7 @@ xcodebuild archive \
   -destination 'generic/platform=iOS' \
   -archivePath "$ARCHIVE" \
   CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
+  -allowProvisioningUpdates \
   -quiet
 
 cat > "$BUILD_DIR/ExportOptions.plist" <<PLIST

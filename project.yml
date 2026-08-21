@@ -71,6 +71,13 @@ targets:
         # fine for the simulator; a device or TestFlight build needs it.
         DEVELOPMENT_TEAM: $(DEVELOPMENT_TEAM)
         SUPPORTS_MACCATALYST: NO
+      configs:
+        # Left to automatic signing on purpose. With CODE_SIGN_STYLE=Automatic,
+        # the archive is signed for *development* and -exportArchive re-signs it
+        # for distribution — so pinning CODE_SIGN_IDENTITY to "Apple
+        # Distribution" here makes xcodebuild refuse with a conflicting-settings
+        # error rather than helping.
+        Release: {}
     scheme:
       gatherCoverageData: true
       environmentVariables:
