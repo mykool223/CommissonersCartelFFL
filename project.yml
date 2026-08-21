@@ -26,11 +26,11 @@ configFiles:
 
 settings:
   base:
-    # Swift 5 language mode with complete concurrency checking: the compiler
-    # reports every Swift 6 concurrency problem as a WARNING rather than an
-    # error. CartelKit already builds clean under full Swift 6.
-    # To finish the migration, set this to 6.0 and fix whatever it flags.
-    SWIFT_VERSION: "5.0"
+    # Full Swift 6 language mode: data-race safety is enforced at compile time,
+    # not merely warned about. CartelKit and the app target both build clean
+    # under it. Keep it here — dropping to 5.0 would silently downgrade every
+    # concurrency error to a warning.
+    SWIFT_VERSION: "6.0"
     SWIFT_STRICT_CONCURRENCY: complete
     IPHONEOS_DEPLOYMENT_TARGET: "18.0"
     ENABLE_USER_SCRIPT_SANDBOXING: YES
