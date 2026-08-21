@@ -84,25 +84,19 @@ private struct NewsPostCard: View {
 /// Player news, below the league's own posts.
 ///
 /// Blurbs are shown inline rather than as links out — the whole point is to
-/// read them without leaving the app. Each row still links to the publisher for
-/// their longer analysis, which the app deliberately does not store.
+/// read them without leaving the app. The publisher is not named on screen at
+/// the league's request; `PlayerNews.sourceName` and `sourceURL` still carry
+/// the attribution, and the longer analysis is deliberately not stored.
 private struct PlayerNewsSection: View {
     let items: [PlayerNews]
 
     var body: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.medium) {
-            HStack(spacing: Theme.Spacing.small) {
-                Text("Player news")
-                    .font(.subheadline.weight(.semibold))
-                Spacer(minLength: 0)
-                if let source = items.first?.sourceName {
-                    Text(source)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            }
-            .padding(.horizontal, Theme.Spacing.tight)
-            .padding(.top, Theme.Spacing.medium)
+            Text("Player news")
+                .font(.subheadline.weight(.semibold))
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, Theme.Spacing.tight)
+                .padding(.top, Theme.Spacing.medium)
 
             ForEach(items) { item in
                 PlayerNewsCard(item: item)
