@@ -11,9 +11,21 @@ public struct ESPNCredentials: Hashable, Sendable {
     public let swid: String
 
     public init(espnS2: String, swid: String) {
-        self.espnS2 = espnS2
+        // Copy-pasting out of developer tools drags in whitespace and newlines.
+        self.espnS2 = espnS2.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        var cleaned = swid.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        // Some browsers show the SWID percent-encoded (%7B...%7D) rather than
+        // as literal braces. Decoding first means the brace check below sees
+        // the real value instead of wrapping an already-wrapped id.
+        if cleaned.localizedCaseInsensitiveContains("%7B"),
+           let decoded = cleaned.removingPercentEncoding {
+            cleaned = decoded
+        }
+
         // ESPN expects the SWID wrapped in braces; accept it either way.
-        self.swid = swid.hasPrefix("{") ? swid : "{\(swid)}"
+        self.swid = cleaned.hasPrefix("{") ? cleaned : "{\(cleaned)}"
     }
 
     var cookieHeader: String {

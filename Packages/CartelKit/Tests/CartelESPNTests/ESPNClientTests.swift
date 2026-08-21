@@ -65,6 +65,28 @@ struct ESPNRequestTests {
         #expect(bare.cookieHeader == "espn_s2=s2; SWID={ABC-123}")
     }
 
+    /// Everything a human might realistically paste out of developer tools.
+    @Test(arguments: [
+        "ABC-123",
+        "{ABC-123}",
+        "  {ABC-123}  ",
+        "%7BABC-123%7D",
+        "%7babc-123%7d".uppercased(),
+    ])
+    func swidAcceptsPastedForms(raw: String) {
+        let credentials = ESPNCredentials(espnS2: "s2", swid: raw)
+        #expect(credentials.swid == "{ABC-123}")
+    }
+
+    @Test("espn_s2 keeps its percent-encoding but loses stray whitespace")
+    func espnS2Handling() {
+        // The cookie value really does contain % escapes; they are part of it
+        // and must be sent through untouched.
+        let credentials = ESPNCredentials(espnS2: "  AEB%2Fxyz%3D\n", swid: "{A}")
+        #expect(credentials.espnS2 == "AEB%2Fxyz%3D")
+        #expect(credentials.cookieHeader == "espn_s2=AEB%2Fxyz%3D; SWID={A}")
+    }
+
     @Test("Credentials are sent as a Cookie header")
     func sendsCookieHeader() async throws {
         let captured = Captured()
