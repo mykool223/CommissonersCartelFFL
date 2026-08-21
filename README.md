@@ -119,7 +119,7 @@ league.
 - [x] Settings with Keychain-stored ESPN credentials
 - [x] League crest as the app icon, and brand gold throughout
 - [x] Launch screen — native, so there's no white flash before the crest
-- [x] "Around the league" — daily headlines from The Fantasy Footballers' RSS feed
+- [x] Player news — injuries and depth-chart moves, refreshed each morning
 - [ ] Writing posts and polls from inside the app (read-only today)
 - [ ] Sign-in — see [docs/ROADMAP.md](docs/ROADMAP.md)
 - [ ] Push notifications

@@ -48,9 +48,9 @@ public struct SupabaseContentRepository: ContentRepository {
         return rows.map(\.model)
     }
 
-    public func externalArticles(limit: Int) async throws -> [ExternalArticle] {
-        let rows: [ExternalArticleRow] = try await client.select(
-            "external_articles",
+    public func playerNews(limit: Int) async throws -> [PlayerNews] {
+        let rows: [PlayerNewsRow] = try await client.select(
+            "player_news",
             query: [
                 "select": "*",
                 "order": "published_at.desc",
@@ -126,30 +126,34 @@ private struct RecapRow: Decodable {
     }
 }
 
-private struct ExternalArticleRow: Decodable {
+private struct PlayerNewsRow: Decodable {
     let id: UUID
-    let source_key: String
+    let source_id: Int
     let source_name: String
-    let title: String
+    let player_name: String
+    let player_position: String?
+    let player_team: String?
+    let headshot_url: String?
+    let headline: String
+    let blurb: String?
     let url: String
-    let excerpt: String?
-    let author: String?
-    let image_url: String?
     let published_at: Date
 
     /// Nil when the stored URL will not parse. Dropping the row beats handing
-    /// the UI a headline that cannot be opened.
-    var model: ExternalArticle? {
+    /// the UI an item that cannot link anywhere.
+    var model: PlayerNews? {
         guard let link = URL(string: url) else { return nil }
-        return ExternalArticle(
+        return PlayerNews(
             id: id,
-            sourceKey: source_key,
+            sourceID: source_id,
             sourceName: source_name,
-            title: title,
+            playerName: player_name,
+            position: player_position,
+            team: player_team,
+            headshotURL: headshot_url.flatMap(URL.init(string:)),
+            headline: headline,
+            blurb: blurb,
             url: link,
-            excerpt: excerpt,
-            author: author,
-            imageURL: image_url.flatMap(URL.init(string:)),
             publishedAt: published_at
         )
     }

@@ -6,9 +6,9 @@ import CartelCore
 @MainActor
 final class NewsFeedViewModel {
     private(set) var state: Loadable<[NewsPost]> = .idle
-    /// Outside headlines load separately: they are secondary to the league's
-    /// own posts, and a publisher feed being down should not empty the tab.
-    private(set) var articles: [ExternalArticle] = []
+    /// Player news loads separately: it is secondary to the league's own
+    /// posts, and the publisher being down should not empty the tab.
+    private(set) var playerNews: [PlayerNews] = []
 
     /// `showSpinner` is false for pull-to-refresh, so the existing feed stays
     /// on screen instead of collapsing into a spinner.
@@ -24,11 +24,11 @@ final class NewsFeedViewModel {
         // The failure is deliberately swallowed: outside news is a
         // nice-to-have, so a publisher being down leaves the section empty
         // rather than replacing the whole tab with an error nobody can act on.
-        let articlesTask = Task { try? await content.externalArticles() }
+        let newsTask = Task { try? await content.playerNews() }
 
         if let result = await loadState({ try await content.newsPosts(season: season, limit: 50) }) {
             state = result
         }
-        articles = await articlesTask.value ?? []
+        playerNews = await newsTask.value ?? []
     }
 }

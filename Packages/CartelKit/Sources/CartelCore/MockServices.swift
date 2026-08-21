@@ -81,10 +81,10 @@ public actor MockContentRepository: ContentRepository {
             .sorted { $0.createdAt > $1.createdAt }
     }
 
-    public func externalArticles(limit: Int) async throws -> [ExternalArticle] {
+    public func playerNews(limit: Int) async throws -> [PlayerNews] {
         try await simulate()
         return Array(
-            MockData.externalArticles
+            MockData.playerNews
                 .sorted { $0.publishedAt > $1.publishedAt }
                 .prefix(limit)
         )

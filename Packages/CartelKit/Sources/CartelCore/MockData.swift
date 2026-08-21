@@ -189,26 +189,30 @@ public enum MockData {
         ]
     }
 
-    public static let externalArticles: [ExternalArticle] = [
-        ExternalArticle(
+    public static let playerNews: [PlayerNews] = [
+        PlayerNews(
             id: uuid(300),
-            sourceKey: "fantasy_footballers",
+            sourceID: 634_313,
             sourceName: "The Fantasy Footballers",
-            title: "10 Tips and Tricks to Win Your League",
+            playerName: "Sample Wideout",
+            position: "WR",
+            team: "JAX",
+            headline: "Should resume practicing next week",
+            blurb: "The wideout is expected to return to practice next week and is considered day-to-day.",
             url: URL(string: "https://www.thefantasyfootballers.com/")!,
-            excerpt: "Can you smell that? There is a shift in the air. From sea breeze and sunscreen to something far more important.",
-            author: "Maggie Thraen",
-            publishedAt: referenceDate.addingTimeInterval(-3_600 * 5)
+            publishedAt: referenceDate.addingTimeInterval(-3_600)
         ),
-        ExternalArticle(
+        PlayerNews(
             id: uuid(301),
-            sourceKey: "fantasy_footballers",
+            sourceID: 634_312,
             sourceName: "The Fantasy Footballers",
-            title: "Bust & Value Picks for the Season",
+            playerName: "Sample Quarterback",
+            position: "QB",
+            team: "LV",
+            headline: "Coach declines to name Week 1 starter",
+            blurb: "The staff indicated they are not yet ready to name a starter, leaving the job open through the preseason.",
             url: URL(string: "https://www.thefantasyfootballers.com/")!,
-            excerpt: "Bust and value picks for the fantasy football season, plus a look at where the consensus is wrong.",
-            author: "The Fantasy Footballers",
-            publishedAt: referenceDate.addingTimeInterval(-3_600 * 14)
+            publishedAt: referenceDate.addingTimeInterval(-3_600 * 4)
         ),
     ]
 

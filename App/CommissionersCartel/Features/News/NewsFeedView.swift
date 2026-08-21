@@ -34,8 +34,8 @@ struct NewsFeedView: View {
                         }
                     }
 
-                    if !model.articles.isEmpty {
-                        AroundTheLeagueSection(articles: model.articles)
+                    if !model.playerNews.isEmpty {
+                        PlayerNewsSection(items: model.playerNews)
                     }
                 }
                 .padding(Theme.Spacing.large)
@@ -81,21 +81,21 @@ private struct NewsPostCard: View {
     }
 }
 
-/// Outside headlines, below the league's own posts.
+/// Player news, below the league's own posts.
 ///
-/// Rows are visually lighter than a league post and open the publisher's page
-/// rather than a detail screen — the app stores only the headline and excerpt,
-/// never the article itself.
-private struct AroundTheLeagueSection: View {
-    let articles: [ExternalArticle]
+/// Blurbs are shown inline rather than as links out — the whole point is to
+/// read them without leaving the app. Each row still links to the publisher for
+/// their longer analysis, which the app deliberately does not store.
+private struct PlayerNewsSection: View {
+    let items: [PlayerNews]
 
     var body: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.medium) {
             HStack(spacing: Theme.Spacing.small) {
-                Text("Around the league")
+                Text("Player news")
                     .font(.subheadline.weight(.semibold))
                 Spacer(minLength: 0)
-                if let source = articles.first?.sourceName {
+                if let source = items.first?.sourceName {
                     Text(source)
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -104,57 +104,86 @@ private struct AroundTheLeagueSection: View {
             .padding(.horizontal, Theme.Spacing.tight)
             .padding(.top, Theme.Spacing.medium)
 
-            ForEach(articles) { article in
-                Link(destination: article.url) {
-                    ArticleRow(article: article)
-                }
-                .buttonStyle(.plain)
+            ForEach(items) { item in
+                PlayerNewsCard(item: item)
             }
         }
     }
 }
 
-private struct ArticleRow: View {
-    let article: ExternalArticle
+private struct PlayerNewsCard: View {
+    let item: PlayerNews
 
     var body: some View {
         Card {
             HStack(alignment: .top, spacing: Theme.Spacing.medium) {
+                PlayerHeadshot(url: item.headshotURL, name: item.playerName)
+
                 VStack(alignment: .leading, spacing: Theme.Spacing.tight) {
-                    Text(article.title)
-                        .font(.subheadline.weight(.medium))
-                        .foregroundStyle(.primary)
-                        .multilineTextAlignment(.leading)
-                        .lineLimit(3)
-
-                    if let excerpt = article.excerpt {
-                        Text(excerpt)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .multilineTextAlignment(.leading)
-                            .lineLimit(2)
-                    }
-
-                    HStack(spacing: Theme.Spacing.tight) {
-                        Text(article.publishedAt.relativeText)
-                        if let author = article.author {
-                            Text("· \(author)")
+                    HStack(spacing: Theme.Spacing.small) {
+                        Text(item.playerName)
+                            .font(.subheadline.weight(.semibold))
+                            .lineLimit(1)
+                        if let detail = item.positionAndTeam {
+                            Text(detail)
+                                .font(.caption2.weight(.medium))
+                                .foregroundStyle(Color.brand)
                         }
+                        Spacer(minLength: 0)
+                        Text(item.publishedAt.relativeText)
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
                     }
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
+
+                    Text(item.headline)
+                        .font(.subheadline)
+                        .foregroundStyle(.primary)
+
+                    // The blurb itself, read in place.
+                    if let blurb = item.blurb {
+                        Text(blurb)
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
                 }
-
-                Spacer(minLength: 0)
-
-                // Signals that this leaves the app.
-                Image(systemName: "arrow.up.right")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(Color.brand)
             }
         }
         .accessibilityElement(children: .combine)
-        .accessibilityHint("Opens \(article.sourceName) in your browser")
+    }
+}
+
+/// Player headshot, falling back to initials on a tinted circle.
+private struct PlayerHeadshot: View {
+    let url: URL?
+    let name: String
+    var size: CGFloat = 44
+
+    @State private var image: UIImage?
+
+    private var initials: String {
+        let parts = name.split(separator: " ").prefix(2)
+        let letters = parts.compactMap { $0.first.map(String.init) }
+        return letters.isEmpty ? "?" : letters.joined().uppercased()
+    }
+
+    var body: some View {
+        Group {
+            if let image {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: size, height: size)
+                    .clipShape(.circle)
+            } else {
+                InitialsAvatar(initials: initials, size: size)
+            }
+        }
+        .task(id: url) {
+            guard let url else { return }
+            // Headshots are on a public CDN, so no auth headers are needed —
+            // but the shared cache still avoids refetching on every scroll.
+            image = await LogoCache.shared.image(for: url, headers: [:])
+        }
     }
 }
 

@@ -18,8 +18,8 @@ public protocol ContentRepository: Sendable {
     func recaps(season: Int, week: Int) async throws -> [Recap]
     func polls(season: Int) async throws -> [Poll]
 
-    /// Headlines pulled from publisher RSS feeds by the daily ingest job.
-    func externalArticles(limit: Int) async throws -> [ExternalArticle]
+    /// Player news blurbs collected by the daily ingest job.
+    func playerNews(limit: Int) async throws -> [PlayerNews]
 
     /// Records the caller's vote. Replaces any previous vote on the same poll.
     func vote(pollID: UUID, optionID: UUID) async throws
@@ -30,8 +30,8 @@ public extension ContentRepository {
         try await newsPosts(season: season, limit: 50)
     }
 
-    func externalArticles() async throws -> [ExternalArticle] {
-        try await externalArticles(limit: 15)
+    func playerNews() async throws -> [PlayerNews] {
+        try await playerNews(limit: 40)
     }
 }
 
