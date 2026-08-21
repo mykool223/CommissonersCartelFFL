@@ -39,6 +39,24 @@ public struct MockLeagueDataSource: LeagueDataSource {
     }
 }
 
+/// In-memory `NFLScoreboardSource`, covering a live game, an upcoming one and
+/// a finished one — the three states the UI has to render.
+public struct MockNFLScoreboardSource: NFLScoreboardSource {
+    public let latency: Duration
+    public let failure: CartelError?
+
+    public init(latency: Duration = .milliseconds(250), failure: CartelError? = nil) {
+        self.latency = latency
+        self.failure = failure
+    }
+
+    public func scoreboard() async throws -> NFLScoreboard {
+        if latency > .zero { try? await Task.sleep(for: latency) }
+        if let failure { throw failure }
+        return MockData.nflScoreboard
+    }
+}
+
 /// In-memory `ContentRepository` that remembers votes for the lifetime of the
 /// process, so the poll UI behaves correctly without a backend.
 ///

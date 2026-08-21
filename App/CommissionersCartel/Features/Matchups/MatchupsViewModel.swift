@@ -78,6 +78,9 @@ final class MatchupsViewModel {
     }
 
     private(set) var state: Loadable<Board> = .idle
+    /// Loaded separately: NFL scores are public and need no league setup, so
+    /// they should still show when the fantasy side is unconfigured or failing.
+    private(set) var nflScoreboard: NFLScoreboard?
     /// Nil until the league's current week is known, then user-controlled.
     var selectedWeek: Int?
 
@@ -85,7 +88,14 @@ final class MatchupsViewModel {
     /// the network rather than replaying a response up to the cache TTL old.
     func refresh(using environment: AppEnvironment) async {
         await environment.leagueData.refresh()
+        await environment.nflScoreboard.refresh()
         await load(using: environment, showSpinner: false)
+    }
+
+    /// Live scores move on their own, so this is also called when the section
+    /// is opened rather than only on first appearance.
+    func loadNFLScores(using environment: AppEnvironment) async {
+        nflScoreboard = try? await environment.nflScoreboard.scoreboard()
     }
 
     func load(using environment: AppEnvironment, showSpinner: Bool = true) async {
@@ -95,6 +105,8 @@ final class MatchupsViewModel {
         let content = environment.content
         let season = environment.season
         let requestedWeek = selectedWeek
+
+        let scoresTask = Task { try? await environment.nflScoreboard.scoreboard() }
 
         let result = await loadState { () -> Board in
             let league = try await leagueData.league()
@@ -119,6 +131,8 @@ final class MatchupsViewModel {
                 week: week
             )
         }
+
+        nflScoreboard = await scoresTask.value
 
         if let result {
             state = result

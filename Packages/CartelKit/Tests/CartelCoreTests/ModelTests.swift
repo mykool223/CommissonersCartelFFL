@@ -383,3 +383,78 @@ struct ManagerNameTests {
         #expect(manager.fullName == "boogeyman")
     }
 }
+
+@Suite("Flexible ISO-8601 parsing")
+struct FlexibleISO8601Tests {
+    /// The exact shape ESPN's scoreboard sends. The stock
+    /// `Date.ISO8601FormatStyle` rejects it because the seconds field is
+    /// missing, and the resulting fallback date rendered as a plausible-looking
+    /// kickoff time on every game.
+    @Test("Timestamps with no seconds parse")
+    func missingSeconds() throws {
+        let date = try #require(FlexibleISO8601.date(from: "2026-08-21T23:00Z"))
+        #expect(date.timeIntervalSince1970 == 1_787_353_200)
+    }
+
+    @Test(arguments: [
+        "2026-08-21T23:00:00Z",
+        "2026-08-21T23:00Z",
+        "2026-08-21T23:00:00.000Z",
+        "2026-08-21T18:00:00-05:00",
+        "2026-08-21T18:00-05:00",
+    ])
+    func acceptsEveryShapeSeenInTheWild(raw: String) throws {
+        let date = try #require(FlexibleISO8601.date(from: raw), "failed on \(raw)")
+        #expect(date.timeIntervalSince1970 == 1_787_353_200)
+    }
+
+    @Test(arguments: ["", "   ", "not a date", "2026-13-45T99:99Z", "1787353200"])
+    func rejectsGarbage(raw: String) {
+        #expect(FlexibleISO8601.date(from: raw) == nil)
+    }
+}
+
+@Suite("NFL scoreboard ordering")
+struct NFLScoreboardOrderingTests {
+    private func game(_ id: String, _ state: NFLGame.State, _ start: Date?) -> NFLGame {
+        NFLGame(
+            id: id,
+            home: NFLGame.Side(abbreviation: "AAA", name: "A"),
+            away: NFLGame.Side(abbreviation: "BBB", name: "B"),
+            state: state,
+            startDate: start,
+            statusDetail: ""
+        )
+    }
+
+    @Test("Live first, then upcoming, then finished")
+    func readingOrder() {
+        let base = Date(timeIntervalSince1970: 1_787_353_200)
+        let board = NFLScoreboard(
+            seasonYear: 2026, week: 3, isPreseason: true,
+            games: [
+                game("final", .final, base),
+                game("later", .scheduled, base.addingTimeInterval(7_200)),
+                game("live", .inProgress, base),
+                game("soon", .scheduled, base.addingTimeInterval(3_600)),
+            ]
+        )
+        #expect(board.gamesInReadingOrder.map(\.id) == ["live", "soon", "later", "final"])
+        #expect(board.hasLiveGames)
+    }
+
+    /// A game whose timestamp could not be parsed must not sort to 1970 and
+    /// jump the queue ahead of everything else.
+    @Test("Games with no timestamp sort last within their state")
+    func undatedGamesSortLast() {
+        let base = Date(timeIntervalSince1970: 1_787_353_200)
+        let board = NFLScoreboard(
+            seasonYear: 2026, week: 3, isPreseason: true,
+            games: [
+                game("undated", .scheduled, nil),
+                game("dated", .scheduled, base),
+            ]
+        )
+        #expect(board.gamesInReadingOrder.map(\.id) == ["dated", "undated"])
+    }
+}

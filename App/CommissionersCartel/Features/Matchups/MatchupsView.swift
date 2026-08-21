@@ -7,12 +7,14 @@ enum MatchupsSection: String, TabSection {
     case scoreboard
     case recap
     case standings
+    case nfl
 
     var title: String {
         switch self {
         case .scoreboard: "Scoreboard"
         case .recap: "Weekly recap"
         case .standings: "Standings"
+        case .nfl: "NFL scores"
         }
     }
 
@@ -21,8 +23,13 @@ enum MatchupsSection: String, TabSection {
         case .scoreboard: "sportscourt"
         case .recap: "trophy"
         case .standings: "list.number"
+        case .nfl: "football"
         }
     }
+
+    /// NFL scores are public and need no league configuration, so that section
+    /// works even when everything else is unconfigured or erroring.
+    var needsLeagueData: Bool { self != .nfl }
 }
 
 struct MatchupsView: View {
@@ -34,13 +41,16 @@ struct MatchupsView: View {
         NavigationStack {
             ScrollView {
                 LazyVStack(spacing: Theme.Spacing.medium) {
-                    if environment.isUsingMockLeagueData {
+                    if section.needsLeagueData, environment.isUsingMockLeagueData {
                         SampleDataBanner(
                             detail: "Showing a sample schedule. Add your ESPN league id in Settings."
                         )
                     }
 
-                    LoadableView(
+                    if section == .nfl {
+                        nflScores
+                    } else {
+                        LoadableView(
                         state: model.state,
                         emptyMessage: "No games scheduled for this week.",
                         retry: { await model.load(using: environment) }
@@ -55,6 +65,8 @@ struct MatchupsView: View {
                         case .scoreboard: scoreboard(board: board)
                         case .recap: WeeklyRecapView(board: board, awards: board.awards)
                         case .standings: StandingsView(board: board)
+                        case .nfl: EmptyView()
+                        }
                         }
                     }
                 }
@@ -70,9 +82,28 @@ struct MatchupsView: View {
                 }
             }
             .onChange(of: section) { _, newSection in
-                guard newSection == .recap else { return }
-                Task { await model.showMostRecentPlayedWeek(using: environment) }
+                Task {
+                    switch newSection {
+                    case .recap:
+                        await model.showMostRecentPlayedWeek(using: environment)
+                    case .nfl:
+                        // Scores move while the app is open, so re-read on
+                        // every visit rather than only on first appearance.
+                        await model.loadNFLScores(using: environment)
+                    default:
+                        break
+                    }
+                }
             }
+        }
+    }
+
+    @ViewBuilder
+    private var nflScores: some View {
+        if let scoreboard = model.nflScoreboard {
+            NFLScoresView(scoreboard: scoreboard)
+        } else {
+            LoadingPlaceholder()
         }
     }
 

@@ -189,6 +189,40 @@ public enum MockData {
         ]
     }
 
+    public static let nflScoreboard = NFLScoreboard(
+        seasonYear: season,
+        week: 3,
+        isPreseason: true,
+        games: [
+            NFLGame(
+                id: "mock-live",
+                home: NFLGame.Side(abbreviation: "SF", name: "49ers", score: 24, record: "1-1"),
+                away: NFLGame.Side(abbreviation: "LAC", name: "Chargers", score: 17, record: "0-2"),
+                state: .inProgress,
+                startDate: referenceDate.addingTimeInterval(-3_600),
+                statusDetail: "Q3 5:42",
+                period: 3,
+                clock: "5:42"
+            ),
+            NFLGame(
+                id: "mock-scheduled",
+                home: NFLGame.Side(abbreviation: "PIT", name: "Steelers", record: "1-0"),
+                away: NFLGame.Side(abbreviation: "NYJ", name: "Jets", record: "0-1"),
+                state: .scheduled,
+                startDate: referenceDate.addingTimeInterval(3_600 * 4),
+                statusDetail: "7:00 PM EDT"
+            ),
+            NFLGame(
+                id: "mock-final",
+                home: NFLGame.Side(abbreviation: "LV", name: "Raiders", score: 22, record: "2-0"),
+                away: NFLGame.Side(abbreviation: "HOU", name: "Texans", score: 20, record: "1-1"),
+                state: .final,
+                startDate: referenceDate.addingTimeInterval(-3_600 * 20),
+                statusDetail: "Final"
+            ),
+        ]
+    )
+
     public static let playerNews: [PlayerNews] = [
         PlayerNews(
             id: uuid(300),

@@ -15,6 +15,9 @@ final class AppEnvironment {
     let configuration: AppConfiguration
     private(set) var leagueData: any LeagueDataSource
     private(set) var content: any ContentRepository
+    /// Public NFL scores. Needs no configuration, so it is always live — even
+    /// when the league itself is running on sample data.
+    let nflScoreboard: any NFLScoreboardSource
 
     /// True when either backend is running on sample data, so the UI can say so
     /// rather than quietly showing fake standings as if they were real.
@@ -38,9 +41,14 @@ final class AppEnvironment {
     init(
         configuration: AppConfiguration,
         leagueData: (any LeagueDataSource)? = nil,
-        content: (any ContentRepository)? = nil
+        content: (any ContentRepository)? = nil,
+        nflScoreboard: (any NFLScoreboardSource)? = nil
     ) {
         self.configuration = configuration
+        self.nflScoreboard = nflScoreboard
+            ?? (AppEnvironment.isForcedToMockData
+                ? MockNFLScoreboardSource()
+                : ESPNScoreboardClient())
 
         let forceMock = AppEnvironment.isForcedToMockData
 
@@ -141,7 +149,8 @@ final class AppEnvironment {
                 supabaseURL: nil, supabaseAnonKey: "", usesESPNProxy: false
             ),
             leagueData: MockLeagueDataSource(latency: .zero),
-            content: MockContentRepository(latency: .zero)
+            content: MockContentRepository(latency: .zero),
+            nflScoreboard: MockNFLScoreboardSource(latency: .zero)
         )
     }
 
@@ -153,7 +162,8 @@ final class AppEnvironment {
                 supabaseURL: nil, supabaseAnonKey: "", usesESPNProxy: false
             ),
             leagueData: MockLeagueDataSource(latency: .zero, failure: error),
-            content: MockContentRepository(latency: .zero, failure: error)
+            content: MockContentRepository(latency: .zero, failure: error),
+            nflScoreboard: MockNFLScoreboardSource(latency: .zero, failure: error)
         )
     }
 }

@@ -116,6 +116,7 @@ league.
 - [x] Weekly matchups with inline recaps
 - [x] Weekly recap — team of the week, blowout, closest game, most improved
 - [x] Standings, split by division
+- [x] Live NFL scores from ESPN's public scoreboard
 - [x] Polls with optimistic voting
 - [x] League members and manager detail
 - [x] Settings with Keychain-stored ESPN credentials
