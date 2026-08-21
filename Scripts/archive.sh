@@ -81,8 +81,29 @@ xcodebuild -exportArchive \
 
 echo ""
 if [ "$UPLOAD" = true ]; then
+  # TestFlight builds expire 90 days after upload, and an expired build stops
+  # launching for every tester. Recording the date here lets a scheduled job
+  # warn before that happens rather than finding out from eleven people at once.
+  mkdir -p .testflight
+  cat > .testflight/last-upload.json <<JSON
+{
+  "build": "$BUILD_NUMBER",
+  "uploadedAt": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+  "note": "Written by Scripts/archive.sh. Read by .github/workflows/testflight-expiry.yml to warn before the 90-day expiry."
+}
+JSON
+
+  if git diff --quiet -- .testflight/last-upload.json 2>/dev/null; then
+    :
+  elif git rev-parse --git-dir >/dev/null 2>&1; then
+    git add .testflight/last-upload.json
+    git commit -q -m "Record TestFlight upload $BUILD_NUMBER" || true
+    git push -q 2>/dev/null || echo "  (couldn't push the upload record — commit it when convenient)"
+  fi
+
   echo "Uploaded build $BUILD_NUMBER. It takes App Store Connect a few minutes"
   echo "to process before it appears in TestFlight."
+  echo "Expires $(date -u -v+90d +%Y-%m-%d 2>/dev/null || date -u -d '+90 days' +%Y-%m-%d)."
 else
   echo "Archive exported to $BUILD_DIR/export — signing works."
 fi

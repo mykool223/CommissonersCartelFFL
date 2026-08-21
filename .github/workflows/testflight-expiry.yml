@@ -1,0 +1,83 @@
+# Warns before the TestFlight build expires.
+#
+# The check itself lives in Scripts/check_testflight_expiry.py so it can be run
+# and tested locally — inline shell in a workflow is the kind of thing that is
+# only ever exercised in production.
+name: TestFlight expiry
+
+on:
+  schedule:
+    # Mondays at 13:00 UTC.
+    - cron: "0 13 * * 1"
+  workflow_dispatch:
+    inputs:
+      pretend_days:
+        description: "Pretend the build is this many days old, to test the reminder"
+        type: string
+        default: ""
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  check:
+    name: Check build age
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Check how old the build is
+        id: age
+        run: |
+          if [ -n "${{ inputs.pretend_days }}" ]; then
+            ./Scripts/check_testflight_expiry.py --days "${{ inputs.pretend_days }}"
+          else
+            ./Scripts/check_testflight_expiry.py
+          fi
+
+      - name: Open a reminder
+        if: steps.age.outputs.needs_reminder == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BUILD: ${{ steps.age.outputs.build }}
+          UPLOADED: ${{ steps.age.outputs.uploaded }}
+          AGE: ${{ steps.age.outputs.age }}
+          REMAINING: ${{ steps.age.outputs.remaining }}
+        run: |
+          set -euo pipefail
+
+          gh label create testflight --color FBCA04 \
+            --description "TestFlight build lifecycle" 2>/dev/null || true
+
+          # One open reminder is the point; stacking them is noise.
+          if [ "$(gh issue list --state open --label testflight --json number --jq 'length')" != "0" ]; then
+            echo "A reminder is already open."
+            exit 0
+          fi
+
+          printf '%s\n' \
+            "Build \`$BUILD\` was uploaded on \`$UPLOADED\` and is **$AGE days old**." \
+            "" \
+            "TestFlight builds stop working after 90 days. When that happens the app refuses" \
+            "to launch for every tester at once — their data is safe, but nobody can get in" \
+            "until a new build is uploaded." \
+            "" \
+            "## To fix" \
+            "" \
+            '```bash' \
+            "./Scripts/archive.sh" \
+            '```' \
+            "" \
+            "That archives, uploads, and records the new date, which clears this reminder." \
+            "Testers with automatic updates on get it without doing anything." \
+            "" \
+            "No code changes are needed — re-uploading the same code is enough." \
+            > /tmp/body.md
+
+          gh issue create \
+            --title "TestFlight build expires in $REMAINING days" \
+            --label testflight \
+            --body-file /tmp/body.md
+
+          echo "Opened a reminder."
