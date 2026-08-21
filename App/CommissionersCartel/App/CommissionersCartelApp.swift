@@ -4,7 +4,12 @@ import SwiftUI
 struct CommissionersCartelApp: App {
     /// Built once from Info.plist. With no league id or Supabase project
     /// configured this wires up mock data, so a fresh clone runs immediately.
+    /// UIKit owns APNs registration, so the app keeps a delegate to forward
+    /// the device token.
+    @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
+
     @State private var environment = CommissionersCartelApp.makeEnvironment()
+    @State private var pushRegistrar = PushRegistrar()
 
     /// Kept as a factory so debug credential seeding happens *before* the
     /// environment is constructed — AppEnvironment reads the Keychain when it
@@ -34,8 +39,17 @@ struct CommissionersCartelApp: App {
         WindowGroup {
             RootContainerView()
                 .environment(environment)
+                .environment(pushRegistrar)
                 .task {
+                    AppDelegate.registrar = pushRegistrar
                     await environment.restoreSession()
+                    // Only after the session is restored: a device token is
+                    // stored against a user id, so there is nowhere to put one
+                    // until the app knows who this is.
+                    if let push = environment.push {
+                        pushRegistrar.configure(push: push)
+                        await pushRegistrar.registerIfAlreadyAuthorized()
+                    }
                     #if DEBUG
                     // `-authCallback <url>` completes sign-in without tapping
                     // through the system's "Open in Cartel?" prompt, which

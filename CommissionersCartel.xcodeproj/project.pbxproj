@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		0173B3B98B368FCABE7418E5 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D39D479E5AFA1FCB607E5ED /* RootView.swift */; };
+		0AFD7D7C50451F96DA202CE4 /* NotificationSettingsSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2EF49E1E081A6ADE03F5E2DA /* NotificationSettingsSection.swift */; };
 		0C61D6DF21AE4AB781D9FEDD /* SectionsHint.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FE33B6365427F981FD356BE /* SectionsHint.swift */; };
 		10A8A5C4E98243ADAF5F91E5 /* MembersViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7DB9556C510CA5B9958FBD1 /* MembersViewModel.swift */; };
 		12A315BCEF72BF1BAEA5D515 /* AppEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = B49C2F69739A05DA6E30EFDB /* AppEnvironment.swift */; };
@@ -28,6 +29,7 @@
 		76513565B7F0C8AEF2962505 /* MembersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D03469EA43F8E378196C04CA /* MembersView.swift */; };
 		7B0F47FD6B319E75B8BE692C /* NewsFeedViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2BB2006E986A9040A4FFD91A /* NewsFeedViewModel.swift */; };
 		7B7D9ADD54F336A6C9F41111 /* PollsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F225F33D365B0F36C742B203 /* PollsView.swift */; };
+		8D5798726C62FF83F29DBFE0 /* PushRegistrar.swift in Sources */ = {isa = PBXBuildFile; fileRef = C30309D2144830C532881002 /* PushRegistrar.swift */; };
 		918B07539C61AA53B64A0344 /* CartelSupabase in Frameworks */ = {isa = PBXBuildFile; productRef = 9C280192D12D2EB917B6F0E0 /* CartelSupabase */; };
 		94A01FAD9CF58E3161976C91 /* MatchupsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19CAF352C89479A5D8415900 /* MatchupsViewModel.swift */; };
 		9B30FC45D6A0E6FA51305F58 /* PollsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E4D03F3F048E702B1FEEE14 /* PollsViewModel.swift */; };
@@ -52,6 +54,7 @@
 		1E4D03F3F048E702B1FEEE14 /* PollsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PollsViewModel.swift; sourceTree = "<group>"; };
 		1E86DC157594C0AA807FB016 /* ClaimTeamView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaimTeamView.swift; sourceTree = "<group>"; };
 		2BB2006E986A9040A4FFD91A /* NewsFeedViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewsFeedViewModel.swift; sourceTree = "<group>"; };
+		2EF49E1E081A6ADE03F5E2DA /* NotificationSettingsSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationSettingsSection.swift; sourceTree = "<group>"; };
 		35CEFE01E58DE2DE8ABEEB51 /* CartelKit */ = {isa = PBXFileReference; lastKnownFileType = folder; name = CartelKit; path = Packages/CartelKit; sourceTree = SOURCE_ROOT; };
 		3C073D09C67256CF6F6B1711 /* NewsPostDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewsPostDetailView.swift; sourceTree = "<group>"; };
 		3C45E44EFEFD22E3FAF3CF11 /* NewsFeedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewsFeedView.swift; sourceTree = "<group>"; };
@@ -74,6 +77,7 @@
 		B49C2F69739A05DA6E30EFDB /* AppEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppEnvironment.swift; sourceTree = "<group>"; };
 		BF7395A6303E9F6392B366FC /* MatchupsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MatchupsView.swift; sourceTree = "<group>"; };
 		C25E5646CF454142CCA9E361 /* MemberDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemberDetailView.swift; sourceTree = "<group>"; };
+		C30309D2144830C532881002 /* PushRegistrar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushRegistrar.swift; sourceTree = "<group>"; };
 		D03469EA43F8E378196C04CA /* MembersView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MembersView.swift; sourceTree = "<group>"; };
 		D15561B9A02063BAAA0B9131 /* Formatters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Formatters.swift; sourceTree = "<group>"; };
 		D3EA656F6D507B3748C1377F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -174,6 +178,7 @@
 			isa = PBXGroup;
 			children = (
 				1E86DC157594C0AA807FB016 /* ClaimTeamView.swift */,
+				2EF49E1E081A6ADE03F5E2DA /* NotificationSettingsSection.swift */,
 				FAA13BA485C41B4F90F30286 /* SettingsView.swift */,
 				722EC606D4D20DB5CACCE5E1 /* SignInView.swift */,
 			);
@@ -188,6 +193,7 @@
 				3D256F9DE3A680438DD5AE32 /* CommissionersCartelApp.swift */,
 				457FE48CBCFD9A680A7A0B00 /* KeychainStore.swift */,
 				096F4868120CB3CBD155E561 /* Loadable.swift */,
+				C30309D2144830C532881002 /* PushRegistrar.swift */,
 				8D39D479E5AFA1FCB607E5ED /* RootView.swift */,
 				4FCB96C6D0B45F65D335B2F0 /* SplashView.swift */,
 			);
@@ -351,8 +357,10 @@
 				B11A87F46FFEAAEAC971C3C9 /* NewsFeedView.swift in Sources */,
 				7B0F47FD6B319E75B8BE692C /* NewsFeedViewModel.swift in Sources */,
 				4417DB5BC76A27D7892D3EB8 /* NewsPostDetailView.swift in Sources */,
+				0AFD7D7C50451F96DA202CE4 /* NotificationSettingsSection.swift in Sources */,
 				7B7D9ADD54F336A6C9F41111 /* PollsView.swift in Sources */,
 				9B30FC45D6A0E6FA51305F58 /* PollsViewModel.swift in Sources */,
+				8D5798726C62FF83F29DBFE0 /* PushRegistrar.swift in Sources */,
 				0173B3B98B368FCABE7418E5 /* RootView.swift in Sources */,
 				BD2DBD997CF0F39A2D7FE030 /* SectionPicker.swift in Sources */,
 				0C61D6DF21AE4AB781D9FEDD /* SectionsHint.swift in Sources */,
@@ -375,6 +383,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = App/CommissionersCartel/Resources/CommissionersCartel.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = "$(DEVELOPMENT_TEAM)";
@@ -460,6 +469,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = App/CommissionersCartel/Resources/CommissionersCartel.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = "$(DEVELOPMENT_TEAM)";

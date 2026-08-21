@@ -25,9 +25,10 @@ struct MembersView: View {
     @Environment(AppEnvironment.self) private var environment
     @State private var model = MembersViewModel()
     @State private var section: MembersSection = .initial(default: .roster)
+    @State private var path: [String] = []
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             Group {
                 switch section {
                 case .roster: roster
@@ -43,6 +44,20 @@ struct MembersView: View {
                     EmptyStateView(message: "That member is no longer in the league.")
                 }
             }
+            #if DEBUG
+            // `-openMember 4` pushes the detail screen for an ESPN team id, so
+            // a screenshot of it can be taken without simulating a tap — the
+            // simulator has no way to inject one.
+            .onChange(of: model.allEntries.count) { _, _ in
+                guard path.isEmpty,
+                      let raw = ProcessInfo.processInfo.arguments
+                        .drop(while: { $0 != "-openMember" }).dropFirst().first,
+                      let teamID = Int(raw),
+                      let entry = model.allEntries.first(where: { $0.team?.id == teamID })
+                else { return }
+                path = [entry.manager.id]
+            }
+            #endif
         }
     }
 

@@ -49,6 +49,10 @@ struct SettingsView: View {
                     }
                 }
 
+                if environment.isSignedIn, environment.push != nil {
+                    NotificationSettingsSection()
+                }
+
                 Section("League") {
                     LabeledContent("Season", value: String(environment.season))
                     LabeledContent(

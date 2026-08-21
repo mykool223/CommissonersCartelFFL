@@ -27,3 +27,41 @@ end $$;
 -- effective locally while `anon` keeps an explicit grant in production.
 alter default privileges in schema public
     grant execute on functions to anon, authenticated, service_role;
+
+-- Vault, where push credentials live in production. Tests leave it empty, so
+-- private.notify_push takes its "not configured yet" path and stays silent.
+create schema if not exists vault;
+
+create table if not exists vault.decrypted_secrets (
+    name             text primary key,
+    decrypted_secret text
+);
+
+-- pg_net stand-in. Records calls instead of making them, so a test can assert
+-- that an insert queued exactly one push without touching the network.
+create schema if not exists net;
+
+create table if not exists net.sent (
+    id      bigserial primary key,
+    url     text,
+    headers jsonb,
+    body    jsonb
+);
+
+create or replace function net.http_post(
+    url text,
+    body jsonb default '{}'::jsonb,
+    params jsonb default '{}'::jsonb,
+    headers jsonb default '{}'::jsonb,
+    timeout_milliseconds int default 5000
+) returns bigint
+language sql as $$
+    insert into net.sent (url, headers, body) values (url, headers, body)
+    returning id;
+$$;
+
+-- Assertions read net.sent while impersonating a member, so the test roles
+-- need to see the recorded calls. Production grants nothing of the sort:
+-- there, only the security-definer function reaches pg_net.
+grant usage on schema net to anon, authenticated, service_role;
+grant select on net.sent to anon, authenticated, service_role;

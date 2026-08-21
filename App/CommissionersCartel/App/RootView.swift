@@ -31,6 +31,9 @@ enum TabIdentifier: String, Hashable, CaseIterable {
 }
 
 struct RootView: View {
+    @Environment(AppEnvironment.self) private var environment
+    @Environment(PushRegistrar.self) private var registrar
+
     @State private var selection: TabIdentifier = .initial
 
     var body: some View {
@@ -51,10 +54,27 @@ struct RootView: View {
                 SettingsView()
             }
         }
+        // A tapped notification names the tab it came from.
+        .onChange(of: registrar.pendingDestination) { _, destination in
+            guard let destination, let tab = TabIdentifier(rawValue: destination) else { return }
+            selection = tab
+            registrar.clearPendingDestination()
+        }
+        // Asked the first time someone signs in rather than at first launch:
+        // the prompt makes sense once you know there are eleven other people
+        // who might post, and it can only ever be shown once.
+        .task(id: environment.session?.userID) {
+            guard environment.isSignedIn, environment.push != nil else { return }
+            await registrar.refreshAuthorizationStatus()
+            if registrar.authorization == .notDetermined {
+                await registrar.requestAuthorization()
+            }
+        }
     }
 }
 
 #Preview {
     RootView()
         .environment(AppEnvironment.preview)
+        .environment(PushRegistrar())
 }

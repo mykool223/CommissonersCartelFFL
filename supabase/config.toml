@@ -79,3 +79,9 @@ content_path = "./supabase/templates/magic_link.html"
 [functions.espn-proxy]
 # Supabase checks the caller's JWT before the function runs.
 verify_jwt = true
+
+[functions.push]
+# Called by a database trigger presenting the service role key, not by a signed-in
+# client, so Supabase's own JWT check is off and the function compares the
+# Authorization header itself.
+verify_jwt = false

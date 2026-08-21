@@ -222,6 +222,83 @@ begin
 end $$;
 
 \echo ''
+\echo '--- push notifications ---'
+reset role;
+set role authenticated;
+
+do $$
+declare
+    member   constant text := '22222222-2222-2222-2222-222222222222';
+    outsider constant text := '33333333-3333-3333-3333-333333333333';
+    queued   int;
+begin
+    perform set_config('request.jwt.claim.sub', member, true);
+    insert into public.device_tokens (token, user_id, environment)
+    values ('token-member', member::uuid, 'production');
+
+    perform assert((select count(*) from public.device_tokens) = 1,
+                   'a member sees their own device token');
+
+    -- A device token is a push address. Another member holding it could
+    -- send to that device, so the row must be invisible across users.
+    perform set_config('request.jwt.claim.sub', outsider, true);
+    perform assert((select count(*) from public.device_tokens) = 0,
+                   'a member cannot see someone else''s device token');
+    perform assert(blocked($q$
+        insert into public.device_tokens (token, user_id)
+        values ('stolen', '22222222-2222-2222-2222-222222222222') $q$),
+        'a member cannot register a token against another user');
+    perform assert(blocked($q$
+        update public.notification_preferences set messages = false
+        where user_id = '22222222-2222-2222-2222-222222222222' $q$)
+        or (select count(*) from public.notification_preferences
+             where user_id = '22222222-2222-2222-2222-222222222222'
+               and messages = false) = 0,
+        'a member cannot mute someone else''s notifications');
+
+    -- With no push credentials in the vault, notify_push must return quietly
+    -- rather than raising: a push outage cannot be allowed to reject a post.
+    perform set_config('request.jwt.claim.sub', member, true);
+    insert into public.league_messages (author_id, author_name, body)
+    values (member::uuid, 'Member', 'Does an unconfigured push break posting?');
+    perform assert((select count(*) from net.sent) = 0,
+                   'no push is queued while push credentials are unset');
+end $$;
+
+-- Now with credentials present, so the trigger path itself is exercised.
+reset role;
+insert into vault.decrypted_secrets (name, decrypted_secret)
+values ('push_function_url', 'https://example.test/functions/v1/push'),
+       ('push_service_key',  'test-key');
+
+set role authenticated;
+do $$
+declare
+    member constant text := '22222222-2222-2222-2222-222222222222';
+    sent   jsonb;
+begin
+    perform set_config('request.jwt.claim.sub', member, true);
+    insert into public.league_messages (author_id, author_name, body)
+    values (member::uuid, 'Member', 'Second message');
+
+    perform assert((select count(*) from net.sent) = 1,
+                   'posting a message queues exactly one push');
+
+    select body into sent from net.sent order by id desc limit 1;
+    perform assert(sent ->> 'kind' = 'messages',
+                   'the queued push is tagged as a message');
+    -- The author must not be notified about their own post.
+    perform assert(sent ->> 'exclude_user' = member,
+                   'the author is excluded from their own notification');
+    perform assert(sent ->> 'body' = 'Second message',
+                   'the message body is carried through to the notification');
+end $$;
+
+reset role;
+delete from vault.decrypted_secrets;
+delete from net.sent;
+
+\echo ''
 \echo '--- anon (the key shipped in the app) ---'
 reset role;
 set role anon;

@@ -84,3 +84,59 @@ extension CartelError: LocalizedError {
         }
     }
 }
+
+/// Push notification registration and per-member preferences.
+///
+/// Sending happens server-side: a database trigger fires when a message, news
+/// post, or poll is inserted, so notifications do not depend on any client
+/// being awake. The app's only jobs are handing over its device token and
+/// remembering which kinds the member wants.
+public protocol PushRepository: Sendable {
+    /// Stores this device's APNs token against the signed-in user. Safe to
+    /// call on every launch: the token is the primary key, so a repeat is an
+    /// update rather than a duplicate.
+    func registerDevice(token: String, environment: PushEnvironment) async throws
+
+    /// Removes this device. Called when a member turns notifications off, so
+    /// the server stops sending rather than sending into the void.
+    func unregisterDevice(token: String) async throws
+
+    func notificationPreferences() async throws -> NotificationPreferences
+    func setNotificationPreferences(_ preferences: NotificationPreferences) async throws
+}
+
+/// Which APNs host a token belongs to. A token minted under one is rejected by
+/// the other, so it travels with the token rather than being assumed.
+public enum PushEnvironment: String, Sendable {
+    /// Xcode builds run against Apple's sandbox.
+    case sandbox
+    /// TestFlight and App Store builds.
+    case production
+
+    /// Debug builds are sandbox; anything archived is production.
+    public static var current: PushEnvironment {
+        #if DEBUG
+        .sandbox
+        #else
+        .production
+        #endif
+    }
+}
+
+/// What a member wants to hear about. Everything on by default: a member who
+/// never opens Settings should still be told when the league is talking.
+public struct NotificationPreferences: Equatable, Sendable {
+    public var messages: Bool
+    public var news: Bool
+    public var polls: Bool
+
+    public static let all = NotificationPreferences(messages: true, news: true, polls: true)
+
+    public init(messages: Bool = true, news: Bool = true, polls: Bool = true) {
+        self.messages = messages
+        self.news = news
+        self.polls = polls
+    }
+
+    public var isAnythingEnabled: Bool { messages || news || polls }
+}

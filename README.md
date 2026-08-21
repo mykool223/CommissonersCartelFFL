@@ -82,6 +82,7 @@ That split is also what lets every screen run on mock data. Views depend on
 | Configure sign-in email | see [docs/EMAIL_SETUP.md](docs/EMAIL_SETUP.md) |
 | Preview the news ingest without writing | `DRY_RUN=1 ./Scripts/ingest_news.py` |
 | Deploy the ESPN proxy | `supabase functions deploy espn-proxy` |
+| Set up push notifications | see [docs/PUSH_NOTIFICATIONS.md](docs/PUSH_NOTIFICATIONS.md) |
 | Lint | `swiftlint` |
 
 Work happens on `dev`; `main` is the stable branch. See

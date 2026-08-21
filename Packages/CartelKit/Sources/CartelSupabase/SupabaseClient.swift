@@ -87,6 +87,34 @@ public struct SupabaseClient: Sendable {
         _ = try await raw(request)
     }
 
+    /// `POST /rest/v1/{table}` with `Prefer: resolution=merge-duplicates` —
+    /// inserts, or updates the existing row when `onConflict` collides.
+    ///
+    /// Used for rows the app rewrites on every launch (a device token) rather
+    /// than appends to.
+    public func upsert(
+        _ table: String,
+        values: [String: AnyEncodable],
+        onConflict: String
+    ) async throws {
+        var components = URLComponents(
+            url: configuration.url.appending(path: "/rest/v1/\(table)"),
+            resolvingAgainstBaseURL: false
+        )
+        components?.queryItems = [URLQueryItem(name: "on_conflict", value: onConflict)]
+        guard let url = components?.url else {
+            throw CartelError.notConfigured("Could not build a Supabase URL for \(table).")
+        }
+        var request = request(url: url, method: "POST")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(
+            "return=minimal,resolution=merge-duplicates",
+            forHTTPHeaderField: "Prefer"
+        )
+        request.httpBody = try JSONEncoder().encode(values)
+        _ = try await raw(request)
+    }
+
     /// RPC whose return value is discarded.
     public func rpcVoid(
         _ function: String,

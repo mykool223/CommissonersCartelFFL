@@ -316,3 +316,106 @@ struct ContentRepositoryTests {
         #expect((json["p_option_id"] as? String)?.uppercased() == optionID.uuidString)
     }
 }
+
+@Suite("Push registration")
+struct PushRepositoryTests {
+    private static let user = UUID(uuidString: "11111111-2222-3333-4444-555555555555")!
+
+    private func makeRepository(
+        responding body: String = "[]",
+        statusCode: Int = 200,
+        signedIn: Bool = true
+    ) -> (SupabasePushRepository, Recorder) {
+        let (client, recorder) = makeClient(
+            responding: body,
+            statusCode: statusCode,
+            accessToken: signedIn ? "user-token" : nil
+        )
+        let repository = SupabasePushRepository(
+            client: client,
+            userID: { signedIn ? Self.user : nil }
+        )
+        return (repository, recorder)
+    }
+
+    @Test("Registering a device upserts on the token, so relaunching does not duplicate it")
+    func registerUpserts() async throws {
+        let (repository, recorder) = makeRepository()
+        try await repository.registerDevice(token: "abc123", environment: .production)
+
+        let request = try #require(recorder.last)
+        #expect(request.httpMethod == "POST")
+        #expect(request.url?.path() == "/rest/v1/device_tokens")
+        // Without merge-duplicates a second launch is a primary key violation.
+        let prefer = try #require(request.value(forHTTPHeaderField: "Prefer"))
+        #expect(prefer.contains("resolution=merge-duplicates"))
+        #expect(request.url?.query()?.contains("on_conflict=token") == true)
+
+        let body = try #require(request.httpBody)
+        let json = try #require(
+            try JSONSerialization.jsonObject(with: body) as? [String: Any]
+        )
+        #expect(json["token"] as? String == "abc123")
+        #expect(json["environment"] as? String == "production")
+        #expect(json["user_id"] as? String == Self.user.uuidString.lowercased())
+    }
+
+    @Test("The APNs environment travels with the token")
+    func environmentIsRecorded() async throws {
+        let (repository, recorder) = makeRepository()
+        try await repository.registerDevice(token: "abc123", environment: .sandbox)
+
+        let body = try #require(recorder.last?.httpBody)
+        let json = try #require(try JSONSerialization.jsonObject(with: body) as? [String: Any])
+        // A sandbox token sent to the production host is rejected outright,
+        // so this value is what makes the difference between working and not.
+        #expect(json["environment"] as? String == "sandbox")
+    }
+
+    @Test("Registering while signed out fails rather than writing an orphan row")
+    func registerRequiresSignIn() async {
+        let (repository, _) = makeRepository(signedIn: false)
+        await #expect(throws: CartelError.self) {
+            try await repository.registerDevice(token: "abc123", environment: .production)
+        }
+    }
+
+    @Test("A member with no preferences row is subscribed to everything")
+    func defaultPreferences() async throws {
+        let (repository, _) = makeRepository(responding: "[]")
+        let preferences = try await repository.notificationPreferences()
+        // Absent row means "never touched Settings", which must not read as
+        // "wants silence".
+        #expect(preferences == .all)
+    }
+
+    @Test("Stored preferences are read back")
+    func storedPreferences() async throws {
+        let (repository, _) = makeRepository(
+            responding: """
+            [{"messages": false, "news": true, "polls": false}]
+            """
+        )
+        let preferences = try await repository.notificationPreferences()
+        #expect(preferences.messages == false)
+        #expect(preferences.news == true)
+        #expect(preferences.polls == false)
+        #expect(preferences.isAnythingEnabled)
+    }
+
+    @Test("Turning everything off is reported as such")
+    func nothingEnabled() {
+        #expect(!NotificationPreferences(messages: false, news: false, polls: false)
+            .isAnythingEnabled)
+    }
+
+    @Test("Unregistering deletes only this device's row")
+    func unregisterIsScoped() async throws {
+        let (repository, recorder) = makeRepository()
+        try await repository.unregisterDevice(token: "abc123")
+
+        let request = try #require(recorder.last)
+        #expect(request.httpMethod == "DELETE")
+        #expect(request.url?.query()?.contains("token=eq.abc123") == true)
+    }
+}

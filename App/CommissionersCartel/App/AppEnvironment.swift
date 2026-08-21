@@ -22,6 +22,9 @@ final class AppEnvironment {
     /// Nil when Supabase is not configured, in which case the app runs
     /// signed-out on sample content.
     let auth: SupabaseAuth?
+    /// Device registration and notification preferences. Nil on sample data,
+    /// where there is no server to notify anyone.
+    private(set) var push: (any PushRepository)?
     /// The signed-in member, or nil. Observed by the UI.
     private(set) var session: AuthSession?
     /// True once the stored session has been checked, so the UI does not flash
@@ -77,24 +80,29 @@ final class AppEnvironment {
 
         if let content {
             self.auth = nil
+            self.push = nil
             self.content = content
             self.isUsingMockContent = false
         } else if let url = configuration.supabaseURL, configuration.hasSupabase, !forceMock {
             let supabase = SupabaseConfiguration(url: url, anonKey: configuration.supabaseAnonKey)
             let auth = SupabaseAuth(configuration: supabase, store: KeychainSessionStore())
             self.auth = auth
-            self.content = SupabaseContentRepository(
-                client: SupabaseClient(
-                    configuration: supabase,
-                    // Read per request rather than captured once, so a token
-                    // refreshed mid-session is picked up without rebuilding
-                    // anything.
-                    accessToken: { await auth.accessToken() }
-                )
+            let client = SupabaseClient(
+                configuration: supabase,
+                // Read per request rather than captured once, so a token
+                // refreshed mid-session is picked up without rebuilding
+                // anything.
+                accessToken: { await auth.accessToken() }
+            )
+            self.content = SupabaseContentRepository(client: client)
+            self.push = SupabasePushRepository(
+                client: client,
+                userID: { await auth.currentSession()?.userID }
             )
             self.isUsingMockContent = false
         } else {
             self.auth = nil
+            self.push = nil
             self.content = MockContentRepository()
             self.isUsingMockContent = true
         }
