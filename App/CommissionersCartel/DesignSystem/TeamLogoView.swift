@@ -38,13 +38,18 @@ actor LogoCache {
     }
 }
 
-/// A team's logo, falling back to its initials.
+/// A team's logo, falling back to the league's own avatar.
 ///
-/// The fallback is the common case, not an error path: most teams use ESPN's
-/// stock art, which is SVG, and `UIImage` cannot decode SVG. Only managers who
-/// uploaded their own image get a picture.
+/// The fallback is the common case, not an error path: only managers who upload
+/// their own image get a picture. ESPN's stock art is SVG, which `UIImage`
+/// cannot decode, so `ESPNMapper` reports those as no logo at all.
+///
+/// The logo URL is re-read from ESPN on every launch and on pull-to-refresh, so
+/// a manager who uploads an image simply has it appear next time the app is
+/// opened — nothing is cached across launches.
 struct TeamLogoView: View {
     let logoURL: URL?
+    /// Shown only if the league avatar asset is somehow unavailable.
     let fallbackInitials: String
     var size: CGFloat = 40
 
@@ -54,23 +59,30 @@ struct TeamLogoView: View {
     var body: some View {
         Group {
             if let image {
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: size, height: size)
-                    .clipShape(.circle)
-                    .overlay {
-                        Circle().strokeBorder(Color.crestGoldShadow.opacity(0.35), lineWidth: 1)
-                    }
+                circular(Image(uiImage: image))
             } else {
-                InitialsAvatar(initials: fallbackInitials, size: size)
+                circular(Image("DefaultTeamAvatar"))
             }
         }
         .task(id: logoURL) {
-            guard let logoURL else { return }
+            guard let logoURL else {
+                image = nil
+                return
+            }
             image = await LogoCache.shared.image(
                 for: logoURL, headers: environment.espnImageHeaders
             )
         }
+    }
+
+    private func circular(_ image: Image) -> some View {
+        image
+            .resizable()
+            .scaledToFill()
+            .frame(width: size, height: size)
+            .clipShape(.circle)
+            .overlay {
+                Circle().strokeBorder(Color.crestGoldShadow.opacity(0.35), lineWidth: 1)
+            }
     }
 }

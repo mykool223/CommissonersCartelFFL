@@ -40,7 +40,7 @@ struct MatchupsView: View {
             }
             .screenStyle()
             .navigationTitle("Matchups")
-            .refreshable { await model.load(using: environment, showSpinner: false) }
+            .refreshable { await model.refresh(using: environment) }
             .task { await model.load(using: environment) }
         }
     }

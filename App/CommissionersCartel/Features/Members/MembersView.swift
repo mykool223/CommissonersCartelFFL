@@ -45,7 +45,7 @@ struct MembersView: View {
                     EmptyStateView(message: "That member is no longer in the league.")
                 }
             }
-            .refreshable { await model.load(using: environment, showSpinner: false) }
+            .refreshable { await model.refresh(using: environment) }
             .task { await model.load(using: environment) }
         }
     }

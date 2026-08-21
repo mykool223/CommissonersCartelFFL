@@ -27,6 +27,13 @@ final class MembersViewModel {
 
     private(set) var state: Loadable<[Group]> = .idle
 
+    /// Pull-to-refresh. Drops the ESPN cache first, so this actually goes to
+    /// the network rather than replaying a response up to the cache TTL old.
+    func refresh(using environment: AppEnvironment) async {
+        await environment.leagueData.refresh()
+        await load(using: environment, showSpinner: false)
+    }
+
     func load(using environment: AppEnvironment, showSpinner: Bool = true) async {
         if showSpinner, state.isInitialLoad { state = .loading }
 

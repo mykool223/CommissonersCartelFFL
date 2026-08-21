@@ -24,6 +24,13 @@ final class MatchupsViewModel {
     /// Nil until the league's current week is known, then user-controlled.
     var selectedWeek: Int?
 
+    /// Pull-to-refresh. Drops the ESPN cache first, so this actually goes to
+    /// the network rather than replaying a response up to the cache TTL old.
+    func refresh(using environment: AppEnvironment) async {
+        await environment.leagueData.refresh()
+        await load(using: environment, showSpinner: false)
+    }
+
     func load(using environment: AppEnvironment, showSpinner: Bool = true) async {
         if showSpinner, state.isInitialLoad { state = .loading }
 

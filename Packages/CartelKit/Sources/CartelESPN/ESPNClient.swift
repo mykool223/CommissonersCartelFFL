@@ -61,6 +61,10 @@ public actor ESPNClient: LeagueDataSource {
         cached = nil
     }
 
+    public func refresh() async {
+        invalidateCache()
+    }
+
     // MARK: - Fetching
 
     private func payload() async throws -> ESPNLeagueResponse {

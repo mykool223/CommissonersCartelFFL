@@ -10,6 +10,19 @@ public protocol LeagueDataSource: Sendable {
     func managers() async throws -> [Manager]
     func teams() async throws -> [Team]
     func matchups(week: Int) async throws -> [Matchup]
+
+    /// Drops any cached payload so the next read goes to the network.
+    ///
+    /// Wired to pull-to-refresh. Without it the ESPN client would serve its
+    /// cached response for the whole TTL, so pulling to refresh right after a
+    /// manager changed their team name or uploaded a logo would show the old
+    /// data and look broken.
+    func refresh() async
+}
+
+public extension LeagueDataSource {
+    /// Nothing cached by default.
+    func refresh() async {}
 }
 
 /// League-authored content. Backed by Supabase in production.

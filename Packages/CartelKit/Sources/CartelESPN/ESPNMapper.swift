@@ -76,6 +76,14 @@ enum ESPNMapper {
         imageProxyBase: URL?
     ) -> URL? {
         guard let raw = team.logo, let url = URL(string: raw) else { return nil }
+
+        // ESPN's stock logo art is SVG, which UIImage cannot decode. Reporting
+        // no logo lets the UI show its own placeholder immediately, instead of
+        // firing a request per team on every launch that can only ever fail.
+        // A manager who uploads their own image gets a raster URL on a
+        // different host, which is the case handled below.
+        if url.pathExtension.lowercased() == "svg" { return nil }
+
         guard let host = url.host(), host.contains("mystique") else { return url }
         guard let base = imageProxyBase else {
             // Without a proxy this would 401, so report no logo rather than

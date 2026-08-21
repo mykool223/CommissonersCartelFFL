@@ -510,3 +510,96 @@ struct ESPNDivisionAndLogoTests {
         #expect(ESPNMapper.logoURL(for: dto, imageProxyBase: Self.proxyBase) == nil)
     }
 }
+
+@Suite("Logo source selection")
+struct ESPNLogoSourceTests {
+    private static let proxyBase = URL(string: "https://abc.supabase.co/functions/v1/espn-proxy")!
+
+    private func team(logo: String?) -> ESPNLeagueResponse.TeamDTO {
+        ESPNLeagueResponse.TeamDTO(
+            id: 1, abbrev: "A", name: "A", location: nil, nickname: nil,
+            logo: logo, owners: nil, primaryOwner: nil,
+            playoffSeed: nil, divisionId: nil, record: nil
+        )
+    }
+
+    /// ESPN's stock art is SVG and UIImage cannot decode it. Reporting nil lets
+    /// the UI show the league's own avatar immediately, rather than firing a
+    /// request per team on every launch that can only fail.
+    @Test(arguments: [
+        "https://g.espncdn.com/lm-static/ffl/images/default_logos/20.svg",
+        "https://g.espncdn.com/lm-static/logo-packs/ffl/BoneHeads/BoneHeads-05.svg",
+        "https://example.com/UPPERCASE.SVG",
+    ])
+    func svgLogosAreTreatedAsAbsent(url: String) {
+        #expect(ESPNMapper.logoURL(for: team(logo: url), imageProxyBase: Self.proxyBase) == nil)
+    }
+
+    @Test("An uploaded raster logo still routes through the proxy")
+    func uploadedLogoSurvives() {
+        let url = ESPNMapper.logoURL(
+            for: team(logo: "https://mystique-api.fantasy.espn.com/apis/v1/domains/lm/images/abc"),
+            imageProxyBase: Self.proxyBase
+        )
+        #expect(url?.absoluteString.hasSuffix("/apis/v1/domains/lm/images/abc") == true)
+    }
+
+    @Test("A raster logo on some other host is left alone")
+    func otherRasterLogo() {
+        let url = ESPNMapper.logoURL(
+            for: team(logo: "https://example.com/team.png"), imageProxyBase: Self.proxyBase
+        )
+        #expect(url?.absoluteString == "https://example.com/team.png")
+    }
+
+    /// The behaviour the league asked for: upload an image and it replaces the
+    /// placeholder next time the app reads from ESPN. Nothing is cached across
+    /// launches, so the switch needs no other action.
+    @Test("Switching from stock art to an upload changes the resolved URL")
+    func uploadReplacesPlaceholder() {
+        let before = ESPNMapper.logoURL(
+            for: team(logo: "https://g.espncdn.com/lm-static/ffl/images/default_logos/20.svg"),
+            imageProxyBase: Self.proxyBase
+        )
+        let after = ESPNMapper.logoURL(
+            for: team(logo: "https://mystique-api.fantasy.espn.com/apis/v1/domains/lm/images/new"),
+            imageProxyBase: Self.proxyBase
+        )
+        #expect(before == nil, "placeholder while on stock art")
+        #expect(after != nil, "real logo once uploaded")
+    }
+}
+
+@Suite("Refreshing")
+struct ESPNRefreshTests {
+    private final class Counter: @unchecked Sendable {
+        private let lock = NSLock()
+        private var count = 0
+        func increment() { lock.lock(); count += 1; lock.unlock() }
+        var value: Int { lock.lock(); defer { lock.unlock() }; return count }
+    }
+
+    /// Pull-to-refresh must actually go to the network. Before `refresh()`
+    /// existed, pulling within the cache TTL replayed the old payload, so a
+    /// freshly uploaded logo or renamed team appeared not to have changed.
+    @Test("refresh() forces the next read back to the network")
+    func refreshBypassesCache() async throws {
+        let counter = Counter()
+        let client = try makeClient(onRequest: { _ in counter.increment() })
+
+        _ = try await client.teams()
+        _ = try await client.teams()
+        #expect(counter.value == 1, "second read served from cache")
+
+        await client.refresh()
+        _ = try await client.teams()
+        #expect(counter.value == 2, "refresh went back to the network")
+    }
+
+    @Test("A source with nothing cached treats refresh as a no-op")
+    func defaultRefreshIsHarmless() async throws {
+        let mock = MockLeagueDataSource(latency: .zero)
+        await mock.refresh()
+        #expect(try await mock.teams().count == MockData.teams.count)
+    }
+}
