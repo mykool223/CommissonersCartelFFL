@@ -23,6 +23,10 @@ SUPABASE_HOST = REPLACE_ME
 // credentials entered in Settings.
 ESPN_VIA_PROXY = NO
 
+// Set in Secrets.xcconfig. Empty is fine for simulator builds; signing a build
+// for a device or TestFlight needs it.
+DEVELOPMENT_TEAM =
+
 // Empty means "work it out from today's date" (see AppConfiguration.currentSeason).
 LEAGUE_SEASON =
 

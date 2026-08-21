@@ -43,6 +43,13 @@ public protocol LeagueChatRepository: Sendable {
     func claimESPNTeam(swid: String) async throws
     /// The SWID the signed-in member has claimed, if any.
     func claimedESPNTeam() async throws -> String?
+
+    /// Whether the signed-in account is actually on the league roster.
+    ///
+    /// Signing in and being a member are different things: anyone can
+    /// authenticate, but only invited addresses get a profile, and every
+    /// members-only policy keys off that.
+    func isLeagueMember() async -> Bool
 }
 
 public extension LeagueChatRepository {

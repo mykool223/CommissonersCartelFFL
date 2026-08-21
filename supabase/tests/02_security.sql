@@ -37,6 +37,35 @@ exception when others then
 end $$;
 
 \echo ''
+\echo '--- the invite list ---'
+-- Runs before any `set role`, so these counts are what the tables hold rather
+-- than what one role is allowed to see through RLS.
+do $$
+begin
+    -- The rule the list exists for: signing up is not the same as being let in.
+    perform assert(
+        (select count(*) from public.profiles
+          where id = '33333333-3333-3333-3333-333333333333') = 0,
+        'an uninvited signup gets no profile, so is not a member'
+    );
+    perform assert(
+        (select count(*) from public.profiles) = 2,
+        'only invited addresses became members'
+    );
+    -- Using an invite should mark it, so the commissioner can see who has not
+    -- signed in yet.
+    perform assert(
+        (select claimed_at is not null from public.league_invites
+          where email = 'commish@example.com'),
+        'a used invite is marked as claimed'
+    );
+    perform assert(
+        (select count(*) from public.league_invites where email = 'outsider@example.com') = 0,
+        'the outsider was never invited'
+    );
+end $$;
+
+\echo ''
 \echo '--- visibility ---'
 set role authenticated;
 
@@ -57,6 +86,10 @@ begin
                    'a signed-in non-member still sees no member list');
     perform assert(as_user(outsider, 'select count(*) from public.poll_votes') = 0,
                    'a signed-in non-member still sees no votes');
+    perform assert(as_user(outsider, 'select count(*) from public.league_messages') = 0,
+                   'a signed-in non-member cannot read the league thread');
+    perform assert(as_user(member, 'select count(*) from public.league_invites') = 0,
+                   'an ordinary member cannot read the invite list');
     perform assert(as_user(member, 'select count(*) from public.news_posts') = 1,
                    'a member sees the news');
     perform assert(as_user(member, 'select count(*) from public.polls') = 2,

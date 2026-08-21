@@ -227,6 +227,15 @@ extension SupabaseContentRepository: LeagueChatRepository {
         ])
     }
 
+    public func isLeagueMember() async -> Bool {
+        // RLS returns the caller's own profile and nothing else, so a row here
+        // means "invited and signed in".
+        let rows: [ClaimedTeamRow]? = try? await client.select(
+            "profiles", query: ["select": "espn_swid", "limit": "1"]
+        )
+        return !(rows ?? []).isEmpty
+    }
+
     public func claimedESPNTeam() async throws -> String? {
         let rows: [ClaimedTeamRow] = try await client.select(
             "profiles", query: ["select": "espn_swid", "limit": "1"]

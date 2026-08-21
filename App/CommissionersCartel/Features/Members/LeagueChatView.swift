@@ -37,6 +37,17 @@ struct LeagueChatView: View {
         .frame(maxHeight: .infinity)
     }
 
+    /// Signed in, but the address is not on the roster. Without this the thread
+    /// would just look empty, which reads as a bug rather than a rule.
+    private var notAMemberState: some View {
+        ContentUnavailableView {
+            Label("Not on the roster", systemImage: "person.crop.circle.badge.exclamationmark")
+        } description: {
+            Text("You're signed in as \(environment.session?.email ?? "this account"), but that address isn't on the league list. Ask the commissioner to add you.")
+        }
+        .frame(maxHeight: .infinity)
+    }
+
     private var thread: some View {
         ScrollViewReader { proxy in
             ScrollView {

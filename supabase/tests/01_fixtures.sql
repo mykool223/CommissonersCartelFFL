@@ -5,16 +5,22 @@ grant usage on schema public to anon, authenticated;
 grant select, insert, update, delete on all tables in schema public to authenticated;
 grant select on all tables in schema public to anon;
 
+-- Two of the three are on the roster. The third signs up anyway, which is the
+-- case the invite list exists to handle.
+insert into public.league_invites (email, note) values
+    ('commish@example.com', 'Commish'),
+    ('member@example.com', 'Member');
+
 insert into auth.users (id, email) values
     ('11111111-1111-1111-1111-111111111111', 'commish@example.com'),
     ('22222222-2222-2222-2222-222222222222', 'member@example.com'),
     ('33333333-3333-3333-3333-333333333333', 'outsider@example.com');
 
+-- No profile is deleted here: the outsider never gets one, because the trigger
+-- only creates profiles for invited addresses.
+
 update public.profiles set is_commissioner = true
  where id = '11111111-1111-1111-1111-111111111111';
-
--- Signed up, but has no league membership.
-delete from public.profiles where id = '33333333-3333-3333-3333-333333333333';
 
 insert into public.news_posts (title, body, author_name, season)
 values ('Week 1', 'Body', 'Commish', 2026);

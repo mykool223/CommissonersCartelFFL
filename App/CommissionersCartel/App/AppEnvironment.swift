@@ -27,6 +27,9 @@ final class AppEnvironment {
     /// True once the stored session has been checked, so the UI does not flash
     /// a sign-in screen at someone who is already signed in.
     private(set) var hasCheckedSession = false
+    /// Signed in *and* on the league roster. Signing in alone is not enough:
+    /// only invited addresses get a profile.
+    private(set) var isLeagueMember = false
 
     /// True when either backend is running on sample data, so the UI can say so
     /// rather than quietly showing fake standings as if they were real.
@@ -102,7 +105,16 @@ final class AppEnvironment {
     /// Restores a stored session at launch.
     func restoreSession() async {
         session = await auth?.currentSession()
+        await refreshMembership()
         hasCheckedSession = true
+    }
+
+    private func refreshMembership() async {
+        guard session != nil, let chat else {
+            isLeagueMember = false
+            return
+        }
+        isLeagueMember = await chat.isLeagueMember()
     }
 
     /// Emails a sign-in link.
@@ -117,11 +129,13 @@ final class AppEnvironment {
     func handleAuthCallback(url: URL) async throws {
         guard let auth else { return }
         session = try await auth.handleCallback(url: url)
+        await refreshMembership()
     }
 
     func signOut() async {
         await auth?.signOut()
         session = nil
+        isLeagueMember = false
     }
 
     var isSignedIn: Bool { session != nil }

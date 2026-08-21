@@ -67,7 +67,9 @@ targets:
         ENABLE_PREVIEWS: YES
         GENERATE_INFOPLIST_FILE: NO
         CODE_SIGN_STYLE: Automatic
-        # Set DEVELOPMENT_TEAM in Config/Secrets.xcconfig to run on a device.
+        # Comes from Config/Secrets.xcconfig, which is gitignored. Empty builds
+        # fine for the simulator; a device or TestFlight build needs it.
+        DEVELOPMENT_TEAM: $(DEVELOPMENT_TEAM)
         SUPPORTS_MACCATALYST: NO
     scheme:
       gatherCoverageData: true
