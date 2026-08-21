@@ -55,6 +55,10 @@ struct NewsFeedView: View {
                 LeagueCrest(size: 132)
                     .padding(.bottom, Theme.Spacing.tight)
 
+                // First screen anyone sees, so this is where to explain the
+                // navigation. Disappears for good once dismissed.
+                SectionsHint()
+
                 if environment.isUsingMockContent {
                     SampleDataBanner(
                         detail: "Showing sample posts. Connect Supabase in Settings to publish real ones."

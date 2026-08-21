@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		0173B3B98B368FCABE7418E5 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D39D479E5AFA1FCB607E5ED /* RootView.swift */; };
+		0C61D6DF21AE4AB781D9FEDD /* SectionsHint.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FE33B6365427F981FD356BE /* SectionsHint.swift */; };
 		10A8A5C4E98243ADAF5F91E5 /* MembersViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7DB9556C510CA5B9958FBD1 /* MembersViewModel.swift */; };
 		12A315BCEF72BF1BAEA5D515 /* AppEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = B49C2F69739A05DA6E30EFDB /* AppEnvironment.swift */; };
 		281FAB71009E2D455670D2A2 /* NFLScoresView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2ECC67CFE4ACEAA8E570FA7 /* NFLScoresView.swift */; };
@@ -64,6 +65,7 @@
 		7D337817B4D94977D9118686 /* Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Debug.xcconfig; sourceTree = "<group>"; };
 		7FD2A5DD48CE6331EFA0E30A /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		8D39D479E5AFA1FCB607E5ED /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		8FE33B6365427F981FD356BE /* SectionsHint.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SectionsHint.swift; sourceTree = "<group>"; };
 		92F9DFF754F1EE3C1BB8A50F /* LeagueChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LeagueChatView.swift; sourceTree = "<group>"; };
 		A2E30CCCA2596F1DD148C54D /* LeagueChatViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LeagueChatViewModel.swift; sourceTree = "<group>"; };
 		AB9171C63B6603835C7B65EE /* StandingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StandingsView.swift; sourceTree = "<group>"; };
@@ -233,6 +235,7 @@
 			children = (
 				D15561B9A02063BAAA0B9131 /* Formatters.swift */,
 				6685FC13C6BDCFF3928269DF /* SectionPicker.swift */,
+				8FE33B6365427F981FD356BE /* SectionsHint.swift */,
 				6169B7B9F9F50A43F4E6F14A /* StateViews.swift */,
 				DAE8F39CCE2C0B567F46F6B9 /* TeamLogoView.swift */,
 				7FD2A5DD48CE6331EFA0E30A /* Theme.swift */,
@@ -348,6 +351,7 @@
 				9B30FC45D6A0E6FA51305F58 /* PollsViewModel.swift in Sources */,
 				0173B3B98B368FCABE7418E5 /* RootView.swift in Sources */,
 				BD2DBD997CF0F39A2D7FE030 /* SectionPicker.swift in Sources */,
+				0C61D6DF21AE4AB781D9FEDD /* SectionsHint.swift in Sources */,
 				2B08802C61FFA4EDBAC0B1D8 /* SettingsView.swift in Sources */,
 				38B95E0B54C1885AC2758A7F /* SignInView.swift in Sources */,
 				6B997AC61DA6A4FF0F83170F /* SplashView.swift in Sources */,
