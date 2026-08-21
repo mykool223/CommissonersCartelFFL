@@ -42,10 +42,12 @@ final class AppEnvironment {
     ) {
         self.configuration = configuration
 
+        let forceMock = AppEnvironment.isForcedToMockData
+
         if let leagueData {
             self.leagueData = leagueData
             self.isUsingMockLeagueData = false
-        } else if configuration.hasESPN {
+        } else if configuration.hasESPN, !forceMock {
             self.leagueData = AppEnvironment.makeESPNClient(configuration)
             self.isUsingMockLeagueData = false
         } else {
@@ -56,7 +58,7 @@ final class AppEnvironment {
         if let content {
             self.content = content
             self.isUsingMockContent = false
-        } else if let url = configuration.supabaseURL, configuration.hasSupabase {
+        } else if let url = configuration.supabaseURL, configuration.hasSupabase, !forceMock {
             self.content = SupabaseContentRepository(
                 client: SupabaseClient(
                     configuration: SupabaseConfiguration(
@@ -77,6 +79,23 @@ final class AppEnvironment {
         guard configuration.hasESPN else { return }
         leagueData = AppEnvironment.makeESPNClient(configuration)
         isUsingMockLeagueData = false
+    }
+
+    /// Debug builds honour `-useMockData 1`, which forces every screen onto
+    /// sample data regardless of configuration.
+    ///
+    /// Useful for screenshots and for exercising screens the real league cannot
+    /// populate yet — a recap has nothing to show until games have been played.
+    static var isForcedToMockData: Bool {
+        #if DEBUG
+        let arguments = ProcessInfo.processInfo.arguments
+        guard let index = arguments.firstIndex(of: "-useMockData"),
+              arguments.index(after: index) < arguments.endIndex
+        else { return false }
+        return arguments[arguments.index(after: index)] == "1"
+        #else
+        return false
+        #endif
     }
 
     private static func makeESPNClient(_ configuration: AppConfiguration) -> ESPNClient {

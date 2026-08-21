@@ -1,11 +1,34 @@
 import SwiftUI
 import CartelCore
 
-/// Weekly scoreboard, with the commissioner's recap inline under any matchup
-/// that has one.
+/// Scoreboard, recap and standings — all driven by one ESPN payload, so
+/// switching between them costs nothing.
+enum MatchupsSection: String, TabSection {
+    case scoreboard
+    case recap
+    case standings
+
+    var title: String {
+        switch self {
+        case .scoreboard: "Scoreboard"
+        case .recap: "Weekly recap"
+        case .standings: "Standings"
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .scoreboard: "sportscourt"
+        case .recap: "trophy"
+        case .standings: "list.number"
+        }
+    }
+}
+
 struct MatchupsView: View {
     @Environment(AppEnvironment.self) private var environment
     @State private var model = MatchupsViewModel()
+    @State private var section: MatchupsSection = .initial(default: .scoreboard)
 
     var body: some View {
         NavigationStack {
@@ -22,26 +45,48 @@ struct MatchupsView: View {
                         emptyMessage: "No games scheduled for this week.",
                         retry: { await model.load(using: environment) }
                     ) { board in
-                        weekPicker(board: board)
+                        // The week applies to the scoreboard and the recap;
+                        // standings are season-long.
+                        if section != .standings {
+                            weekPicker(board: board)
+                        }
 
-                        if board.matchups.isEmpty {
-                            EmptyStateView(
-                                message: "No games scheduled for week \(model.selectedWeek ?? board.league.currentWeek).",
-                                systemImage: "calendar"
-                            )
-                        } else {
-                            ForEach(board.matchups) { matchup in
-                                MatchupCard(matchup: matchup, board: board)
-                            }
+                        switch section {
+                        case .scoreboard: scoreboard(board: board)
+                        case .recap: WeeklyRecapView(board: board, awards: board.awards)
+                        case .standings: StandingsView(board: board)
                         }
                     }
                 }
                 .padding(Theme.Spacing.large)
             }
             .screenStyle()
-            .navigationTitle("Matchups")
+            .sectionPicker($section)
             .refreshable { await model.refresh(using: environment) }
-            .task { await model.load(using: environment) }
+            .task {
+                await model.load(using: environment)
+                if section == .recap {
+                    await model.showMostRecentPlayedWeek(using: environment)
+                }
+            }
+            .onChange(of: section) { _, newSection in
+                guard newSection == .recap else { return }
+                Task { await model.showMostRecentPlayedWeek(using: environment) }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func scoreboard(board: MatchupsViewModel.Board) -> some View {
+        if board.matchups.isEmpty {
+            EmptyStateView(
+                message: "No games scheduled for week \(board.week).",
+                systemImage: "calendar"
+            )
+        } else {
+            ForEach(board.matchups) { matchup in
+                MatchupCard(matchup: matchup, board: board)
+            }
         }
     }
 

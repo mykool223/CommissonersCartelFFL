@@ -114,12 +114,15 @@ league.
 
 - [x] News feed and post detail
 - [x] Weekly matchups with inline recaps
+- [x] Weekly recap — team of the week, blowout, closest game, most improved
+- [x] Standings, split by division
 - [x] Polls with optimistic voting
 - [x] League members and manager detail
 - [x] Settings with Keychain-stored ESPN credentials
 - [x] League crest as the app icon, and brand gold throughout
 - [x] Launch screen — native, so there's no white flash before the crest
 - [x] Player news — injuries and depth-chart moves, refreshed each morning
+- [x] Section menus in the nav bar, so tabs can hold more than one screen
 - [ ] Writing posts and polls from inside the app (read-only today)
 - [ ] Sign-in — see [docs/ROADMAP.md](docs/ROADMAP.md)
 - [ ] Push notifications

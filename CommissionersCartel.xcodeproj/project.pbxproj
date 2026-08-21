@@ -20,6 +20,7 @@
 		65F8592486F245A19B3066DF /* CommissionersCartelApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D256F9DE3A680438DD5AE32 /* CommissionersCartelApp.swift */; };
 		6B997AC61DA6A4FF0F83170F /* SplashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FCB96C6D0B45F65D335B2F0 /* SplashView.swift */; };
 		6BE2AE9F104DD5C28320496A /* TeamLogoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAE8F39CCE2C0B567F46F6B9 /* TeamLogoView.swift */; };
+		6D8C8AE37F76E495623A1128 /* StandingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB9171C63B6603835C7B65EE /* StandingsView.swift */; };
 		72C5C8E3896104D244C9B4B5 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FD2A5DD48CE6331EFA0E30A /* Theme.swift */; };
 		76513565B7F0C8AEF2962505 /* MembersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D03469EA43F8E378196C04CA /* MembersView.swift */; };
 		7B0F47FD6B319E75B8BE692C /* NewsFeedViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2BB2006E986A9040A4FFD91A /* NewsFeedViewModel.swift */; };
@@ -29,8 +30,10 @@
 		9B30FC45D6A0E6FA51305F58 /* PollsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E4D03F3F048E702B1FEEE14 /* PollsViewModel.swift */; };
 		A960A5FCEE9901CE00DC540C /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D3EA656F6D507B3748C1377F /* Assets.xcassets */; };
 		B11A87F46FFEAAEAC971C3C9 /* NewsFeedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C45E44EFEFD22E3FAF3CF11 /* NewsFeedView.swift */; };
+		BD2DBD997CF0F39A2D7FE030 /* SectionPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6685FC13C6BDCFF3928269DF /* SectionPicker.swift */; };
 		D034477AA96A788485C238A0 /* Loadable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 096F4868120CB3CBD155E561 /* Loadable.swift */; };
 		D51A5252E1B29247083E7149 /* MatchupsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF7395A6303E9F6392B366FC /* MatchupsView.swift */; };
+		DA7D2E35F52A48FB6402D851 /* WeeklyRecapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EB1DB5778A90FE77F80CEA1 /* WeeklyRecapView.swift */; };
 		DF1DC7BCF83E1E3EE2256B45 /* StateViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6169B7B9F9F50A43F4E6F14A /* StateViews.swift */; };
 		E5332F1273FE03A1F9CDE25E /* Formatters.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15561B9A02063BAAA0B9131 /* Formatters.swift */; };
 /* End PBXBuildFile section */
@@ -47,11 +50,14 @@
 		44B7FC9C5A8AC74182709966 /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Release.xcconfig; sourceTree = "<group>"; };
 		457FE48CBCFD9A680A7A0B00 /* KeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainStore.swift; sourceTree = "<group>"; };
 		4FCB96C6D0B45F65D335B2F0 /* SplashView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashView.swift; sourceTree = "<group>"; };
+		5EB1DB5778A90FE77F80CEA1 /* WeeklyRecapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeeklyRecapView.swift; sourceTree = "<group>"; };
 		6169B7B9F9F50A43F4E6F14A /* StateViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StateViews.swift; sourceTree = "<group>"; };
 		6400996C8909B068E1496C1C /* AppConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfiguration.swift; sourceTree = "<group>"; };
+		6685FC13C6BDCFF3928269DF /* SectionPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SectionPicker.swift; sourceTree = "<group>"; };
 		7D337817B4D94977D9118686 /* Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Debug.xcconfig; sourceTree = "<group>"; };
 		7FD2A5DD48CE6331EFA0E30A /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		8D39D479E5AFA1FCB607E5ED /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		AB9171C63B6603835C7B65EE /* StandingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StandingsView.swift; sourceTree = "<group>"; };
 		B49C2F69739A05DA6E30EFDB /* AppEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppEnvironment.swift; sourceTree = "<group>"; };
 		BF7395A6303E9F6392B366FC /* MatchupsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MatchupsView.swift; sourceTree = "<group>"; };
 		C25E5646CF454142CCA9E361 /* MemberDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemberDetailView.swift; sourceTree = "<group>"; };
@@ -84,6 +90,8 @@
 			children = (
 				BF7395A6303E9F6392B366FC /* MatchupsView.swift */,
 				19CAF352C89479A5D8415900 /* MatchupsViewModel.swift */,
+				AB9171C63B6603835C7B65EE /* StandingsView.swift */,
+				5EB1DB5778A90FE77F80CEA1 /* WeeklyRecapView.swift */,
 			);
 			path = Matchups;
 			sourceTree = "<group>";
@@ -209,6 +217,7 @@
 			isa = PBXGroup;
 			children = (
 				D15561B9A02063BAAA0B9131 /* Formatters.swift */,
+				6685FC13C6BDCFF3928269DF /* SectionPicker.swift */,
 				6169B7B9F9F50A43F4E6F14A /* StateViews.swift */,
 				DAE8F39CCE2C0B567F46F6B9 /* TeamLogoView.swift */,
 				7FD2A5DD48CE6331EFA0E30A /* Theme.swift */,
@@ -318,11 +327,14 @@
 				7B7D9ADD54F336A6C9F41111 /* PollsView.swift in Sources */,
 				9B30FC45D6A0E6FA51305F58 /* PollsViewModel.swift in Sources */,
 				0173B3B98B368FCABE7418E5 /* RootView.swift in Sources */,
+				BD2DBD997CF0F39A2D7FE030 /* SectionPicker.swift in Sources */,
 				2B08802C61FFA4EDBAC0B1D8 /* SettingsView.swift in Sources */,
 				6B997AC61DA6A4FF0F83170F /* SplashView.swift in Sources */,
+				6D8C8AE37F76E495623A1128 /* StandingsView.swift in Sources */,
 				DF1DC7BCF83E1E3EE2256B45 /* StateViews.swift in Sources */,
 				6BE2AE9F104DD5C28320496A /* TeamLogoView.swift in Sources */,
 				72C5C8E3896104D244C9B4B5 /* Theme.swift in Sources */,
+				DA7D2E35F52A48FB6402D851 /* WeeklyRecapView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

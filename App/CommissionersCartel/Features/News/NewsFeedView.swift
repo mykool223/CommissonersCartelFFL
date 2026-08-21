@@ -1,51 +1,94 @@
 import SwiftUI
 import CartelCore
 
-/// The league's front page: commissioner posts, newest first.
+/// League news and player news, chosen from the navigation title.
+///
+/// They were one scroll originally, which buried the commissioner's writing
+/// under forty injury blurbs. They are separate destinations now.
+enum NewsSection: String, TabSection {
+    case league
+    case players
+
+    var title: String {
+        switch self {
+        case .league: "League news"
+        case .players: "Player news"
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .league: "newspaper"
+        case .players: "figure.american.football"
+        }
+    }
+}
+
 struct NewsFeedView: View {
     @Environment(AppEnvironment.self) private var environment
     @State private var model = NewsFeedViewModel()
+    @State private var section: NewsSection = .initial(default: .league)
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                LazyVStack(spacing: Theme.Spacing.medium) {
-                    // Masthead. Scrolls away rather than pinning, so it sets the
-                    // tone without permanently costing a third of the screen.
-                    LeagueCrest(size: 132)
-                        .padding(.bottom, Theme.Spacing.tight)
-
-                    if environment.isUsingMockContent {
-                        SampleDataBanner(
-                            detail: "Showing sample posts. Connect Supabase in Settings to publish real ones."
-                        )
-                    }
-
-                    LoadableView(
-                        state: model.state,
-                        emptyMessage: "No posts yet. The commissioner has been quiet.",
-                        retry: { await model.load(using: environment) }
-                    ) { posts in
-                        ForEach(posts) { post in
-                            NavigationLink(value: post) {
-                                NewsPostCard(post: post)
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-
-                    if !model.playerNews.isEmpty {
-                        PlayerNewsSection(items: model.playerNews)
-                    }
+            Group {
+                switch section {
+                case .league: leagueNews
+                case .players: playerNews
                 }
-                .padding(Theme.Spacing.large)
             }
             .screenStyle()
-            .navigationTitle("League News")
-            .navigationBarTitleDisplayMode(.inline)
+            .sectionPicker($section)
             .navigationDestination(for: NewsPost.self) { NewsPostDetailView(post: $0) }
             .refreshable { await model.load(using: environment, showSpinner: false) }
             .task { await model.load(using: environment) }
+        }
+    }
+
+    private var leagueNews: some View {
+        ScrollView {
+            LazyVStack(spacing: Theme.Spacing.medium) {
+                LeagueCrest(size: 132)
+                    .padding(.bottom, Theme.Spacing.tight)
+
+                if environment.isUsingMockContent {
+                    SampleDataBanner(
+                        detail: "Showing sample posts. Connect Supabase in Settings to publish real ones."
+                    )
+                }
+
+                LoadableView(
+                    state: model.state,
+                    emptyMessage: "No posts yet. The commissioner has been quiet.",
+                    retry: { await model.load(using: environment) }
+                ) { posts in
+                    ForEach(posts) { post in
+                        NavigationLink(value: post) {
+                            NewsPostCard(post: post)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+            .padding(Theme.Spacing.large)
+        }
+    }
+
+    private var playerNews: some View {
+        ScrollView {
+            LazyVStack(spacing: Theme.Spacing.medium) {
+                if model.playerNews.isEmpty {
+                    EmptyStateView(
+                        message: "No player news yet today.",
+                        systemImage: "figure.american.football"
+                    )
+                } else {
+                    ForEach(model.playerNews) { item in
+                        PlayerNewsCard(item: item)
+                    }
+                }
+            }
+            .padding(Theme.Spacing.large)
         }
     }
 }
@@ -77,30 +120,6 @@ private struct NewsPostCard: View {
             Text("by \(post.authorName)")
                 .font(.caption)
                 .foregroundStyle(.tertiary)
-        }
-    }
-}
-
-/// Player news, below the league's own posts.
-///
-/// Blurbs are shown inline rather than as links out — the whole point is to
-/// read them without leaving the app. The publisher is not named on screen at
-/// the league's request; `PlayerNews.sourceName` and `sourceURL` still carry
-/// the attribution, and the longer analysis is deliberately not stored.
-private struct PlayerNewsSection: View {
-    let items: [PlayerNews]
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: Theme.Spacing.medium) {
-            Text("Player news")
-                .font(.subheadline.weight(.semibold))
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, Theme.Spacing.tight)
-                .padding(.top, Theme.Spacing.medium)
-
-            ForEach(items) { item in
-                PlayerNewsCard(item: item)
-            }
         }
     }
 }
