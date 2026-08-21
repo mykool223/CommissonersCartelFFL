@@ -1,0 +1,46 @@
+# --- Secrets -----------------------------------------------------------------
+# Real league/backend values. Copy Secrets.example.xcconfig to create it.
+Config/Secrets.xcconfig
+.env
+.env.local
+
+# --- Xcode -------------------------------------------------------------------
+# The .xcodeproj IS committed (generated from project.yml) so the repo opens
+# with no extra tooling. Only the per-user state inside it is ignored.
+xcuserdata/
+*.xcuserstate
+*.xcscmblueprint
+*.xccheckout
+DerivedData/
+build/
+*.moved-aside
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Xcode's own package resolution; regenerated on open.
+*.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/
+*.xcworkspace/xcshareddata/swiftpm/
+
+# --- Swift Package Manager ---------------------------------------------------
+.build/
+.swiftpm/
+Packages/*/.build/
+Packages/*/.swiftpm/
+# Committed for reproducible CI once real dependencies are added.
+!Package.resolved
+
+# --- Supabase ----------------------------------------------------------------
+supabase/.branches/
+supabase/.temp/
+supabase/.env
+
+# --- macOS -------------------------------------------------------------------
+.DS_Store
+._*
+
+# --- Editors -----------------------------------------------------------------
+.vscode/
+.idea/
+*.swp

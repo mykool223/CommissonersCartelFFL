@@ -1,0 +1,38 @@
+# Supabase CLI project config.
+#
+#   supabase link --project-ref <your-project-ref>
+#   supabase db push          # apply migrations/
+#   supabase functions deploy espn-proxy
+
+project_id = "commissioners-cartel"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+major_version = 15
+
+[studio]
+enabled = true
+port = 54323
+
+[auth]
+enabled = true
+site_url = "commissionerscartel://auth-callback"
+additional_redirect_urls = ["commissionerscartel://auth-callback"]
+jwt_expiry = 3600
+enable_signup = true
+
+[auth.email]
+enable_signup = true
+# Magic links suit a 12-person league better than passwords.
+enable_confirmations = true
+
+[functions.espn-proxy]
+# Supabase checks the caller's JWT before the function runs.
+verify_jwt = true

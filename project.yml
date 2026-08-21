@@ -1,0 +1,83 @@
+# Source of truth for CommissionersCartel.xcodeproj.
+#
+# The .xcodeproj IS committed, so the repo opens in Xcode with no extra tools.
+# But edit THIS file, not the project, then run `./Scripts/generate.sh`.
+# A YAML file produces readable diffs and merges; a pbxproj does not.
+
+name: CommissionersCartel
+
+options:
+  bundleIdPrefix: com.commissionerscartel
+  deploymentTarget:
+    iOS: "18.0"
+  createIntermediateGroups: true
+  groupSortPosition: top
+  minimumXcodeGenVersion: "2.38.0"
+
+configs:
+  Debug: debug
+  Release: release
+
+# Build settings, versions and the ESPN/Supabase values all come from
+# Config/*.xcconfig so they can be changed without regenerating the project.
+configFiles:
+  Debug: Config/Debug.xcconfig
+  Release: Config/Release.xcconfig
+
+settings:
+  base:
+    # Swift 5 language mode with complete concurrency checking: the compiler
+    # reports every Swift 6 concurrency problem as a WARNING rather than an
+    # error. CartelKit already builds clean under full Swift 6.
+    # To finish the migration, set this to 6.0 and fix whatever it flags.
+    SWIFT_VERSION: "5.0"
+    SWIFT_STRICT_CONCURRENCY: complete
+    IPHONEOS_DEPLOYMENT_TARGET: "18.0"
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+    DEAD_CODE_STRIPPING: YES
+    CLANG_ENABLE_MODULES: YES
+
+packages:
+  CartelKit:
+    path: Packages/CartelKit
+
+targets:
+  CommissionersCartel:
+    type: application
+    platform: iOS
+    sources:
+      - path: App/CommissionersCartel
+        excludes:
+          # Referenced via INFOPLIST_FILE; must not also be copied as a resource.
+          - "Resources/Info.plist"
+    dependencies:
+      - package: CartelKit
+        product: CartelCore
+      - package: CartelKit
+        product: CartelESPN
+      - package: CartelKit
+        product: CartelSupabase
+    settings:
+      base:
+        INFOPLIST_FILE: App/CommissionersCartel/Resources/Info.plist
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        # iPhone and iPad.
+        TARGETED_DEVICE_FAMILY: "1,2"
+        ENABLE_PREVIEWS: YES
+        GENERATE_INFOPLIST_FILE: NO
+        CODE_SIGN_STYLE: Automatic
+        # Set DEVELOPMENT_TEAM in Config/Secrets.xcconfig to run on a device.
+        SUPPORTS_MACCATALYST: NO
+    scheme:
+      gatherCoverageData: true
+      environmentVariables:
+        # Keeps SwiftUI preview and console output readable.
+        OS_ACTIVITY_MODE: disable
+
+# Note: CartelKit's tests are deliberately NOT wired into the scheme here.
+# `scheme.testTargets: [{package: CartelKit}]` crashes XcodeGen 2.46.0 with a
+# SIGTRAP and no diagnostic. To run them in Xcode, open Product > Scheme >
+# Edit Scheme > Test > + and add the CartelKit test targets once; the change
+# lives in xcshareddata and survives regeneration. From the terminal, use
+# ./Scripts/test-package.sh, which needs no Xcode at all.

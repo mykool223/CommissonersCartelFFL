@@ -1,0 +1,348 @@
+import Foundation
+import Testing
+import CartelCore
+@testable import CartelESPN
+
+private enum Fixture {
+    static func data(_ name: String) throws -> Data {
+        let url = try #require(
+            Bundle.module.url(forResource: name, withExtension: "json"),
+            "Missing fixture \(name).json"
+        )
+        return try Data(contentsOf: url)
+    }
+}
+
+private func makeClient(
+    fixture: String = "league",
+    statusCode: Int = 200,
+    credentials: ESPNCredentials? = nil,
+    cacheTTL: Duration = .seconds(120),
+    now: @escaping @Sendable () -> Date = { Date(timeIntervalSince1970: 0) },
+    onRequest: (@Sendable (URLRequest) -> Void)? = nil
+) throws -> ESPNClient {
+    let data = statusCode == 200 ? try Fixture.data(fixture) : Data("{}".utf8)
+    let transport = StubTransport { request in
+        onRequest?(request)
+        let response = HTTPURLResponse(
+            url: request.url!, statusCode: statusCode, httpVersion: nil, headerFields: nil
+        )!
+        return (data, response)
+    }
+    return ESPNClient(
+        configuration: ESPNConfiguration(
+            leagueID: "1234567",
+            season: 2025,
+            credentials: credentials,
+            cacheTTL: cacheTTL
+        ),
+        transport: transport,
+        now: now
+    )
+}
+
+@Suite("ESPN request building")
+struct ESPNRequestTests {
+    @Test("URL carries the season, league id and one query item per view")
+    func urlShape() throws {
+        let config = ESPNConfiguration(leagueID: "1234567", season: 2025)
+        let url = try #require(config.requestURL(views: ["mTeam", "mSettings"]))
+        let components = try #require(URLComponents(url: url, resolvingAgainstBaseURL: false))
+
+        #expect(components.host == "lm-api-reads.fantasy.espn.com")
+        #expect(components.path == "/apis/v3/games/ffl/seasons/2025/segments/0/leagues/1234567")
+        // Repeated `view` params, not a comma-joined list — ESPN returns a
+        // partial payload for the latter.
+        #expect(components.queryItems?.filter { $0.name == "view" }.count == 2)
+    }
+
+    @Test("SWID is brace-wrapped whether or not the caller wrapped it")
+    func swidNormalisation() {
+        let bare = ESPNCredentials(espnS2: "s2", swid: "ABC-123")
+        let wrapped = ESPNCredentials(espnS2: "s2", swid: "{ABC-123}")
+        #expect(bare.swid == "{ABC-123}")
+        #expect(bare.cookieHeader == wrapped.cookieHeader)
+        #expect(bare.cookieHeader == "espn_s2=s2; SWID={ABC-123}")
+    }
+
+    @Test("Credentials are sent as a Cookie header")
+    func sendsCookieHeader() async throws {
+        let captured = Captured()
+        let client = try makeClient(
+            credentials: ESPNCredentials(espnS2: "secret", swid: "{ABC}"),
+            onRequest: { captured.store($0) }
+        )
+        _ = try await client.league()
+        #expect(captured.value?.value(forHTTPHeaderField: "Cookie") == "espn_s2=secret; SWID={ABC}")
+    }
+
+    @Test("Public leagues send no Cookie header")
+    func omitsCookieWhenPublic() async throws {
+        let captured = Captured()
+        let client = try makeClient(onRequest: { captured.store($0) })
+        _ = try await client.league()
+        #expect(captured.value?.value(forHTTPHeaderField: "Cookie") == nil)
+    }
+}
+
+/// Minimal thread-safe box for capturing a request from the stub transport.
+private final class Captured: @unchecked Sendable {
+    private let lock = NSLock()
+    private var request: URLRequest?
+
+    func store(_ request: URLRequest) {
+        lock.lock(); defer { lock.unlock() }
+        self.request = request
+    }
+
+    var value: URLRequest? {
+        lock.lock(); defer { lock.unlock() }
+        return request
+    }
+}
+
+@Suite("ESPN mapping")
+struct ESPNMappingTests {
+    @Test("League settings map across")
+    func league() async throws {
+        let league = try await makeClient().league()
+        #expect(league.id == "1234567")
+        #expect(league.name == "Commissioners Cartel")
+        #expect(league.season == 2025)
+        #expect(league.currentWeek == 11)
+        #expect(league.regularSeasonWeeks == 14)
+        #expect(league.teamCount == 3)
+        #expect(!league.isPlayoffs)
+    }
+
+    @Test("Members map to managers, including the commissioner flag")
+    func managers() async throws {
+        let managers = try await makeClient().managers()
+        #expect(managers.count == 3)
+
+        let commissioner = try #require(managers.first { $0.isCommissioner })
+        #expect(commissioner.fullName == "Michael Smith")
+
+        // ESPN omits firstName/lastName for some members.
+        let anonymous = try #require(managers.first { $0.displayName == "dtaylor" })
+        #expect(anonymous.fullName == "dtaylor")
+        #expect(!anonymous.isCommissioner)
+    }
+
+    @Test("Modern `name` and legacy `location`+`nickname` both produce a team name")
+    func teamNaming() async throws {
+        let teams = try await makeClient().teams()
+        #expect(teams.count == 3)
+        #expect(teams[0].name == "Bear Necessities")
+        #expect(teams[1].name == "Trap Game")
+        // No name of any kind — fall back rather than showing blank.
+        #expect(teams[2].name == "Team 3")
+    }
+
+    @Test("Records and seeds map across")
+    func teamRecords() async throws {
+        let teams = try await makeClient().teams()
+        #expect(teams[0].record.summary == "8-2")
+        #expect(teams[1].record.summary == "7-2-1")
+        #expect(teams[0].playoffSeed == 1)
+        #expect(teams[0].logoURL?.absoluteString == "https://example.com/logo1.png")
+        // Falls back to primaryOwner when `owners` is absent.
+        #expect(teams[1].ownerIDs == ["{BBBBBBBB-1111-2222-3333-444444444444}"])
+        // No record at all in the payload.
+        #expect(teams[2].record == .empty)
+    }
+
+    @Test("Only the requested week's matchups come back")
+    func matchupsFilterByWeek() async throws {
+        let client = try makeClient()
+        let week10 = try await client.matchups(week: 10)
+        #expect(week10.count == 1)
+        #expect(week10[0].isComplete)
+        #expect(week10[0].winningTeamID == 1)
+        // Projections are dropped once a game is final.
+        #expect(week10[0].home.projectedPoints == nil)
+
+        let week11 = try await client.matchups(week: 11)
+        #expect(week11.count == 2)
+        let noneComplete = week11.allSatisfy { !$0.isComplete }
+        #expect(noneComplete)
+        #expect(week11[0].home.projectedPoints == 124.7)
+        #expect(week11[0].winningTeamID == nil, "UNDECIDED games have no winner")
+    }
+
+    @Test("A schedule entry with no away side is a bye")
+    func byeMatchup() async throws {
+        let week11 = try await makeClient().matchups(week: 11)
+        let bye = try #require(week11.first { $0.isBye })
+        #expect(bye.away == nil)
+        #expect(bye.home.teamID == 2)
+    }
+
+    @Test("An unplayed week is empty, not an error")
+    func unknownWeekIsEmpty() async throws {
+        let matchups = try await makeClient().matchups(week: 14)
+        #expect(matchups.isEmpty)
+    }
+}
+
+@Suite("ESPN caching and errors")
+struct ESPNCachingTests {
+    /// Thread-safe request counter.
+    private final class Counter: @unchecked Sendable {
+        private let lock = NSLock()
+        private var count = 0
+        func increment() { lock.lock(); count += 1; lock.unlock() }
+        var value: Int { lock.lock(); defer { lock.unlock() }; return count }
+    }
+
+    @Test("Four screens' worth of calls hit the network once")
+    func cachesAcrossCalls() async throws {
+        let counter = Counter()
+        let client = try makeClient(onRequest: { _ in counter.increment() })
+
+        _ = try await client.league()
+        _ = try await client.teams()
+        _ = try await client.managers()
+        _ = try await client.matchups(week: 11)
+
+        #expect(counter.value == 1)
+    }
+
+    @Test("Concurrent callers share one in-flight request")
+    func coalescesConcurrentCalls() async throws {
+        let counter = Counter()
+        let client = try makeClient(onRequest: { _ in counter.increment() })
+
+        await withTaskGroup(of: Void.self) { group in
+            for _ in 0..<8 {
+                group.addTask { _ = try? await client.teams() }
+            }
+        }
+
+        #expect(counter.value == 1)
+    }
+
+    @Test("The cache expires after its TTL")
+    func cacheExpires() async throws {
+        let counter = Counter()
+        let clock = MutableClock()
+        let client = try makeClient(
+            cacheTTL: .seconds(60),
+            now: { clock.now },
+            onRequest: { _ in counter.increment() }
+        )
+
+        _ = try await client.league()
+        clock.advance(by: 30)
+        _ = try await client.league()
+        #expect(counter.value == 1, "still fresh")
+
+        clock.advance(by: 31)
+        _ = try await client.league()
+        #expect(counter.value == 2, "TTL elapsed")
+    }
+
+    @Test("invalidateCache forces the next call back to the network")
+    func manualInvalidation() async throws {
+        let counter = Counter()
+        let client = try makeClient(onRequest: { _ in counter.increment() })
+
+        _ = try await client.league()
+        await client.invalidateCache()
+        _ = try await client.league()
+
+        #expect(counter.value == 2)
+    }
+
+    @Test("401 and 403 surface as notAuthorized, not a raw status code")
+    func unauthorized() async throws {
+        for status in [401, 403] {
+            let client = try makeClient(statusCode: status)
+            await #expect(throws: CartelError.self) { _ = try await client.league() }
+        }
+    }
+
+    @Test("Other failures keep their status code")
+    func serverError() async throws {
+        let client = try makeClient(statusCode: 500)
+        do {
+            _ = try await client.league()
+            Issue.record("Expected a server error")
+        } catch let error as CartelError {
+            guard case let .server(statusCode, _) = error else {
+                Issue.record("Expected .server, got \(error)")
+                return
+            }
+            #expect(statusCode == 500)
+        }
+    }
+
+    @Test("An empty league id fails fast without a request")
+    func missingLeagueID() async {
+        let counter = Counter()
+        let client = ESPNClient(
+            configuration: ESPNConfiguration(leagueID: "", season: 2025),
+            transport: StubTransport { request in
+                counter.increment()
+                return (Data(), HTTPURLResponse(
+                    url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil
+                )!)
+            }
+        )
+        await #expect(throws: CartelError.self) { _ = try await client.league() }
+        #expect(counter.value == 0)
+    }
+}
+
+private final class MutableClock: @unchecked Sendable {
+    private let lock = NSLock()
+    private var offset: TimeInterval = 0
+
+    var now: Date {
+        lock.lock(); defer { lock.unlock() }
+        return Date(timeIntervalSince1970: offset)
+    }
+
+    func advance(by seconds: TimeInterval) {
+        lock.lock(); offset += seconds; lock.unlock()
+    }
+}
+
+@Suite("Proxy configuration")
+struct ESPNProxyTests {
+    @Test("viaProxy keeps ESPN's path shape under the function URL")
+    func proxyURL() throws {
+        let config = ESPNConfiguration.viaProxy(
+            leagueID: "1234567",
+            season: 2025,
+            supabaseURL: URL(string: "https://abcdefgh.supabase.co")!,
+            accessToken: "jwt-abc"
+        )
+        let url = try #require(config.requestURL(views: ["mTeam"]))
+
+        #expect(url.host() == "abcdefgh.supabase.co")
+        #expect(url.path() == "/functions/v1/espn-proxy/apis/v3/games/ffl/seasons/2025/segments/0/leagues/1234567")
+        // Cookies stay server-side; the app only sends its Supabase token.
+        #expect(config.credentials == nil)
+        #expect(config.additionalHeaders["Authorization"] == "Bearer jwt-abc")
+    }
+
+    @Test("Additional headers are sent on the request")
+    func sendsAdditionalHeaders() async throws {
+        let captured = Captured()
+        let transport = StubTransport { request in
+            captured.store(request)
+            return (Data("{\"id\":1}".utf8), HTTPURLResponse(
+                url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil
+            )!)
+        }
+        let client = ESPNClient(
+            configuration: ESPNConfiguration(
+                leagueID: "1", season: 2025, additionalHeaders: ["Authorization": "Bearer xyz"]
+            ),
+            transport: transport
+        )
+        _ = try await client.league()
+        #expect(captured.value?.value(forHTTPHeaderField: "Authorization") == "Bearer xyz")
+    }
+}

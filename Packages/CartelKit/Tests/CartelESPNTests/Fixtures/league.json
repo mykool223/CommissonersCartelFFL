@@ -1,0 +1,97 @@
+{
+  "id": 1234567,
+  "seasonId": 2025,
+  "status": {
+    "currentMatchupPeriod": 11,
+    "latestScoringPeriod": 10,
+    "finalScoringPeriod": 17
+  },
+  "settings": {
+    "name": "Commissioners Cartel",
+    "scheduleSettings": { "matchupPeriodCount": 14 }
+  },
+  "members": [
+    {
+      "id": "{AAAAAAAA-1111-2222-3333-444444444444}",
+      "displayName": "mykool223",
+      "firstName": "Michael",
+      "lastName": "Smith",
+      "isLeagueManager": true
+    },
+    {
+      "id": "{BBBBBBBB-1111-2222-3333-444444444444}",
+      "displayName": "gridiron_greg",
+      "firstName": "Greg",
+      "lastName": "Alvarez",
+      "isLeagueManager": false
+    },
+    {
+      "id": "{CCCCCCCC-1111-2222-3333-444444444444}",
+      "displayName": "dtaylor"
+    }
+  ],
+  "teams": [
+    {
+      "id": 1,
+      "abbrev": "BEAR",
+      "name": "Bear Necessities",
+      "logo": "https://example.com/logo1.png",
+      "owners": ["{AAAAAAAA-1111-2222-3333-444444444444}"],
+      "primaryOwner": "{AAAAAAAA-1111-2222-3333-444444444444}",
+      "playoffSeed": 1,
+      "record": {
+        "overall": {
+          "wins": 8,
+          "losses": 2,
+          "ties": 0,
+          "pointsFor": 1284.6,
+          "pointsAgainst": 1102.4
+        }
+      }
+    },
+    {
+      "id": 2,
+      "abbrev": "TRAP",
+      "location": "Trap",
+      "nickname": "Game",
+      "primaryOwner": "{BBBBBBBB-1111-2222-3333-444444444444}",
+      "playoffSeed": 2,
+      "record": {
+        "overall": {
+          "wins": 7,
+          "losses": 2,
+          "ties": 1,
+          "pointsFor": 1231.8,
+          "pointsAgainst": 1150.2
+        }
+      }
+    },
+    {
+      "id": 3,
+      "abbrev": "KICK",
+      "playoffSeed": 3
+    }
+  ],
+  "schedule": [
+    {
+      "id": 1001,
+      "matchupPeriodId": 10,
+      "winner": "HOME",
+      "home": { "teamId": 1, "totalPoints": 121.4, "totalProjectedPointsLive": 118.0 },
+      "away": { "teamId": 2, "totalPoints": 108.2, "totalProjectedPointsLive": 112.5 }
+    },
+    {
+      "id": 1002,
+      "matchupPeriodId": 11,
+      "winner": "UNDECIDED",
+      "home": { "teamId": 1, "totalPoints": 0, "totalProjectedPointsLive": 124.7 },
+      "away": { "teamId": 3, "totalPoints": 0, "totalProjectedPointsLive": 99.1 }
+    },
+    {
+      "id": 1003,
+      "matchupPeriodId": 11,
+      "winner": "UNDECIDED",
+      "home": { "teamId": 2, "totalPoints": 0, "totalProjectedPointsLive": 110.2 }
+    }
+  ]
+}

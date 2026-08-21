@@ -1,0 +1,24 @@
+// Settings shared by every configuration.
+//
+// Real values live in Config/Secrets.xcconfig, which is gitignored. Copy
+// Secrets.example.xcconfig to Secrets.xcconfig and fill it in. Without that
+// file the app still builds and runs — it just uses sample data.
+
+PRODUCT_BUNDLE_IDENTIFIER = com.commissionerscartel.app
+MARKETING_VERSION = 0.1.0
+CURRENT_PROJECT_VERSION = 1
+
+// Placeholders. AppConfiguration treats REPLACE_ME as "not configured" and
+// falls back to mock data, so a fresh clone runs with no setup.
+ESPN_LEAGUE_ID = REPLACE_ME
+SUPABASE_ANON_KEY = REPLACE_ME
+
+// Host only — no scheme. A "//" in an xcconfig starts a comment, so the
+// https:// prefix is added back in AppConfiguration.
+SUPABASE_HOST = REPLACE_ME
+
+// Empty means "work it out from today's date" (see AppConfiguration.currentSeason).
+LEAGUE_SEASON =
+
+// Optional: overrides anything above when the file exists.
+#include? "Secrets.xcconfig"
