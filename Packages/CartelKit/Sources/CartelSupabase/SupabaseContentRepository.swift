@@ -170,6 +170,12 @@ private struct DirectMessageRow: Decodable {
     }
 }
 
+private struct MemberRow: Decodable {
+    let id: UUID
+    let display_name: String?
+    let espn_swid: String?
+}
+
 private struct MemberNameRow: Decodable {
     let id: UUID
     let display_name: String?
@@ -373,6 +379,19 @@ extension SupabaseContentRepository: LeagueChatRepository {
             ],
             onConflict: "id"
         )
+    }
+
+    public func members() async throws -> [LeagueMember] {
+        let rows: [MemberRow] = try await client.select(
+            "profiles", query: ["select": "id,display_name,espn_swid"]
+        )
+        return rows.map {
+            LeagueMember(
+                id: $0.id,
+                displayName: $0.display_name ?? "Someone",
+                espnSWID: $0.espn_swid
+            )
+        }
     }
 
     public func memberNames() async throws -> [UUID: String] {

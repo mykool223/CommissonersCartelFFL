@@ -105,6 +105,21 @@ public enum Mentions {
     }
 }
 
+/// A member of the league as the app knows them: an account, not an ESPN
+/// manager. The two are linked by the ESPN member id they claimed.
+public struct LeagueMember: Identifiable, Hashable, Sendable {
+    public let id: UUID
+    public let displayName: String
+    /// The ESPN member id this account claimed, or nil if they have not.
+    public let espnSWID: String?
+
+    public init(id: UUID, displayName: String, espnSWID: String?) {
+        self.id = id
+        self.displayName = displayName
+        self.espnSWID = espnSWID
+    }
+}
+
 public protocol LeagueChatRepository: Sendable {
     /// Newest last, so the view can scroll to the bottom.
     func messages(limit: Int) async throws -> [LeagueMessage]
@@ -121,6 +136,10 @@ public protocol LeagueChatRepository: Sendable {
     func sendDirectMessage(to recipientID: UUID, body: String) async throws
     /// Display names, for conversation titles.
     func memberNames() async throws -> [UUID: String]
+
+    /// Everyone with an account, and the ESPN manager each has claimed.
+    /// Used to turn "this person on the roster" into "this account".
+    func members() async throws -> [LeagueMember]
 
     /// Links the signed-in account to an ESPN member. ESPN publishes no email
     /// addresses, so this cannot be worked out automatically — the member picks

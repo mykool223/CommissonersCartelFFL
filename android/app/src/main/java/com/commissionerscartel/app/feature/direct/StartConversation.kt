@@ -1,11 +1,13 @@
 package com.commissionerscartel.app.feature.direct
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
@@ -26,36 +28,42 @@ import com.commissionerscartel.app.data.Supabase
  */
 @Composable
 fun StartConversation(
-    displayName: String,
+    managerId: String,
     onClose: () -> Unit,
     model: DirectMessagesViewModel = viewModel(),
 ) {
-    val resolved by produceState<Conversation?>(initialValue = null, displayName) {
+    // Three states, not two: still looking, found, and "this manager has no
+    // account". Collapsing the last into a spinner leaves it spinning forever.
+    val resolved by produceState<Result<Conversation>?>(initialValue = null, managerId) {
         value = runCatching {
-            val match = Supabase.profiles().entries.firstOrNull {
-                it.value.equals(displayName, ignoreCase = true)
-            }
-            match?.let { model.conversationWith(it.key, it.value) }
-        }.getOrNull()
+            val match = Supabase.members().firstOrNull {
+                it.espnSwid?.trim().equals(managerId.trim(), ignoreCase = true)
+            } ?: error("no account")
+            model.conversationWith(match.id, match.displayName)
+        }
     }
 
-    when (val conversation = resolved) {
-        null -> Box(Modifier.fillMaxSize(), Alignment.Center) {
-            CircularProgressIndicator()
-        }
-        else -> ConversationScreen(conversation = conversation, model = model, onBack = onClose)
+    when (val outcome = resolved) {
+        null -> Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator() }
+        else -> outcome.fold(
+            onSuccess = { ConversationScreen(it, model, onClose) },
+            onFailure = { NoAccountYet(onClose) },
+        )
     }
 }
 
 /** Shown when the manager has no account to message. */
 @Composable
-fun NoAccountYet(displayName: String) {
+fun NoAccountYet(onClose: () -> Unit) {
     Box(Modifier.fillMaxSize().padding(32.dp), Alignment.Center) {
-        Text(
-            "$displayName hasn't signed in to the app yet, so there is nowhere " +
-                "to send a message.",
-            style = MaterialTheme.typography.bodyMedium,
-            textAlign = TextAlign.Center,
-        )
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                "They haven't signed in to the app yet, so there is nowhere to " +
+                    "send a message.",
+                style = MaterialTheme.typography.bodyMedium,
+                textAlign = TextAlign.Center,
+            )
+            TextButton(onClick = onClose) { Text("Back") }
+        }
     }
 }

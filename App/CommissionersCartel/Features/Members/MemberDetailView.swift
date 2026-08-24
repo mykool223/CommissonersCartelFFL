@@ -3,20 +3,25 @@ import CartelCore
 
 struct MemberDetailView: View {
     let entry: MembersViewModel.Entry
-    /// Nil when there is nobody to message — an ESPN manager who has never
-    /// signed in has nowhere for a message to arrive.
-    var onMessage: ((UUID, String) -> Void)?
 
-    @State private var accountID: UUID?
+    @Environment(AppEnvironment.self) private var environment
+    /// The app account behind this ESPN manager, if they have one. An ESPN
+    /// manager who has never signed in has nowhere for a message to arrive,
+    /// so the button is absent rather than offering to send into a void.
+    @State private var account: LeagueMember?
+    @State private var conversation: Conversation?
+    @State private var chatModel = DirectMessagesViewModel()
 
     var body: some View {
         ScrollView {
             VStack(spacing: Theme.Spacing.large) {
                 header
 
-                if let accountID, let onMessage {
+                if let account, account.id != environment.session?.userID {
                     Button {
-                        onMessage(accountID, entry.manager.fullName)
+                        conversation = chatModel.conversation(
+                            with: account.id, named: account.displayName
+                        )
                     } label: {
                         Label(
                             "Message \(entry.manager.fullName.split(separator: " ").first.map(String.init) ?? entry.manager.fullName)",
@@ -79,6 +84,24 @@ struct MemberDetailView: View {
         .screenStyle()
         .navigationTitle(entry.manager.fullName)
         .navigationBarTitleDisplayMode(.inline)
+        .task(id: entry.manager.id) { await resolveAccount() }
+        .navigationDestination(item: $conversation) { conversation in
+            ConversationView(conversation: conversation, model: chatModel)
+        }
+    }
+
+    /// Matches this ESPN manager to an app account by the team they claimed,
+    /// rather than by name — two members share a first name, and a display
+    /// name is whatever somebody typed.
+    private func resolveAccount() async {
+        guard let chat = environment.chat, environment.isSignedIn else { return }
+        let members = (try? await chat.members()) ?? []
+        let managerID = entry.manager.id.uppercased()
+        account = members.first { member in
+            member.espnSWID?.trimmingCharacters(in: .whitespacesAndNewlines)
+                .uppercased() == managerID
+        }
+        if account != nil { await chatModel.load(using: environment) }
     }
 
     private var header: some View {

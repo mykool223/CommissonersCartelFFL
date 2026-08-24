@@ -73,7 +73,7 @@ fun MemberDetailScreen(
             // Only for members who have signed in: a message needs somewhere
             // to arrive, and an ESPN manager is not necessarily an account.
             if (onMessage != null) {
-                Button(onClick = { onMessage(entry.manager.fullName) }) {
+                Button(onClick = { onMessage(entry.manager.id) }) {
                     Icon(
                         Icons.Filled.Email,
                         contentDescription = null,

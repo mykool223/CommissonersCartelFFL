@@ -216,3 +216,14 @@ object Mentions {
         return found.sortedBy { it.first }
     }
 }
+
+/**
+ * A member as the app knows them: an account, not an ESPN manager. The two are
+ * linked by the ESPN member id the account claimed.
+ */
+data class LeagueMember(
+    val id: String,
+    val displayName: String,
+    /** The ESPN member id this account claimed, or null if they have not. */
+    val espnSwid: String?,
+)

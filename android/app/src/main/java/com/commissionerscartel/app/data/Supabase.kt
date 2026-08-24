@@ -73,6 +73,15 @@ object Supabase {
         )
     }
 
+    /**
+     * Everyone with an account, and the ESPN manager each has claimed. Used to
+     * turn "this person on the roster" into "this account".
+     */
+    suspend fun members(): List<LeagueMember> =
+        client.from("profiles").select { }
+            .decodeList<MemberRow>()
+            .map { LeagueMember(it.id, it.display_name ?: "Someone", it.espn_swid) }
+
     /** Display names for everyone who has signed in, for conversation titles. */
     suspend fun profiles(): Map<String, String> =
         client.from("profiles").select { }
@@ -104,6 +113,13 @@ object Supabase {
 
     @Serializable
     private data class ProfileRow(val id: String, val display_name: String? = null)
+
+    @Serializable
+    private data class MemberRow(
+        val id: String,
+        val display_name: String? = null,
+        val espn_swid: String? = null,
+    )
 
     /** The trophy case. Empty until the first week is in the books. */
     suspend fun trophies(season: Int): List<Trophy> =

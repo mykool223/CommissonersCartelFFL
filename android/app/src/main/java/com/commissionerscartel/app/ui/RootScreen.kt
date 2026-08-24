@@ -58,7 +58,7 @@ fun RootScreen() {
     }
 
     messageTo?.let { name ->
-        StartConversation(displayName = name, onClose = { messageTo = null })
+        StartConversation(managerId = name, onClose = { messageTo = null })
         return
     }
 
