@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      Android 12 and later draw their own splash before the app renders
+      anything. Left alone it uses the system background, which is why the
+      crest appeared on white. Black here matches the launch screen on iOS, so
+      both platforms open the same way.
+    -->
+    <style name="Theme.Cartel" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/cartel_black</item>
+        <item name="android:statusBarColor">@color/cartel_black</item>
+        <item name="android:windowSplashScreenBackground">@color/cartel_black</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>
+    </style>
+</resources>

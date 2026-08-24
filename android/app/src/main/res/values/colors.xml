@@ -2,4 +2,6 @@
 <resources>
     <!-- The gold from the league crest, matching CartelGold in the theme. -->
     <color name="cartel_gold">#FF9A7B2F</color>
+    <!-- The near-black behind the crest, matching the iOS launch screen. -->
+    <color name="cartel_black">#FF000000</color>
 </resources>

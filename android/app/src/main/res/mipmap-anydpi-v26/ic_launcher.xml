@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  An adaptive icon, which is also what Android 12+ draws on its own splash
+  screen. Without one the system falls back to the plain launcher bitmap and
+  puts it inside a white circle — the crest ended up small, ringed in white,
+  and soft.
+-->
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@color/cartel_black" />
+    <foreground android:drawable="@drawable/ic_launcher_foreground" />
+    <monochrome android:drawable="@drawable/ic_notification" />
+</adaptive-icon>

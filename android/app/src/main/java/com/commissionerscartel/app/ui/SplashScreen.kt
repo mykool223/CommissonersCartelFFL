@@ -16,6 +16,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.commissionerscartel.app.R
@@ -46,9 +48,13 @@ fun SplashGate(content: @Composable () -> Unit) {
                 contentAlignment = Alignment.Center,
             ) {
                 Image(
-                    painter = painterResource(R.mipmap.ic_launcher),
+                    // Not the launcher icon: its largest size is 192px, and
+                    // blowing that up to 220dp is roughly 660 physical pixels
+                    // from a 192px source — visibly soft. This is the real
+                    // artwork at 840px.
+                    painter = painterResource(R.drawable.splash_logo),
                     contentDescription = null,
-                    modifier = Modifier.size(220.dp),
+                    modifier = Modifier.size(220.dp).clip(RoundedCornerShape(48.dp)),
                 )
             }
         }
