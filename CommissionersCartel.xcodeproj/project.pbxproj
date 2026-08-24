@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		0173B3B98B368FCABE7418E5 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D39D479E5AFA1FCB607E5ED /* RootView.swift */; };
 		0AFD7D7C50451F96DA202CE4 /* NotificationSettingsSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2EF49E1E081A6ADE03F5E2DA /* NotificationSettingsSection.swift */; };
+		0C07CB21C3BFA622ABEB9561 /* TrophyCaseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F06A72A99F44751E51C526D /* TrophyCaseView.swift */; };
 		0C61D6DF21AE4AB781D9FEDD /* SectionsHint.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FE33B6365427F981FD356BE /* SectionsHint.swift */; };
 		10A8A5C4E98243ADAF5F91E5 /* MembersViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7DB9556C510CA5B9958FBD1 /* MembersViewModel.swift */; };
 		12A315BCEF72BF1BAEA5D515 /* AppEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = B49C2F69739A05DA6E30EFDB /* AppEnvironment.swift */; };
@@ -22,6 +23,7 @@
 		507E57CB1AC3A1CCA0648BDE /* KeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 457FE48CBCFD9A680A7A0B00 /* KeychainStore.swift */; };
 		52336F7120F8E612A2A04EBB /* MemberDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C25E5646CF454142CCA9E361 /* MemberDetailView.swift */; };
 		65F8592486F245A19B3066DF /* CommissionersCartelApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D256F9DE3A680438DD5AE32 /* CommissionersCartelApp.swift */; };
+		69D52231B9DEDFA927F00B5C /* TrophyCaseViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD5373CBFCE6F0C8E3596250 /* TrophyCaseViewModel.swift */; };
 		6B997AC61DA6A4FF0F83170F /* SplashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FCB96C6D0B45F65D335B2F0 /* SplashView.swift */; };
 		6BE2AE9F104DD5C28320496A /* TeamLogoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAE8F39CCE2C0B567F46F6B9 /* TeamLogoView.swift */; };
 		6D8C8AE37F76E495623A1128 /* StandingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB9171C63B6603835C7B65EE /* StandingsView.swift */; };
@@ -63,6 +65,7 @@
 		457FE48CBCFD9A680A7A0B00 /* KeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainStore.swift; sourceTree = "<group>"; };
 		4FCB96C6D0B45F65D335B2F0 /* SplashView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashView.swift; sourceTree = "<group>"; };
 		5EB1DB5778A90FE77F80CEA1 /* WeeklyRecapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeeklyRecapView.swift; sourceTree = "<group>"; };
+		5F06A72A99F44751E51C526D /* TrophyCaseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrophyCaseView.swift; sourceTree = "<group>"; };
 		6169B7B9F9F50A43F4E6F14A /* StateViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StateViews.swift; sourceTree = "<group>"; };
 		6400996C8909B068E1496C1C /* AppConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfiguration.swift; sourceTree = "<group>"; };
 		6685FC13C6BDCFF3928269DF /* SectionPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SectionPicker.swift; sourceTree = "<group>"; };
@@ -83,6 +86,7 @@
 		D3EA656F6D507B3748C1377F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		D7DB9556C510CA5B9958FBD1 /* MembersViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MembersViewModel.swift; sourceTree = "<group>"; };
 		DAE8F39CCE2C0B567F46F6B9 /* TeamLogoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TeamLogoView.swift; sourceTree = "<group>"; };
+		DD5373CBFCE6F0C8E3596250 /* TrophyCaseViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrophyCaseViewModel.swift; sourceTree = "<group>"; };
 		DEBB7DEF09A6C7CC04FDE783 /* CommissionersCartel.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = CommissionersCartel.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		E2ECC67CFE4ACEAA8E570FA7 /* NFLScoresView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NFLScoresView.swift; sourceTree = "<group>"; };
 		F225F33D365B0F36C742B203 /* PollsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PollsView.swift; sourceTree = "<group>"; };
@@ -217,6 +221,8 @@
 				C25E5646CF454142CCA9E361 /* MemberDetailView.swift */,
 				D03469EA43F8E378196C04CA /* MembersView.swift */,
 				D7DB9556C510CA5B9958FBD1 /* MembersViewModel.swift */,
+				5F06A72A99F44751E51C526D /* TrophyCaseView.swift */,
+				DD5373CBFCE6F0C8E3596250 /* TrophyCaseViewModel.swift */,
 			);
 			path = Members;
 			sourceTree = "<group>";
@@ -371,6 +377,8 @@
 				DF1DC7BCF83E1E3EE2256B45 /* StateViews.swift in Sources */,
 				6BE2AE9F104DD5C28320496A /* TeamLogoView.swift in Sources */,
 				72C5C8E3896104D244C9B4B5 /* Theme.swift in Sources */,
+				0C07CB21C3BFA622ABEB9561 /* TrophyCaseView.swift in Sources */,
+				69D52231B9DEDFA927F00B5C /* TrophyCaseViewModel.swift in Sources */,
 				DA7D2E35F52A48FB6402D851 /* WeeklyRecapView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

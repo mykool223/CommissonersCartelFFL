@@ -331,4 +331,19 @@ public enum MockData {
         )
     ]
 
+
+    /// One sample trophy, so the case is not empty in previews.
+    static let trophies: [Trophy] = [
+        Trophy(
+            id: UUID(uuidString: "bbbbbbbb-0000-0000-0000-00000000000a")!,
+            season: season,
+            week: 1,
+            teamID: 1,
+            kind: "top_score",
+            title: "Top score, week 1",
+            detail: "Homicidal Pigeons — 142.6 points",
+            awardedAt: referenceDate
+        )
+    ]
+
 }

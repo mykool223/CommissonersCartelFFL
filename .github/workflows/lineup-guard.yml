@@ -1,0 +1,48 @@
+# Warns a manager when their starting lineup contains someone who cannot play.
+#
+# Sunday mornings only, and only to the manager concerned. Each warning is
+# recorded, so the repeated runs through the morning do not tell somebody about
+# the same mistake every half hour.
+#
+# QUESTIONABLE is deliberately not a warning: half the league is questionable
+# most weeks, and an alert that fires constantly gets muted.
+name: Lineup guard
+
+on:
+  schedule:
+    # 14:00 and 16:00 UTC on Sundays — roughly 9am and 11am Central, before the
+    # early kickoffs. GitHub's scheduler is best-effort, hence two attempts.
+    - cron: "0 14 * * 0"
+    - cron: "0 16 * * 0"
+  workflow_dispatch:
+    inputs:
+      week:
+        description: "Force a week (defaults to ESPN's current)"
+        type: string
+      dry_run:
+        description: "Print what would be sent, without sending"
+        type: boolean
+        default: true
+
+jobs:
+  check:
+    name: Check lineups
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Check
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          PUSH_SECRET: ${{ secrets.PUSH_SECRET }}
+          ESPN_S2: ${{ secrets.ESPN_S2 }}
+          ESPN_SWID: ${{ secrets.ESPN_SWID }}
+          ESPN_LEAGUE_ID: ${{ secrets.ESPN_LEAGUE_ID }}
+          LINEUP_WEEK: ${{ inputs.week }}
+          DRY_RUN: ${{ inputs.dry_run && '1' || '' }}
+        run: |
+          if [ -z "$ESPN_S2" ]; then
+            echo "ESPN secrets are not set; nothing to check."
+            exit 0
+          fi
+          ./Scripts/lineup_guard.py

@@ -13,6 +13,7 @@ import com.commissionerscartel.app.ui.SectionPicker
 enum class MembersSection(val label: String) {
     Roster("Roster"),
     Thread("League thread"),
+    Trophies("Trophy case"),
 }
 
 @Composable
@@ -21,6 +22,7 @@ fun MembersHost(modifier: Modifier = Modifier, onOpen: (MemberEntry) -> Unit) {
 
     Column(modifier.fillMaxSize()) {
         SectionPicker(
+            scrollable = true,
             sections = MembersSection.entries,
             selected = section,
             label = { it.label },
@@ -29,6 +31,7 @@ fun MembersHost(modifier: Modifier = Modifier, onOpen: (MemberEntry) -> Unit) {
         when (section) {
             MembersSection.Roster -> MembersScreen(onOpen = onOpen)
             MembersSection.Thread -> LeagueThreadScreen()
+            MembersSection.Trophies -> TrophyCaseScreen()
         }
     }
 }

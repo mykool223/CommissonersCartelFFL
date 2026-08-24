@@ -31,6 +31,7 @@ const PREFERENCE_COLUMN: Record<string, string> = {
     news: "news",
     polls: "polls",
     activity: "activity",
+    lineup: "lineup",
 };
 
 /** The tab to open when the notification is tapped. */
@@ -40,6 +41,8 @@ const DESTINATION: Record<string, string> = {
     polls: "polls",
     // Activity lives under News, alongside league and player news.
     activity: "news",
+    // A lineup warning is about this week's fixture.
+    lineup: "matchups",
 };
 
 function base64URL(bytes: Uint8Array): string {
@@ -283,12 +286,15 @@ Deno.serve(async (request) => {
 });
 
 async function handle(request: Request): Promise<Response> {
-    const { kind, title, body, exclude_user } = await request.json();
+    const { kind, title, body, exclude_user, only_user } = await request.json();
     if (!PREFERENCE_COLUMN[kind]) {
         return new Response(`Unknown kind: ${kind}`, { status: 400 });
     }
 
-    const devices = await subscribedDevices(kind, exclude_user ?? null);
+    let devices = await subscribedDevices(kind, exclude_user ?? null);
+    // A lineup warning is addressed to one manager. Sending "you are starting
+    // someone on a bye" to the whole league would be worse than useless.
+    if (only_user) devices = devices.filter((device) => device.user_id === only_user);
     if (devices.length === 0) {
         return Response.json({ sent: 0, pruned: 0, failed: 0 });
     }

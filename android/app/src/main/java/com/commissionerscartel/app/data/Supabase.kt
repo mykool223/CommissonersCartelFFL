@@ -54,6 +54,13 @@ object Supabase {
             limit(limit)
         }.decodeList()
 
+    /** The trophy case. Empty until the first week is in the books. */
+    suspend fun trophies(season: Int): List<Trophy> =
+        client.from("trophies").select {
+            filter { eq("season", season) }
+            order("awarded_at", Order.DESCENDING)
+        }.decodeList()
+
     /** Adds, drops, waivers and trades, collected from ESPN hourly. */
     suspend fun activity(season: Int, limit: Long = 100): List<LeagueActivity> =
         client.from("league_activity").select {

@@ -125,3 +125,15 @@ data class LeagueActivity(
             else -> "ADD"
         }
 }
+
+@Serializable
+data class Trophy(
+    val id: String,
+    val season: Int,
+    val week: Int? = null,
+    @SerialName("espn_team_id") val teamId: Int,
+    val kind: String,
+    val title: String,
+    val detail: String? = null,
+    @SerialName("awarded_at") val awardedAt: String,
+)

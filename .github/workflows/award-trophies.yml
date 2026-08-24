@@ -1,0 +1,42 @@
+# Hands out the week's trophies once its games are final.
+#
+# Tuesday morning: Monday night football has finished and ESPN has settled the
+# results. Only completed fixtures count — a trophy awarded mid-game is one
+# that has to be taken back.
+name: Award trophies
+
+on:
+  schedule:
+    # 13:00 UTC Tuesday — around 8am Central.
+    - cron: "0 13 * * 2"
+  workflow_dispatch:
+    inputs:
+      week:
+        description: "Force a week (defaults to the last completed one)"
+        type: string
+      dry_run:
+        description: "Print what would be awarded, without writing"
+        type: boolean
+        default: true
+
+jobs:
+  award:
+    name: Award
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Award
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          ESPN_S2: ${{ secrets.ESPN_S2 }}
+          ESPN_SWID: ${{ secrets.ESPN_SWID }}
+          ESPN_LEAGUE_ID: ${{ secrets.ESPN_LEAGUE_ID }}
+          TROPHY_WEEK: ${{ inputs.week }}
+          DRY_RUN: ${{ inputs.dry_run && '1' || '' }}
+        run: |
+          if [ -z "$ESPN_S2" ]; then
+            echo "ESPN secrets are not set; nothing to award."
+            exit 0
+          fi
+          ./Scripts/award_trophies.py

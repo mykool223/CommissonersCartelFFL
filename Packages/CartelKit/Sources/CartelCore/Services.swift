@@ -34,6 +34,9 @@ public protocol ContentRepository: Sendable {
     /// Player news blurbs collected by the daily ingest job.
     func playerNews(limit: Int) async throws -> [PlayerNews]
 
+    /// The league's trophy case, newest first.
+    func trophies(season: Int) async throws -> [Trophy]
+
     /// Adds, drops, waivers and trades. Readable signed out, like league news.
     func leagueActivity(season: Int, limit: Int) async throws -> [LeagueActivity]
 

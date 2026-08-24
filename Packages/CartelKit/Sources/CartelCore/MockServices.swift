@@ -108,6 +108,11 @@ public actor MockContentRepository: ContentRepository {
         )
     }
 
+    public func trophies(season: Int) async throws -> [Trophy] {
+        try await simulate()
+        return MockData.trophies
+    }
+
     public func leagueActivity(season: Int, limit: Int) async throws -> [LeagueActivity] {
         try await simulate()
         return Array(MockData.leagueActivity.prefix(limit))

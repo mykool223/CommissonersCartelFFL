@@ -60,6 +60,14 @@ public struct SupabaseContentRepository: ContentRepository {
         return rows.compactMap(\.model)
     }
 
+    public func trophies(season: Int) async throws -> [Trophy] {
+        let rows: [TrophyRow] = try await client.select(
+            "trophies",
+            query: ["select": "*", "season": "eq.\(season)", "order": "awarded_at.desc"]
+        )
+        return rows.map(\.model)
+    }
+
     public func leagueActivity(season: Int, limit: Int) async throws -> [LeagueActivity] {
         let rows: [ActivityRow] = try await client.select(
             "league_activity",
@@ -143,6 +151,24 @@ private struct RecapRow: Decodable {
             body: body,
             authorName: author_name ?? "The Commissioner",
             createdAt: created_at
+        )
+    }
+}
+
+private struct TrophyRow: Decodable {
+    let id: UUID
+    let season: Int
+    let week: Int?
+    let espn_team_id: Int
+    let kind: String
+    let title: String
+    let detail: String?
+    let awarded_at: Date
+
+    var model: Trophy {
+        Trophy(
+            id: id, season: season, week: week, teamID: espn_team_id,
+            kind: kind, title: title, detail: detail, awardedAt: awarded_at
         )
     }
 }
