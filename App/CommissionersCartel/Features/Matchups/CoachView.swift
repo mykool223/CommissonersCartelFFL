@@ -1,7 +1,7 @@
 import SwiftUI
 import CartelCore
 
-/// Coach Madden: ask about your own team.
+/// Coach Landry: ask about your own team.
 ///
 /// The function behind this is given the real roster, the real projections and
 /// the solved best lineup — it reasons about numbers rather than recalling
@@ -21,7 +21,7 @@ struct CoachView: View {
         VStack(spacing: 0) {
             if model.turns.isEmpty && !model.isBusy {
                 ContentUnavailableView {
-                    Label("Coach Madden", image: "CoachIcon")
+                    Label("Coach Landry", image: "CoachIcon")
                 } description: {
                     Text("Ask about your own team. He has your roster and this "
                          + "week's projections in front of him.")
@@ -33,7 +33,7 @@ struct CoachView: View {
                             ForEach(model.turns) { turn in
                                 Card {
                                     VStack(alignment: .leading, spacing: 4) {
-                                        Text(turn.isCoach ? "COACH MADDEN" : "YOU")
+                                        Text(turn.isCoach ? "COACH LANDRY" : "YOU")
                                             .font(.caption2.weight(.bold))
                                             .foregroundStyle(
                                                 turn.isCoach ? Color.brand : .secondary
@@ -77,7 +77,7 @@ struct CoachView: View {
             }
 
             HStack(spacing: Theme.Spacing.small) {
-                TextField("Ask Coach Madden", text: $draft, axis: .vertical)
+                TextField("Ask Coach Landry", text: $draft, axis: .vertical)
                     .lineLimit(1...3)
                     .padding(.horizontal, Theme.Spacing.medium)
                     .padding(.vertical, Theme.Spacing.small)

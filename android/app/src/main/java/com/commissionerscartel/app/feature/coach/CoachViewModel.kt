@@ -44,7 +44,7 @@ class CoachViewModel : ViewModel() {
 
         viewModelScope.launch {
             val reply = runCatching { request(question) }
-                .getOrElse { "Coach Madden isn't answering just now." }
+                .getOrElse { "Coach Landry isn't answering just now." }
             _state.value = _state.value.copy(
                 turns = _state.value.turns + CoachTurn(reply, fromCoach = true),
                 busy = false,

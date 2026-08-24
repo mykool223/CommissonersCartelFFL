@@ -16,7 +16,7 @@ enum MatchupsSection: String, TabSection {
         case .recap: "Weekly recap"
         case .standings: "Standings"
         case .nfl: "NFL scores"
-        case .coach: "Coach Madden"
+        case .coach: "Coach Landry"
         }
     }
 
@@ -32,7 +32,7 @@ enum MatchupsSection: String, TabSection {
 
     /// NFL scores are public and need no league configuration, so that section
     /// works even when everything else is unconfigured or erroring.
-    /// Coach Madden is drawn, not a symbol.
+    /// Coach Landry is drawn, not a symbol.
     var icon: Image {
         self == .coach ? Image("CoachIcon") : Image(systemName: systemImage)
     }

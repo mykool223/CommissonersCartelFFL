@@ -88,7 +88,7 @@ fun CoachScreen(modifier: Modifier = Modifier, model: CoachViewModel = viewModel
                             verticalArrangement = Arrangement.spacedBy(4.dp),
                         ) {
                             Text(
-                                if (turn.fromCoach) "COACH MADDEN" else "YOU",
+                                if (turn.fromCoach) "COACH LANDRY" else "YOU",
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = if (turn.fromCoach) CartelGold
@@ -126,7 +126,7 @@ fun CoachScreen(modifier: Modifier = Modifier, model: CoachViewModel = viewModel
             OutlinedTextField(
                 value = draft,
                 onValueChange = { draft = it },
-                placeholder = { Text("Ask Coach Madden") },
+                placeholder = { Text("Ask Coach Landry") },
                 modifier = Modifier.weight(1f),
                 maxLines = 3,
             )

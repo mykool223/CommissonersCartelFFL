@@ -41,7 +41,7 @@ enum class MatchupsSection(val label: String) {
     Recap("Weekly recap"),
     Standings("Standings"),
     Nfl("NFL scores"),
-    Coach("Coach Madden"),
+    Coach("Coach Landry"),
 }
 
 /** The Matchups tab, with the four sections the iOS dropdown offers. */

@@ -21,7 +21,7 @@ const MODEL = Deno.env.get("COACH_MODEL") ?? "claude-sonnet-5";
 const BENCH = 20;
 const IR = 21;
 
-const SYSTEM = `You are Coach Madden, the Commissioner's Cartel fantasy football coach.
+const SYSTEM = `You are Coach Landry, the Commissioner's Cartel fantasy football coach.
 
 You are given a manager's actual roster with this week's projections, and the
 best legal lineup already solved for them. Use those numbers. Do not invent
@@ -30,9 +30,10 @@ not know rather than guessing.
 
 Be direct and brief — three or four sentences unless asked for more. Give a
 recommendation rather than a survey of options. Dry humour is welcome; the
-league is themed as a cartel and takes itself about half seriously. You are a
-gruff old-school coach in a cap and shades; play it lightly, and never at the
-expense of being useful. Never
+league is themed as a cartel and takes itself about half seriously. You are old-school: fedora, jacket and tie on the sideline, the way Tom Landry
+worked one. Unflappable and precise, closer to an accountant than a shouter.
+Understatement over volume — the numbers make the case, you just read them out.
+Play it lightly and never at the expense of being useful. Never
 pretend a close call is obvious: if two players are within a point, say so.`;
 
 interface Player {
@@ -41,6 +42,8 @@ interface Player {
   points: number;
   status: string;
   eligible: number[];
+  /** Percent of leagues rostering them. Free agents only. */
+  owned?: number;
 }
 
 async function espn(path: string, query: string): Promise<Record<string, unknown>> {
@@ -54,6 +57,48 @@ async function espn(path: string, query: string): Promise<Record<string, unknown
   });
   if (!response.ok) throw new Error(`ESPN ${response.status}`);
   return await response.json();
+}
+
+/** Free agents worth considering, newest ownership first. */
+async function freeAgents(season: number, week: number): Promise<Player[]> {
+  const filter = JSON.stringify({
+    players: {
+      filterStatus: { value: ["FREEAGENT", "WAIVERS"] },
+      // Kickers and defences churn weekly; recommending them is noise.
+      filterSlotIds: { value: [0, 2, 4, 6] },
+      limit: 60,
+      sortPercOwned: { sortAsc: false, sortPriority: 1 },
+    },
+  });
+
+  const response = await fetch(
+    `https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl/seasons/${season}` +
+      `/segments/0/leagues/${ESPN_LEAGUE_ID}?view=kona_player_info`,
+    {
+      headers: {
+        "User-Agent": "curl/8.7.1",
+        Accept: "application/json",
+        Cookie: `espn_s2=${ESPN_S2}; SWID=${ESPN_SWID}`,
+        "X-Fantasy-Filter": filter,
+      },
+    },
+  );
+  if (!response.ok) return [];
+
+  const body = await response.json();
+  return (body.players ?? [])
+    .map((entry: any) => {
+      const raw = entry.player ?? {};
+      return {
+        name: raw.fullName ?? "A player",
+        slot: BENCH,
+        points: projection(raw, week),
+        status: String(raw.injuryStatus ?? "").toUpperCase(),
+        eligible: raw.eligibleSlots ?? [],
+        owned: Math.round((raw.ownership?.percentOwned ?? 0) * 10) / 10,
+      };
+    })
+    .filter((p: Player & { owned: number }) => p.points > 0);
 }
 
 async function rest(path: string, init?: RequestInit): Promise<unknown> {
@@ -233,6 +278,31 @@ Deno.serve(async (request) => {
       [BENCH]: "Bench", [IR]: "IR",
     };
 
+    // What a free agent would add to the *best* lineup, which is the only
+    // number that matters. A brilliant tight end is worth nothing to a team
+    // that already has a better one.
+    //
+    // Exact value is a solve per candidate, so a cheap upper bound — their
+    // projection minus the weakest starter — narrows the field first. Nobody
+    // below that can help, and this runs inside an edge function's budget.
+    const startersNow = optimal.picks.filter((i) => i >= 0).map((i) => players[i].points);
+    const weakest = startersNow.length ? Math.min(...startersNow) : 0;
+
+    const pool = await freeAgents(season, week);
+    const shortlist = pool
+      .filter((candidate) => candidate.points - weakest > 0)
+      .sort((a, b) => b.points - a.points)
+      .slice(0, 8);
+
+    const upgrades = shortlist
+      .map((candidate) => ({
+        candidate,
+        gain: bestLineup([...players, candidate], slots).total - optimal.total,
+      }))
+      .filter((row) => row.gain > 0.05)
+      .sort((a, b) => b.gain - a.gain)
+      .slice(0, 5);
+
     const context = [
       `Manager: ${profile.display_name ?? "a member"}`,
       `Team: ${team.name?.trim() ?? "their team"}`,
@@ -249,6 +319,20 @@ Deno.serve(async (request) => {
       optimal.total - currentTotal > 0.05
         ? `That is ${(optimal.total - currentTotal).toFixed(1)} points being left on the bench.`
         : "The lineup is already optimal against these projections.",
+      "",
+      upgrades.length
+        ? [
+          "Free agents who would improve this lineup, with what each would add:",
+          ...upgrades.map((row) =>
+            `- ${row.candidate.name}, projected ${row.candidate.points.toFixed(1)}, ` +
+            `owned in ${(row.candidate as any).owned}% of leagues, ` +
+            `would add ${row.gain.toFixed(1)} points`
+          ),
+          "Anyone signed has to replace somebody, so say who to drop — the " +
+          "lowest-projected bench player is usually the answer.",
+        ].join("\n")
+        : `${pool.length} free agents were checked and none would improve this ` +
+          "lineup. Say so plainly rather than suggesting somebody anyway.",
     ].join("\n");
 
     const response = await fetch("https://api.anthropic.com/v1/messages", {
