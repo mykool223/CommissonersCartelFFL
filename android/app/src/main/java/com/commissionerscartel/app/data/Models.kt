@@ -74,10 +74,20 @@ data class PlayerNews(
     @SerialName("player_name") val playerName: String? = null,
     @SerialName("player_position") val playerPosition: String? = null,
     @SerialName("player_team") val playerTeam: String? = null,
+    @SerialName("headshot_url") val headshotUrl: String? = null,
     val headline: String,
     val blurb: String? = null,
     @SerialName("published_at") val publishedAt: String,
 ) {
+    /** Initials for the fallback circle. Roughly a quarter of rows have no photo. */
+    val initials: String
+        get() = playerName.orEmpty().split(" ")
+            .filter { it.isNotBlank() }
+            .take(2)
+            .mapNotNull { it.firstOrNull()?.uppercase() }
+            .joinToString("")
+            .ifBlank { "?" }
+
     /** "Josh Allen · QB, BUF", skipping whatever the source left out. */
     val subtitle: String
         get() = listOfNotNull(
