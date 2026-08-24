@@ -5,6 +5,12 @@
     <!-- TestFlight and the App Store both use Apple's production APNs hosts.
          Must match the App Store provisioning profile exactly or export drops
          it; see CommissionersCartel.entitlements for what that looks like. -->
+    <!-- Shared with the widget extension, which has no session of its own
+         and needs to be told which team is yours. -->
+    <key>com.apple.security.application-groups</key>
+    <array>
+        <string>group.com.commissionerscartel.app</string>
+    </array>
     <key>aps-environment</key>
     <string>production</string>
 </dict>

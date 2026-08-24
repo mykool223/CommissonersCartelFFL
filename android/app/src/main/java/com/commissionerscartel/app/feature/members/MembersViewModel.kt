@@ -1,12 +1,15 @@
 package com.commissionerscartel.app.feature.members
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.commissionerscartel.app.data.AppGraph
 import com.commissionerscartel.app.data.Division
 import com.commissionerscartel.app.data.EspnMapper
 import com.commissionerscartel.app.data.Manager
+import com.commissionerscartel.app.data.Session
 import com.commissionerscartel.app.data.Supabase
+import com.commissionerscartel.app.widget.WidgetStore
 import com.commissionerscartel.app.data.Team
 import com.commissionerscartel.app.data.TeamBio
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -29,7 +32,7 @@ sealed interface MembersState {
     data class Failed(val message: String) : MembersState
 }
 
-class MembersViewModel : ViewModel() {
+class MembersViewModel(application: Application) : AndroidViewModel(application) {
     private val _state = MutableStateFlow<MembersState>(MembersState.Loading)
     val state: StateFlow<MembersState> = _state.asStateFlow()
 
@@ -54,6 +57,11 @@ class MembersViewModel : ViewModel() {
                     teams.forEach { team -> team.ownerIds.forEach { putIfAbsent(it, team) } }
                 }
 
+                // Hand the widget the one thing it cannot work out for itself.
+                // Done on every roster load so it self-heals rather than only
+                // being set at claim time.
+                shareClaimedTeam(teams)
+
                 val entries = managers
                     .map { manager ->
                         val team = teamByOwner[manager.id]
@@ -67,6 +75,21 @@ class MembersViewModel : ViewModel() {
                 onFailure = { MembersState.Failed(it.message ?: "Couldn't load the roster.") },
             )
         }
+    }
+
+    /**
+     * Records which team belongs to this member, for the home screen widget.
+     *
+     * The widget has no session, so it cannot ask. It reads this and fetches
+     * the score itself.
+     */
+    private suspend fun shareClaimedTeam(teams: List<Team>) {
+        val swid = runCatching { Session.claimedTeamSwid() }.getOrNull()?.trim()
+        if (swid.isNullOrEmpty()) return
+        val mine = teams.firstOrNull { team ->
+            team.ownerIds.any { it.equals(swid, ignoreCase = true) }
+        } ?: return
+        WidgetStore.setClaimedTeam(getApplication(), mine.id, mine.name)
     }
 
     /**

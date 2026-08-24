@@ -44,6 +44,17 @@
             android:name="com.google.firebase.messaging.default_notification_channel_id"
             android:value="league_activity" />
 
+        <receiver
+            android:name=".widget.MatchupWidgetReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/matchup_widget_info" />
+        </receiver>
+
         <service
             android:name=".data.CartelMessagingService"
             android:exported="false">

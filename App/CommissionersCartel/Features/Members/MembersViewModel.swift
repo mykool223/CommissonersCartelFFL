@@ -59,6 +59,10 @@ final class MembersViewModel {
             }
 
             let bioByTeam = await bios ?? [:]
+            // Hand the widget the one thing it cannot work out for itself.
+            // Done here rather than at claim time so it self-heals: any launch
+            // that loads the roster refreshes it.
+            await Self.shareClaimedTeam(teams: allTeams, managers: try await managers)
             let entries = try await managers
                 .map { manager -> Entry in
                     let team = teamByOwner[manager.id]
@@ -116,6 +120,24 @@ final class MembersViewModel {
         }
 
         if let result { state = result }
+    }
+
+    /// Records which team belongs to the signed-in member, for the widget.
+    ///
+    /// The widget runs in its own process with no session, so it cannot ask.
+    /// It reads this from the shared app group and fetches the score itself.
+    private static func shareClaimedTeam(teams: [Team], managers: [Manager]) async {
+        guard let swid = KeychainStore.string(for: .espnSWID)?
+            .trimmingCharacters(in: .whitespacesAndNewlines), !swid.isEmpty
+        else { return }
+
+        let normalised = swid.uppercased()
+        guard let team = teams.first(where: { team in
+            team.ownerIDs.contains { $0.uppercased() == normalised }
+        }) else { return }
+
+        SharedStore.claimedTeamID = team.id
+        SharedStore.claimedTeamName = team.name
     }
 
     /// Flattened, for the navigation destination lookup.

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- The app group is how the widget learns which team is yours; it has no
+         session of its own. -->
+    <key>com.apple.security.application-groups</key>
+    <array>
+        <string>group.com.commissionerscartel.app</string>
+    </array>
+</dict>
+</plist>

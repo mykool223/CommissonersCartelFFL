@@ -46,6 +46,7 @@ targets:
     type: application
     platform: iOS
     sources:
+      - path: Shared
       - path: App/CommissionersCartel
         excludes:
           # Referenced via INFOPLIST_FILE; must not also be copied as a resource.
@@ -60,6 +61,8 @@ targets:
         product: CartelESPN
       - package: CartelKit
         product: CartelSupabase
+      # Embeds the home screen widget.
+      - target: CartelWidget
     settings:
       base:
         INFOPLIST_FILE: App/CommissionersCartel/Resources/Info.plist
@@ -94,6 +97,43 @@ targets:
       environmentVariables:
         # Keeps SwiftUI preview and console output readable.
         OS_ACTIVITY_MODE: disable
+
+  # The home screen widget. A separate process with no session of its own, so
+  # it learns which team is yours through the shared app group and fetches
+  # everything else itself.
+  CartelWidget:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: Widget/CartelWidget
+        excludes:
+          - "Info.plist"
+          - "CartelWidget.entitlements"
+          - "CartelWidgetRelease.entitlements"
+      # Compiled into both targets rather than duplicated: if the two ever
+      # disagreed about the app group name, the widget would silently show
+      # nothing and there would be no error to find.
+      - path: Shared
+    dependencies:
+      - package: CartelKit
+        product: CartelCore
+      - package: CartelKit
+        product: CartelESPN
+    settings:
+      base:
+        INFOPLIST_FILE: Widget/CartelWidget/Info.plist
+        GENERATE_INFOPLIST_FILE: NO
+        PRODUCT_BUNDLE_IDENTIFIER: com.commissionerscartel.app.widget
+        TARGETED_DEVICE_FAMILY: "1,2"
+        CODE_SIGN_STYLE: Automatic
+        DEVELOPMENT_TEAM: $(DEVELOPMENT_TEAM)
+        SKIP_INSTALL: YES
+        ENABLE_PREVIEWS: YES
+      configs:
+        Debug:
+          CODE_SIGN_ENTITLEMENTS: Widget/CartelWidget/CartelWidget.entitlements
+        Release:
+          CODE_SIGN_ENTITLEMENTS: Widget/CartelWidget/CartelWidgetRelease.entitlements
 
 # Note: CartelKit's tests are deliberately NOT wired into the scheme here.
 # `scheme.testTargets: [{package: CartelKit}]` crashes XcodeGen 2.46.0 with a

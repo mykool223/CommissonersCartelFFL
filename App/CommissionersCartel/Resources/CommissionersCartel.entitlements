@@ -7,6 +7,12 @@
          when the archive says `development` and the App Store profile grants
          `production`, export silently drops the entitlement altogether and the
          uploaded build cannot receive a single notification. -->
+    <!-- Shared with the widget extension, which has no session of its own
+         and needs to be told which team is yours. -->
+    <key>com.apple.security.application-groups</key>
+    <array>
+        <string>group.com.commissionerscartel.app</string>
+    </array>
     <key>aps-environment</key>
     <string>development</string>
 </dict>
