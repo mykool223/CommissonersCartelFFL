@@ -8,6 +8,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import com.commissionerscartel.app.data.NewsPost
 import com.commissionerscartel.app.feature.NewsScreen
 import com.commissionerscartel.app.ui.SectionPicker
 
@@ -20,6 +21,12 @@ enum class NewsSection(val label: String) {
 @Composable
 fun NewsHost(modifier: Modifier = Modifier) {
     var section by remember { mutableStateOf(NewsSection.League) }
+    var reading by remember { mutableStateOf<NewsPost?>(null) }
+
+    reading?.let { post ->
+        NewsPostDetail(post) { reading = null }
+        return
+    }
 
     Column(modifier.fillMaxSize()) {
         SectionPicker(
@@ -29,7 +36,7 @@ fun NewsHost(modifier: Modifier = Modifier) {
             onSelect = { section = it },
         )
         when (section) {
-            NewsSection.League -> NewsScreen()
+            NewsSection.League -> NewsScreen(onOpen = { reading = it })
             NewsSection.Players -> PlayerNewsScreen()
         }
     }

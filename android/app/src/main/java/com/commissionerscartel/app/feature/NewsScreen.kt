@@ -1,5 +1,6 @@
 package com.commissionerscartel.app.feature
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,7 +29,11 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.commissionerscartel.app.data.NewsPost
 
 @Composable
-fun NewsScreen(modifier: Modifier = Modifier, model: NewsViewModel = viewModel()) {
+fun NewsScreen(
+    modifier: Modifier = Modifier,
+    onOpen: (NewsPost) -> Unit = {},
+    model: NewsViewModel = viewModel(),
+) {
     val state by model.state.collectAsStateWithLifecycle()
 
     when (val current = state) {
@@ -61,14 +66,14 @@ fun NewsScreen(modifier: Modifier = Modifier, model: NewsViewModel = viewModel()
                     )
                 }
             }
-            items(current.posts, key = { it.id }) { PostCard(it) }
+            items(current.posts, key = { it.id }) { post -> PostCard(post) { onOpen(post) } }
         }
     }
 }
 
 @Composable
-private fun PostCard(post: NewsPost) {
-    Card {
+private fun PostCard(post: NewsPost, onClick: () -> Unit) {
+    Card(Modifier.clickable(onClick = onClick)) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(post.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Text(
@@ -77,7 +82,7 @@ private fun PostCard(post: NewsPost) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Text(
-                "by ${post.authorName}",
+                "by ${post.authorName} · tap to read",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
