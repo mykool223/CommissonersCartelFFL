@@ -6,6 +6,9 @@
 #
 # QUESTIONABLE is deliberately not a warning: half the league is questionable
 # most weeks, and an alert that fires constantly gets muted.
+#
+# The coach runs alongside it and says what to start instead. It stays quiet
+# below a few points: nobody wants waking for a 0.2 improvement.
 name: Lineup guard
 
 on:
@@ -39,6 +42,7 @@ jobs:
           ESPN_SWID: ${{ secrets.ESPN_SWID }}
           ESPN_LEAGUE_ID: ${{ secrets.ESPN_LEAGUE_ID }}
           LINEUP_WEEK: ${{ inputs.week }}
+          COACH_WEEK: ${{ inputs.week }}
           DRY_RUN: ${{ inputs.dry_run && '1' || '' }}
         run: |
           if [ -z "$ESPN_S2" ]; then
@@ -46,3 +50,6 @@ jobs:
             exit 0
           fi
           ./Scripts/lineup_guard.py
+          # Warnings first, then the suggestion: "Butker is on a bye" is
+          # useful, "start Aubrey instead, worth 4.1" is more useful.
+          ./Scripts/lineup_coach.py
