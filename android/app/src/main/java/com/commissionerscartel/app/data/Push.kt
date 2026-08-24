@@ -18,6 +18,10 @@ data class NotificationPreferences(
     val news: Boolean = true,
     val polls: Boolean = true,
     val activity: Boolean = true,
+    /** Sunday warnings about a starter who cannot play. */
+    val lineup: Boolean = true,
+    /** Lead changes and final scores in your own fixture. */
+    val matchups: Boolean = true,
 )
 
 @Serializable
@@ -26,6 +30,8 @@ private data class PreferencesRow(
     val news: Boolean = true,
     val polls: Boolean = true,
     val activity: Boolean = true,
+    val lineup: Boolean = true,
+    val matchups: Boolean = true,
 )
 
 /**
@@ -131,7 +137,9 @@ object Push {
         // No row means the member has never opened Settings, which must not
         // read as "wants silence".
         val row = rows.firstOrNull() ?: return NotificationPreferences()
-        return NotificationPreferences(row.messages, row.news, row.polls, row.activity)
+        return NotificationPreferences(
+            row.messages, row.news, row.polls, row.activity, row.lineup, row.matchups
+        )
     }
 
     suspend fun setPreferences(preferences: NotificationPreferences) {
@@ -144,6 +152,8 @@ object Push {
                     put("news", preferences.news)
                     put("polls", preferences.polls)
                     put("activity", preferences.activity)
+                    put("lineup", preferences.lineup)
+                    put("matchups", preferences.matchups)
                 }
             ) { onConflict = "user_id" }
     }

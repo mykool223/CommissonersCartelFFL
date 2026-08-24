@@ -100,6 +100,12 @@ fun SettingsScreen(modifier: Modifier = Modifier, model: SettingsViewModel = vie
                 Toggle("Adds, drops and trades", state.preferences.activity) {
                     model.setPreferences(state.preferences.copy(activity = it))
                 }
+                Toggle("Lineup warnings", state.preferences.lineup) {
+                    model.setPreferences(state.preferences.copy(lineup = it))
+                }
+                Toggle("My matchup", state.preferences.matchups) {
+                    model.setPreferences(state.preferences.copy(matchups = it))
+                }
                 Text(
                     "You won't be notified about your own posts.",
                     style = MaterialTheme.typography.bodySmall,

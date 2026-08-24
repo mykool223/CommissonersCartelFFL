@@ -44,7 +44,8 @@ public struct SupabasePushRepository: PushRepository {
         // everything is on.
         guard let row = rows.first else { return .all }
         return NotificationPreferences(
-            messages: row.messages, news: row.news, polls: row.polls, activity: row.activity
+            messages: row.messages, news: row.news, polls: row.polls,
+            activity: row.activity, lineup: row.lineup, matchups: row.matchups
         )
     }
 
@@ -59,7 +60,9 @@ public struct SupabasePushRepository: PushRepository {
                 "messages": AnyEncodable(preferences.messages),
                 "news": AnyEncodable(preferences.news),
                 "polls": AnyEncodable(preferences.polls),
-                "activity": AnyEncodable(preferences.activity)
+                "activity": AnyEncodable(preferences.activity),
+                "lineup": AnyEncodable(preferences.lineup),
+                "matchups": AnyEncodable(preferences.matchups)
             ],
             onConflict: "user_id"
         )
@@ -71,6 +74,8 @@ private struct PreferencesRow: Decodable {
     let news: Bool
     let polls: Bool
     let activity: Bool
+    let lineup: Bool
+    let matchups: Bool
 
     /// Hand-written because a property default does *not* make a key
     /// optional: synthesised decoding still requires it, so a response
@@ -81,9 +86,11 @@ private struct PreferencesRow: Decodable {
         news = try container.decodeIfPresent(Bool.self, forKey: .news) ?? true
         polls = try container.decodeIfPresent(Bool.self, forKey: .polls) ?? true
         activity = try container.decodeIfPresent(Bool.self, forKey: .activity) ?? true
+        lineup = try container.decodeIfPresent(Bool.self, forKey: .lineup) ?? true
+        matchups = try container.decodeIfPresent(Bool.self, forKey: .matchups) ?? true
     }
 
     private enum CodingKeys: String, CodingKey {
-        case messages, news, polls, activity
+        case messages, news, polls, activity, lineup, matchups
     }
 }

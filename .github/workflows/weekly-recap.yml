@@ -1,0 +1,42 @@
+# Publishes the week's recap into league news, in the Cartel's voice.
+#
+# Tuesday morning, after Monday night has settled. Only completed fixtures
+# count: a recap of a week still being played is wrong by lunchtime.
+name: Weekly recap
+
+on:
+  schedule:
+    # 13:30 UTC Tuesday, half an hour after the trophies so the post can
+    # reasonably refer to them.
+    - cron: "30 13 * * 2"
+  workflow_dispatch:
+    inputs:
+      week:
+        description: "Force a week (defaults to the last completed one)"
+        type: string
+      dry_run:
+        description: "Print the post without publishing"
+        type: boolean
+        default: true
+
+jobs:
+  post:
+    name: Publish
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Publish
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          ESPN_S2: ${{ secrets.ESPN_S2 }}
+          ESPN_SWID: ${{ secrets.ESPN_SWID }}
+          ESPN_LEAGUE_ID: ${{ secrets.ESPN_LEAGUE_ID }}
+          RECAP_WEEK: ${{ inputs.week }}
+          DRY_RUN: ${{ inputs.dry_run && '1' || '' }}
+        run: |
+          if [ -z "$ESPN_S2" ]; then
+            echo "ESPN secrets are not set; nothing to recap."
+            exit 0
+          fi
+          ./Scripts/post_recap.py

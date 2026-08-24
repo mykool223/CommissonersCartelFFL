@@ -1,0 +1,44 @@
+# Tells managers when their fixture turns, and how it ended.
+#
+# Every 20 minutes through the Sunday and Monday game windows, and nowhere near
+# as often the rest of the week — there is nothing to say on a Wednesday.
+#
+# Pushes only on a lead change or a final whistle. Anything more often is noise;
+# anything less and the app is something you check rather than something that
+# tells you.
+name: Live matchups
+
+on:
+  schedule:
+    # Sunday 17:00–23:59 UTC (midday to 7pm Central) and Monday night.
+    - cron: "*/20 17-23 * * 0"
+    - cron: "*/20 0-4 * * 1"
+    - cron: "*/20 0-4 * * 2"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Print what would be sent, without sending"
+        type: boolean
+        default: true
+
+jobs:
+  watch:
+    name: Watch
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Watch
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          PUSH_SECRET: ${{ secrets.PUSH_SECRET }}
+          ESPN_S2: ${{ secrets.ESPN_S2 }}
+          ESPN_SWID: ${{ secrets.ESPN_SWID }}
+          ESPN_LEAGUE_ID: ${{ secrets.ESPN_LEAGUE_ID }}
+          DRY_RUN: ${{ inputs.dry_run && '1' || '' }}
+        run: |
+          if [ -z "$ESPN_S2" ]; then
+            echo "ESPN secrets are not set; nothing to watch."
+            exit 0
+          fi
+          ./Scripts/live_matchups.py

@@ -32,6 +32,7 @@ const PREFERENCE_COLUMN: Record<string, string> = {
     polls: "polls",
     activity: "activity",
     lineup: "lineup",
+    matchup: "matchups",
 };
 
 /** The tab to open when the notification is tapped. */
@@ -43,6 +44,7 @@ const DESTINATION: Record<string, string> = {
     activity: "news",
     // A lineup warning is about this week's fixture.
     lineup: "matchups",
+    matchup: "matchups",
 };
 
 function base64URL(bytes: Uint8Array): string {

@@ -142,6 +142,10 @@ public struct NotificationPreferences: Equatable, Sendable {
     /// Adds, drops and trades. Separately mutable because roster churn is
     /// noisier than the rest and some people will not want it.
     public var activity: Bool
+    /// Sunday warnings about a starter who cannot play.
+    public var lineup: Bool
+    /// Lead changes and final scores in your own fixture.
+    public var matchups: Bool
 
     public static let all = NotificationPreferences()
 
@@ -149,13 +153,19 @@ public struct NotificationPreferences: Equatable, Sendable {
         messages: Bool = true,
         news: Bool = true,
         polls: Bool = true,
-        activity: Bool = true
+        activity: Bool = true,
+        lineup: Bool = true,
+        matchups: Bool = true
     ) {
         self.messages = messages
         self.news = news
         self.polls = polls
         self.activity = activity
+        self.lineup = lineup
+        self.matchups = matchups
     }
 
-    public var isAnythingEnabled: Bool { messages || news || polls || activity }
+    public var isAnythingEnabled: Bool {
+        messages || news || polls || activity || lineup || matchups
+    }
 }

@@ -44,6 +44,8 @@ struct NotificationSettingsSection: View {
                 Toggle("League news", isOn: binding(\.news))
                 Toggle("New polls", isOn: binding(\.polls))
                 Toggle("Adds, drops and trades", isOn: binding(\.activity))
+                Toggle("Lineup warnings", isOn: binding(\.lineup))
+                Toggle("My matchup", isOn: binding(\.matchups))
             }
         } header: {
             Text("Notifications")
