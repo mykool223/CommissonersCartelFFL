@@ -7,6 +7,7 @@ import CartelCore
 final class LeagueChatViewModel {
     private(set) var messages: [LeagueMessage] = []
     private(set) var reactions: [MessageReaction] = []
+    private(set) var memberNames: [String] = []
     private(set) var isLoading = false
     private(set) var isSending = false
     var postError: String?
@@ -38,6 +39,7 @@ final class LeagueChatViewModel {
         messages = (try? await chat.messages()) ?? []
         // A reaction failure must not cost the thread itself.
         reactions = (try? await chat.reactions()) ?? []
+        memberNames = ((try? await chat.memberNames()) ?? [:]).values.sorted()
     }
 
     /// Returns the text to put back in the composer when the post failed, or

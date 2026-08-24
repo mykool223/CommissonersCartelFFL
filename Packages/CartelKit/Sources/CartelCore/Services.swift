@@ -148,6 +148,8 @@ public struct NotificationPreferences: Equatable, Sendable {
     public var matchups: Bool
     /// Private messages from another member.
     public var direct: Bool
+    /// Somebody typing your name in the league thread.
+    public var mentions: Bool
 
     public static let all = NotificationPreferences()
 
@@ -156,7 +158,8 @@ public struct NotificationPreferences: Equatable, Sendable {
     /// is a test that catches it if you do.
     public static let none = NotificationPreferences(
         messages: false, news: false, polls: false,
-        activity: false, lineup: false, matchups: false, direct: false
+        activity: false, lineup: false, matchups: false,
+        direct: false, mentions: false
     )
 
     public init(
@@ -166,7 +169,8 @@ public struct NotificationPreferences: Equatable, Sendable {
         activity: Bool = true,
         lineup: Bool = true,
         matchups: Bool = true,
-        direct: Bool = true
+        direct: Bool = true,
+        mentions: Bool = true
     ) {
         self.messages = messages
         self.news = news
@@ -175,9 +179,10 @@ public struct NotificationPreferences: Equatable, Sendable {
         self.lineup = lineup
         self.matchups = matchups
         self.direct = direct
+        self.mentions = mentions
     }
 
     public var isAnythingEnabled: Bool {
-        messages || news || polls || activity || lineup || matchups || direct
+        messages || news || polls || activity || lineup || matchups || direct || mentions
     }
 }

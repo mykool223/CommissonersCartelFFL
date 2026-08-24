@@ -185,3 +185,34 @@ data class Conversation(
     val lastMessage: String,
     val lastAt: String,
 )
+
+object Mentions {
+    /**
+     * Ranges of "@Name" in a body, matched against known display names.
+     *
+     * Longest names first so "@Michael Smith" is not merely "@Michael", and
+     * case-insensitive because nobody capitalises reliably. Deliberately the
+     * same rule Postgres uses to decide who gets notified — if these two ever
+     * disagree, the highlight lies about who was pinged.
+     */
+    fun ranges(body: String, names: Collection<String>): List<IntRange> {
+        val found = mutableListOf<IntRange>()
+        names.filter { it.length > 1 }
+            .sortedByDescending { it.length }
+            .forEach { name ->
+                val needle = "@$name"
+                var from = 0
+                while (true) {
+                    val at = body.indexOf(needle, from, ignoreCase = true)
+                    if (at < 0) break
+                    val range = at until (at + needle.length)
+                    // A longer name already claimed this text.
+                    if (found.none { it.first <= range.first && range.last <= it.last }) {
+                        found += range
+                    }
+                    from = at + needle.length
+                }
+            }
+        return found.sortedBy { it.first }
+    }
+}

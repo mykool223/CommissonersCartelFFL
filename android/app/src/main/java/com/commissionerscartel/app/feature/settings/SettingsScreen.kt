@@ -109,6 +109,9 @@ fun SettingsScreen(modifier: Modifier = Modifier, model: SettingsViewModel = vie
                 Toggle("Private messages", state.preferences.direct) {
                     model.setPreferences(state.preferences.copy(direct = it))
                 }
+                Toggle("When someone @s me", state.preferences.mentions) {
+                    model.setPreferences(state.preferences.copy(mentions = it))
+                }
                 Text(
                     "You won't be notified about your own posts.",
                     style = MaterialTheme.typography.bodySmall,

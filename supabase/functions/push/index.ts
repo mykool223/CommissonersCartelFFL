@@ -34,6 +34,7 @@ const PREFERENCE_COLUMN: Record<string, string> = {
     lineup: "lineup",
     matchup: "matchups",
     direct: "direct",
+    mention: "mentions",
 };
 
 /** The tab to open when the notification is tapped. */
@@ -49,6 +50,8 @@ const DESTINATION: Record<string, string> = {
     // A DM opens the Members tab, where conversations live. This is a tab
     // name, not a kind — they are not interchangeable.
     direct: "members",
+    // A mention is in the league thread, also under Members.
+    mention: "members",
 };
 
 function base64URL(bytes: Uint8Array): string {

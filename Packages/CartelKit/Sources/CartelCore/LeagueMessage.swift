@@ -78,6 +78,33 @@ public struct ReactionSummary: Identifiable, Hashable, Sendable {
     }
 }
 
+/// Where "@Name" appears in a body, matched against known display names.
+///
+/// Deliberately the same rule Postgres uses to decide who gets notified — if
+/// the two disagree, the highlight lies about who was pinged. Longest names
+/// first so "@Michael Smith" is not merely "@Michael"; case-insensitive
+/// because nobody capitalises reliably.
+public enum Mentions {
+    public static func ranges(in body: String, names: [String]) -> [Range<String.Index>] {
+        var found: [Range<String.Index>] = []
+        for name in names.filter({ $0.count > 1 }).sorted(by: { $0.count > $1.count }) {
+            let needle = "@" + name
+            var searchFrom = body.startIndex
+            while let range = body.range(
+                of: needle, options: .caseInsensitive, range: searchFrom..<body.endIndex
+            ) {
+                // A longer name already claimed this text.
+                if !found.contains(where: { $0.lowerBound <= range.lowerBound
+                    && range.upperBound <= $0.upperBound }) {
+                    found.append(range)
+                }
+                searchFrom = range.upperBound
+            }
+        }
+        return found.sorted { $0.lowerBound < $1.lowerBound }
+    }
+}
+
 public protocol LeagueChatRepository: Sendable {
     /// Newest last, so the view can scroll to the bottom.
     func messages(limit: Int) async throws -> [LeagueMessage]

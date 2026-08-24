@@ -480,3 +480,35 @@ struct TeamBioTests {
         }
     }
 }
+
+@Suite("Mentions")
+struct MentionsTests {
+    private let names = ["Michael Smith", "Michael Poston", "Devon Carney"]
+
+    @Test("A name after @ is found")
+    func finds() {
+        let body = "nice pick @Devon Carney"
+        #expect(Mentions.ranges(in: body, names: names).count == 1)
+    }
+
+    @Test("Matching ignores case")
+    func caseInsensitive() {
+        #expect(Mentions.ranges(in: "HEY @devon carney", names: names).count == 1)
+    }
+
+    @Test("A name without an @ is not a mention")
+    func requiresTheAt() {
+        #expect(Mentions.ranges(in: "Devon Carney said so", names: names).isEmpty)
+    }
+
+    @Test("The longest matching name wins")
+    func longestWins() {
+        // "@Michael Smith" must not be reported as a mention of "Michael"
+        // twice, or as the wrong Michael.
+        let body = "@Michael Smith and @Michael Poston"
+        let found = Mentions.ranges(in: body, names: names + ["Michael"])
+        #expect(found.count == 2)
+        #expect(body[found[0]] == "@Michael Smith")
+        #expect(body[found[1]] == "@Michael Poston")
+    }
+}

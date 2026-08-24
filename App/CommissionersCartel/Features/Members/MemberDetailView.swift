@@ -3,11 +3,29 @@ import CartelCore
 
 struct MemberDetailView: View {
     let entry: MembersViewModel.Entry
+    /// Nil when there is nobody to message — an ESPN manager who has never
+    /// signed in has nowhere for a message to arrive.
+    var onMessage: ((UUID, String) -> Void)?
+
+    @State private var accountID: UUID?
 
     var body: some View {
         ScrollView {
             VStack(spacing: Theme.Spacing.large) {
                 header
+
+                if let accountID, let onMessage {
+                    Button {
+                        onMessage(accountID, entry.manager.fullName)
+                    } label: {
+                        Label(
+                            "Message \(entry.manager.fullName.split(separator: " ").first.map(String.init) ?? entry.manager.fullName)",
+                            systemImage: "envelope"
+                        )
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(Color.brand)
+                }
 
                 if let bio = entry.bio {
                     Card {

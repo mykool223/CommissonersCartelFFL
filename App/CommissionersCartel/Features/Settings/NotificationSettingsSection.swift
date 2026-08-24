@@ -47,6 +47,7 @@ struct NotificationSettingsSection: View {
                 Toggle("Lineup warnings", isOn: binding(\.lineup))
                 Toggle("My matchup", isOn: binding(\.matchups))
                 Toggle("Private messages", isOn: binding(\.direct))
+                Toggle("When someone @s me", isOn: binding(\.mentions))
             }
         } header: {
             Text("Notifications")

@@ -15,6 +15,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.AddReaction
+import androidx.compose.material.icons.filled.AlternateEmail
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Card
@@ -33,6 +34,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
@@ -40,6 +45,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.commissionerscartel.app.data.LeagueMessage
+import com.commissionerscartel.app.data.Mentions
 import com.commissionerscartel.app.data.MessageReaction
 import com.commissionerscartel.app.data.ReactionSummary
 import com.commissionerscartel.app.data.Reactions
@@ -57,6 +63,7 @@ sealed interface ThreadState {
     data class Loaded(
         val messages: List<LeagueMessage>,
         val reactions: List<MessageReaction>,
+        val memberNames: List<String>,
     ) : ThreadState
     data class Failed(val message: String) : ThreadState
 }
@@ -84,7 +91,9 @@ class LeagueThreadViewModel : ViewModel() {
                 // Reactions are a nice-to-have; a failure here should not cost
                 // the thread itself.
                 val reactions = runCatching { Supabase.reactions() }.getOrDefault(emptyList())
-                ThreadState.Loaded(messages, reactions)
+                val names = runCatching { Supabase.profiles().values.toList() }
+                    .getOrDefault(emptyList())
+                ThreadState.Loaded(messages, reactions, names)
             }.fold(
                 onSuccess = { it },
                 onFailure = { ThreadState.Failed(it.message ?: "Couldn't load the thread.") },
@@ -114,6 +123,7 @@ class LeagueThreadViewModel : ViewModel() {
 fun LeagueThreadScreen(modifier: Modifier = Modifier, model: LeagueThreadViewModel = viewModel()) {
     val state by model.state.collectAsStateWithLifecycle()
     var draft by remember { mutableStateOf("") }
+    var mentioning by remember { mutableStateOf(false) }
     val listState = rememberLazyListState()
 
     when (val current = state) {
@@ -161,6 +171,25 @@ fun LeagueThreadScreen(modifier: Modifier = Modifier, model: LeagueThreadViewMod
                                 current.reactions, message.id, Session.userId
                             ),
                             onReact = { emoji, mine -> model.react(message.id, emoji, mine) },
+                            memberNames = current.memberNames,
+                        )
+                    }
+                }
+            }
+
+            if (mentioning) {
+                Row(
+                    Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())
+                        .padding(horizontal = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    current.memberNames.forEach { name ->
+                        AssistChip(
+                            onClick = {
+                                draft = (draft.trimEnd() + " @" + name + " ").trimStart()
+                                mentioning = false
+                            },
+                            label = { Text(name) },
                         )
                     }
                 }
@@ -170,6 +199,13 @@ fun LeagueThreadScreen(modifier: Modifier = Modifier, model: LeagueThreadViewMod
                 Modifier.fillMaxWidth().padding(12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+                IconButton(onClick = { mentioning = !mentioning }) {
+                    Icon(
+                        Icons.Filled.AlternateEmail,
+                        contentDescription = "Mention someone",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
                 OutlinedTextField(
                     value = draft,
                     onValueChange = { draft = it },
@@ -193,6 +229,7 @@ private fun MessageRow(
     message: LeagueMessage,
     summaries: List<ReactionSummary>,
     onReact: (String, Boolean) -> Unit,
+    memberNames: List<String>,
 ) {
     val mine = message.authorId != null && message.authorId == Session.userId
     var picking by remember { mutableStateOf(false) }
@@ -207,7 +244,19 @@ private fun MessageRow(
                 fontWeight = FontWeight.Bold,
                 color = if (mine) CartelGold else MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Text(message.body, style = MaterialTheme.typography.bodyMedium)
+            Text(
+                buildAnnotatedString {
+                    append(message.body)
+                    Mentions.ranges(message.body, memberNames).forEach { range ->
+                        addStyle(
+                            SpanStyle(color = CartelGold, fontWeight = FontWeight.Bold),
+                            range.first,
+                            range.last + 1,
+                        )
+                    }
+                },
+                style = MaterialTheme.typography.bodyMedium,
+            )
 
             Row(
                 horizontalArrangement = Arrangement.spacedBy(6.dp),

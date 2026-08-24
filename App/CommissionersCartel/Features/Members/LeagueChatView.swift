@@ -8,6 +8,7 @@ struct LeagueChatView: View {
     @Environment(AppEnvironment.self) private var environment
     @State private var model = LeagueChatViewModel()
     @State private var draft = ""
+    @State private var isMentioning = false
     @FocusState private var composerFocused: Bool
 
     var body: some View {
@@ -67,6 +68,7 @@ struct LeagueChatView: View {
                                 messageID: message.id,
                                 me: environment.session?.userID
                             ),
+                            memberNames: model.memberNames,
                             onReact: { emoji, mine in
                                 await model.react(
                                     to: message, emoji: emoji, isMine: mine, using: environment
@@ -97,7 +99,40 @@ struct LeagueChatView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
 
+            // Names are inserted rather than typed, so a mention always
+            // matches what the server looks for.
+            if isMentioning {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: Theme.Spacing.small) {
+                        ForEach(model.memberNames, id: \.self) { name in
+                            Button {
+                                draft = (draft.trimmingCharacters(in: .whitespaces)
+                                    + " @\(name) ").trimmingCharacters(in: .whitespaces) + " "
+                                isMentioning = false
+                            } label: {
+                                Text(name)
+                                    .font(.footnote)
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 6)
+                                    .background(Color.cardBackground, in: .capsule)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .padding(.horizontal, Theme.Spacing.medium)
+                }
+                .padding(.bottom, 4)
+            }
+
             HStack(spacing: Theme.Spacing.small) {
+                Button {
+                    isMentioning.toggle()
+                } label: {
+                    Image(systemName: "at")
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+
                 TextField("Say something", text: $draft, axis: .vertical)
                     .lineLimit(1...4)
                     .focused($composerFocused)
@@ -138,6 +173,7 @@ private struct MessageRow: View {
     let message: LeagueMessage
     let isMine: Bool
     let summaries: [ReactionSummary]
+    let memberNames: [String]
     let onReact: (String, Bool) async -> Void
     let onDelete: () async -> Void
 
@@ -167,7 +203,7 @@ private struct MessageRow: View {
                         .foregroundStyle(.tertiary)
                 }
 
-                Text(message.body)
+                highlighted(message.body)
                 reactionRow
                     .font(.subheadline)
                     .foregroundStyle(isMine ? .white : .primary)
@@ -193,6 +229,24 @@ private struct MessageRow: View {
 }
 
 private extension MessageRow {
+    /// The body with any @mention picked out in the league colour.
+    func highlighted(_ body: String) -> Text {
+        let ranges = Mentions.ranges(in: body, names: memberNames)
+        guard !ranges.isEmpty else { return Text(body) }
+
+        var result = Text("")
+        var cursor = body.startIndex
+        for range in ranges {
+            if cursor < range.lowerBound {
+                result = result + Text(body[cursor..<range.lowerBound])
+            }
+            result = result + Text(body[range]).foregroundColor(.brand).bold()
+            cursor = range.upperBound
+        }
+        if cursor < body.endIndex { result = result + Text(body[cursor...]) }
+        return result
+    }
+
     /// Existing reactions, then a button to add one. Tapping a reaction you
     /// already gave removes it.
     var reactionRow: some View {

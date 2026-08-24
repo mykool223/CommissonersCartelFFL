@@ -11,7 +11,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.FormatQuote
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -33,7 +35,11 @@ import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MemberDetailScreen(entry: MemberEntry, onBack: () -> Unit) {
+fun MemberDetailScreen(
+    entry: MemberEntry,
+    onBack: () -> Unit,
+    onMessage: ((String) -> Unit)? = null,
+) {
     Scaffold(
         topBar = {
             TopAppBar(
@@ -63,6 +69,19 @@ fun MemberDetailScreen(entry: MemberEntry, onBack: () -> Unit) {
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+
+            // Only for members who have signed in: a message needs somewhere
+            // to arrive, and an ESPN manager is not necessarily an account.
+            if (onMessage != null) {
+                Button(onClick = { onMessage(entry.manager.fullName) }) {
+                    Icon(
+                        Icons.Filled.Email,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Text("  Message ${entry.manager.fullName.substringBefore(' ')}")
+                }
+            }
 
             entry.bio?.let { bio ->
                 Card(Modifier.fillMaxWidth()) {

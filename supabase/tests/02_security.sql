@@ -307,6 +307,39 @@ delete from vault.decrypted_secrets;
 delete from net.sent;
 
 \echo ''
+\echo '--- mentions ---'
+reset role;
+
+do $$
+declare
+    found int;
+begin
+    -- Second Member exists from the direct messages fixture below; create it
+    -- here too so the two sections do not depend on each other's order.
+    insert into auth.users (id, email)
+    values ('44444444-4444-4444-4444-444444444444', 'second@example.com')
+    on conflict do nothing;
+    insert into public.profiles (id, display_name)
+    values ('44444444-4444-4444-4444-444444444444', 'Second Member')
+    on conflict do nothing;
+
+    select count(*) into found
+      from private.mentioned_users('hey @Second Member, look at this');
+    perform assert(found = 1, 'a name after @ is recognised');
+
+    select count(*) into found
+      from private.mentioned_users('HEY @second member!!');
+    perform assert(found = 1, 'matching ignores case');
+
+    select count(*) into found
+      from private.mentioned_users('Second Member said something');
+    perform assert(found = 0, 'a name without an @ is not a mention');
+
+    select count(*) into found from private.mentioned_users('nobody here');
+    perform assert(found = 0, 'an ordinary message mentions nobody');
+end $$;
+
+\echo ''
 \echo '--- direct messages ---'
 reset role;
 

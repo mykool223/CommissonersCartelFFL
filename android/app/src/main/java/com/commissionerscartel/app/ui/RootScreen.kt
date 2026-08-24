@@ -22,6 +22,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import com.commissionerscartel.app.feature.members.MemberEntry
 import com.commissionerscartel.app.feature.members.MemberDetailScreen
 import com.commissionerscartel.app.feature.members.MembersHost
+import com.commissionerscartel.app.feature.direct.StartConversation
 import com.commissionerscartel.app.feature.news.NewsHost
 import com.commissionerscartel.app.feature.matchups.MatchupsHost
 import com.commissionerscartel.app.feature.polls.PollsScreen
@@ -42,9 +43,22 @@ fun RootScreen() {
     // A single detail destination rather than a nav graph: there is one, and
     // wiring navigation-compose for it would be more machinery than screen.
     var openMember by remember { mutableStateOf<MemberEntry?>(null) }
+    var messageTo by remember { mutableStateOf<String?>(null) }
 
     openMember?.let { entry ->
-        MemberDetailScreen(entry) { openMember = null }
+        MemberDetailScreen(
+            entry = entry,
+            onBack = { openMember = null },
+            onMessage = { name ->
+                openMember = null
+                messageTo = name
+            },
+        )
+        return
+    }
+
+    messageTo?.let { name ->
+        StartConversation(displayName = name, onClose = { messageTo = null })
         return
     }
 
