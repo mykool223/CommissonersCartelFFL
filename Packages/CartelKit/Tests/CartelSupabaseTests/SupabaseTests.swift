@@ -418,8 +418,16 @@ struct PushRepositoryTests {
 
     @Test("Turning everything off is reported as such")
     func nothingEnabled() {
+        // Every kind, not merely the ones that existed when this was
+        // written: the point of the check is that nothing is left on.
         #expect(!NotificationPreferences(
-            messages: false, news: false, polls: false, activity: false
+            messages: false, news: false, polls: false,
+            activity: false, lineup: false, matchups: false
+        ).isAnythingEnabled)
+        // And that any single kind still counts as "something on".
+        #expect(NotificationPreferences(
+            messages: false, news: false, polls: false,
+            activity: false, lineup: false, matchups: true
         ).isAnythingEnabled)
     }
 
