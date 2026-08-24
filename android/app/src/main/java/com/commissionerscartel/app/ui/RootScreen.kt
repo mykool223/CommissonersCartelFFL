@@ -19,11 +19,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import com.commissionerscartel.app.feature.NewsScreen
-import com.commissionerscartel.app.feature.PlaceholderScreen
 import com.commissionerscartel.app.feature.members.MemberEntry
 import com.commissionerscartel.app.feature.members.MemberDetailScreen
-import com.commissionerscartel.app.feature.members.MembersScreen
+import com.commissionerscartel.app.feature.members.MembersHost
+import com.commissionerscartel.app.feature.news.NewsHost
+import com.commissionerscartel.app.feature.matchups.MatchupsScreen
+import com.commissionerscartel.app.feature.polls.PollsScreen
+import com.commissionerscartel.app.feature.settings.SettingsScreen
 
 /** The five tabs, in the same order as iOS so the two apps feel like one app. */
 private enum class Tab(val label: String, val icon: ImageVector) {
@@ -62,11 +64,11 @@ fun RootScreen() {
     ) { padding ->
         val inner = Modifier.padding(padding)
         when (selected) {
-            Tab.News -> NewsScreen(inner)
-            Tab.Matchups -> PlaceholderScreen("Matchups", inner)
-            Tab.Polls -> PlaceholderScreen("Polls", inner)
-            Tab.Members -> MembersScreen(inner, onOpen = { openMember = it })
-            Tab.Settings -> PlaceholderScreen("Settings", inner)
+            Tab.News -> NewsHost(inner)
+            Tab.Matchups -> MatchupsScreen(inner)
+            Tab.Polls -> PollsScreen(inner)
+            Tab.Members -> MembersHost(inner, onOpen = { openMember = it })
+            Tab.Settings -> SettingsScreen(inner)
         }
     }
 }

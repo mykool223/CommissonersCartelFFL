@@ -88,6 +88,37 @@ jobs:
           DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
         run: ./Scripts/test-database.sh
 
+  # Ubuntu for the same reason as the database job: no Xcode needed, and
+  # Linux runners bill at 1x against macOS's 10x.
+  android:
+    name: Android build and tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ hashFiles('android/gradle/libs.versions.toml', 'android/**/*.gradle.kts') }}
+          restore-keys: gradle-
+
+      # No secrets.properties in CI. The build is expected to succeed without
+      # it — the app falls back to sample data — and that is worth proving,
+      # because a fresh clone is in exactly this state.
+      - name: Build and test
+        working-directory: android
+        run: ./gradlew assembleDebug testDebugUnitTest --no-daemon
+
   lint:
     name: SwiftLint
     runs-on: macos-latest

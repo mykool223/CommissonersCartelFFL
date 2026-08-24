@@ -2,38 +2,25 @@
 
 Rough order, most useful first. Nothing here is committed to a date.
 
-## Next: an Android app
+## Android
 
-Four or more of the twelve are on Android, which is too many to leave out.
+Built and working against the live league: News (league and player), Matchups
+with NFL scores, Polls (vote and create), Members by division with bios and the
+league thread, and Settings with sign-in and notification preferences.
 
-**Nothing server-side has to change.** The 15 migrations, row level security,
-the invite allowlist, magic-link auth, the ESPN proxy, the push trigger, the
-bios and the polls are all plain Postgres and HTTP. An Android client talks to
-the identical backend. The groundwork that *was* needed is already done:
-`device_tokens.platform` exists and `supabase/functions/push` sends through
-Firebase as well as APNs.
+Nothing server-side had to change — the same migrations, the same row level
+security, the same proxy.
 
-What has to be built, in Kotlin and Jetpack Compose:
+Left to do:
 
-- The five tabs (News, Matchups, Polls, Members, Settings), member detail, the
-  league thread, poll voting and creation
-- Supabase's official Kotlin SDK replaces most of `CartelSupabase` by hand
-- An ESPN client — a port of `CartelESPN`, keeping the quirks it documents:
-  SVG logos that will not decode, `playoffSeed = 0` meaning "no seed yet",
-  timestamps that arrive without seconds
-- `EncryptedSharedPreferences` where iOS uses the Keychain
-- An intent filter for the magic-link callback
-- Firebase Cloud Messaging registration, writing `platform = 'android'`
-
-It is a rewrite of the client, not a redesign: every product decision is
-already made and every backend contract is already fixed.
-
-**Distribution is easier than iOS.** Google Play is $25 once rather than $99 a
-year, and for twelve people an APK can be handed out directly — no store, no
-review, and none of TestFlight's 90-day expiry.
-
-**Prerequisites:** Android Studio, and a Firebase project for push (both free).
-See [PUSH_NOTIFICATIONS.md](PUSH_NOTIFICATIONS.md#android).
+- **Push** needs a Firebase project; the client and the server are both ready
+  and inert until `google-services.json` exists. See
+  [PUSH_NOTIFICATIONS.md](PUSH_NOTIFICATIONS.md#android).
+- **Sign-in is unverified end to end.** The flow is written and compiles, but
+  testing it means sending a real email to a real member, so it has not been
+  exercised.
+- **Weekly awards and recaps** are not ported yet.
+- **Release signing** is not set up, so there is a debug APK and no release one.
 
 ## Done
 

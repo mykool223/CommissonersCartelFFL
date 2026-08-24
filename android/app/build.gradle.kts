@@ -6,6 +6,13 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
 }
 
+// Applied only once Firebase has been set up. Without google-services.json the
+// plugin fails the build outright, so a fresh clone would not compile —
+// see docs/PUSH_NOTIFICATIONS.md#android.
+if (rootProject.file("app/google-services.json").exists()) {
+    apply(plugin = "com.google.gms.google-services")
+}
+
 // Supabase host and anon key live outside the repo, the same arrangement as
 // Config/Secrets.xcconfig on iOS. With the file absent the app builds and runs
 // on sample data rather than failing, so a fresh clone works immediately.
@@ -76,6 +83,9 @@ dependencies {
     implementation(libs.supabase.auth)
     implementation(libs.ktor.client.okhttp)
     implementation(libs.kotlinx.serialization.json)
+
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.messaging)
 
     implementation(libs.coil.compose)
     implementation(libs.coil.network.okhttp)

@@ -6,6 +6,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import com.commissionerscartel.app.ui.CartelTheme
 import com.commissionerscartel.app.ui.RootScreen
+import com.commissionerscartel.app.ui.SplashGate
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -13,7 +14,9 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             CartelTheme {
-                RootScreen()
+                SplashGate {
+                    RootScreen()
+                }
             }
         }
     }

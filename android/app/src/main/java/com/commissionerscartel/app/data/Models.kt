@@ -34,8 +34,18 @@ data class Poll(
     val week: Int? = null,
     @SerialName("created_by_name") val createdByName: String,
     @SerialName("closes_at") val closesAt: String? = null,
+    /** The caller's own vote, or null. Results stay hidden until they vote. */
+    @SerialName("my_vote_option_id") val myVoteOptionId: String? = null,
     val options: List<PollOption> = emptyList(),
 ) {
+    val totalVotes: Int get() = options.sumOf { it.votes }
+
+    /** Results are revealed once you have voted, or once voting has closed. */
+    val showsResults: Boolean get() = myVoteOptionId != null || isClosed
+
+    fun share(option: PollOption): Float =
+        if (totalVotes == 0) 0f else option.votes.toFloat() / totalVotes
+
     /** Mirrors `Poll.isClosed` on iOS. */
     val isClosed: Boolean
         get() = closesAt?.let {
@@ -50,4 +60,34 @@ data class TeamBio(
     @SerialName("espn_team_id") val teamId: Int,
     val title: String,
     val bio: String,
+)
+
+@Serializable
+data class PlayerNews(
+    val id: String,
+    @SerialName("player_name") val playerName: String? = null,
+    @SerialName("player_position") val playerPosition: String? = null,
+    @SerialName("player_team") val playerTeam: String? = null,
+    val headline: String,
+    val blurb: String? = null,
+    @SerialName("published_at") val publishedAt: String,
+) {
+    /** "Josh Allen · QB, BUF", skipping whatever the source left out. */
+    val subtitle: String
+        get() = listOfNotNull(
+            playerName?.takeIf(String::isNotBlank),
+            listOfNotNull(
+                playerPosition?.takeIf(String::isNotBlank),
+                playerTeam?.takeIf(String::isNotBlank),
+            ).joinToString(", ").takeIf(String::isNotBlank),
+        ).joinToString(" · ")
+}
+
+@Serializable
+data class LeagueMessage(
+    val id: String,
+    @SerialName("author_id") val authorId: String? = null,
+    @SerialName("author_name") val authorName: String,
+    val body: String,
+    @SerialName("created_at") val createdAt: String,
 )

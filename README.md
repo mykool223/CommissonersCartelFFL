@@ -83,6 +83,8 @@ That split is also what lets every screen run on mock data. Views depend on
 | Preview the news ingest without writing | `DRY_RUN=1 ./Scripts/ingest_news.py` |
 | Deploy the ESPN proxy | `supabase functions deploy espn-proxy` |
 | Set up push notifications | see [docs/PUSH_NOTIFICATIONS.md](docs/PUSH_NOTIFICATIONS.md) |
+| Build the Android app | `cd android && ./gradlew assembleDebug` |
+| Run the Android tests | `cd android && ./gradlew testDebugUnitTest` |
 | Lint | `swiftlint` |
 
 Work happens on `dev`; `main` is the stable branch. See
