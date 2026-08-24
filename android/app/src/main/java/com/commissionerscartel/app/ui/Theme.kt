@@ -7,6 +7,9 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
+/** Winner green, matching Color.win on iOS. Legible on both light and dark. */
+val WinGreen = Color(0xFF1E8E3E)
+
 /** The gold from the league crest, matching `Color.brand` on iOS. */
 val CartelGold = Color(0xFF9A7B2F)
 private val CartelBlack = Color(0xFF0B0B0B)

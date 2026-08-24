@@ -16,11 +16,20 @@ data class NflGame(
     val shortName: String,
     val statusText: String,
     val isFinal: Boolean,
+    val isLive: Boolean,
     val home: NflCompetitor?,
     val away: NflCompetitor?,
 )
 
-data class NflCompetitor(val abbreviation: String, val score: String, val logo: String?)
+data class NflCompetitor(
+    val abbreviation: String,
+    /** "Texans" rather than "Houston Texans" — it has to fit a phone row. */
+    val name: String,
+    val record: String?,
+    val score: String,
+    val isWinner: Boolean,
+    val logo: String?,
+)
 
 /**
  * ESPN's public scoreboard. Separate from the fantasy client on purpose: it
@@ -65,6 +74,7 @@ object NflScoreboard {
         val games = json.decodeFromString<Scoreboard>(body).events.map { event ->
             val competition = event.competitions.firstOrNull()
             val competitors = competition?.competitors.orEmpty()
+            val state = competition?.status?.type?.state ?: event.status?.type?.state
             NflGame(
                 id = event.id,
                 name = event.name.orEmpty(),
@@ -72,6 +82,7 @@ object NflScoreboard {
                 statusText = competition?.status?.type?.shortDetail
                     ?: event.status?.type?.shortDetail.orEmpty(),
                 isFinal = competition?.status?.type?.completed == true,
+                isLive = state == "in",
                 home = competitors.firstOrNull { it.homeAway == "home" }?.toModel(),
                 away = competitors.firstOrNull { it.homeAway == "away" }?.toModel(),
             )
@@ -82,7 +93,12 @@ object NflScoreboard {
 
     private fun Competitor.toModel() = NflCompetitor(
         abbreviation = team?.abbreviation.orEmpty(),
+        name = team?.shortDisplayName ?: team?.displayName.orEmpty(),
+        // ESPN returns several records per team; "overall" is the season one.
+        record = records.firstOrNull { it.type == "total" }?.summary
+            ?: records.firstOrNull()?.summary,
         score = score.orEmpty(),
+        isWinner = winner == true,
         logo = team?.logo,
     )
 
@@ -108,11 +124,21 @@ object NflScoreboard {
     private data class Competitor(
         val homeAway: String? = null,
         val score: String? = null,
+        val winner: Boolean? = null,
         val team: TeamRef? = null,
+        val records: List<Record> = emptyList(),
     )
 
     @Serializable
-    private data class TeamRef(val abbreviation: String? = null, val logo: String? = null)
+    private data class Record(val type: String? = null, val summary: String? = null)
+
+    @Serializable
+    private data class TeamRef(
+        val abbreviation: String? = null,
+        val displayName: String? = null,
+        val shortDisplayName: String? = null,
+        val logo: String? = null,
+    )
 
     @Serializable
     private data class Status(val type: StatusType? = null)
@@ -120,6 +146,7 @@ object NflScoreboard {
     @Serializable
     private data class StatusType(
         @SerialName("shortDetail") val shortDetail: String? = null,
+        val state: String? = null,
         val completed: Boolean = false,
     )
 }
