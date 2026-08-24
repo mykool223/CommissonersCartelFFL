@@ -44,3 +44,12 @@ supabase/.env
 .vscode/
 .idea/
 *.swp
+
+# Android
+android/local.properties
+android/secrets.properties
+android/.gradle/
+android/build/
+android/app/build/
+android/app/google-services.json
+.kotlin/
