@@ -21,6 +21,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.commissionerscartel.app.feature.NewsScreen
 import com.commissionerscartel.app.feature.PlaceholderScreen
+import com.commissionerscartel.app.feature.members.MemberEntry
+import com.commissionerscartel.app.feature.members.MemberDetailScreen
+import com.commissionerscartel.app.feature.members.MembersScreen
 
 /** The five tabs, in the same order as iOS so the two apps feel like one app. */
 private enum class Tab(val label: String, val icon: ImageVector) {
@@ -34,6 +37,14 @@ private enum class Tab(val label: String, val icon: ImageVector) {
 @Composable
 fun RootScreen() {
     var selected by remember { mutableStateOf(Tab.News) }
+    // A single detail destination rather than a nav graph: there is one, and
+    // wiring navigation-compose for it would be more machinery than screen.
+    var openMember by remember { mutableStateOf<MemberEntry?>(null) }
+
+    openMember?.let { entry ->
+        MemberDetailScreen(entry) { openMember = null }
+        return
+    }
 
     Scaffold(
         bottomBar = {
@@ -54,7 +65,7 @@ fun RootScreen() {
             Tab.News -> NewsScreen(inner)
             Tab.Matchups -> PlaceholderScreen("Matchups", inner)
             Tab.Polls -> PlaceholderScreen("Polls", inner)
-            Tab.Members -> PlaceholderScreen("Members", inner)
+            Tab.Members -> MembersScreen(inner, onOpen = { openMember = it })
             Tab.Settings -> PlaceholderScreen("Settings", inner)
         }
     }
