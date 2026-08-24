@@ -22,6 +22,14 @@ val secrets = Properties().apply {
 }
 fun secret(name: String): String = secrets.getProperty(name) ?: ""
 
+// Signing config lives outside the repo entirely — in ~/.cartel — because
+// losing this key means the league has to uninstall and reinstall to take an
+// update. Absent, release builds are simply unsigned and debug still works.
+val keystore = Properties().apply {
+    val file = File(System.getProperty("user.home"), ".cartel/keystore.properties")
+    if (file.exists()) file.inputStream().use { load(it) }
+}
+
 android {
     namespace = "com.commissionerscartel.app"
     compileSdk = 37
@@ -38,10 +46,22 @@ android {
         buildConfigField("String", "ESPN_LEAGUE_ID", "\"${secret("ESPN_LEAGUE_ID")}\"")
     }
 
+    signingConfigs {
+        if (keystore.getProperty("storeFile") != null) {
+            create("release") {
+                storeFile = File(keystore.getProperty("storeFile"))
+                storePassword = keystore.getProperty("storePassword")
+                keyAlias = keystore.getProperty("keyAlias")
+                keyPassword = keystore.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            signingConfig = signingConfigs.findByName("release")
         }
     }
 

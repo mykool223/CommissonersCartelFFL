@@ -84,6 +84,7 @@ That split is also what lets every screen run on mock data. Views depend on
 | Deploy the ESPN proxy | `supabase functions deploy espn-proxy` |
 | Set up push notifications | see [docs/PUSH_NOTIFICATIONS.md](docs/PUSH_NOTIFICATIONS.md) |
 | Build the Android app | `cd android && ./gradlew assembleDebug` |
+| Ship to the league | see [docs/DEPLOYING.md](docs/DEPLOYING.md) |
 | Run the Android tests | `cd android && ./gradlew testDebugUnitTest` |
 | Lint | `swiftlint` |
 
