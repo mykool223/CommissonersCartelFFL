@@ -9,7 +9,7 @@ struct CommissionersCartelApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
     @State private var environment = CommissionersCartelApp.makeEnvironment()
-    @State private var pushRegistrar = PushRegistrar()
+    @State private var pushRegistrar = PushRegistrar.shared
 
     /// Kept as a factory so debug credential seeding happens *before* the
     /// environment is constructed — AppEnvironment reads the Keychain when it
@@ -41,7 +41,6 @@ struct CommissionersCartelApp: App {
                 .environment(environment)
                 .environment(pushRegistrar)
                 .task {
-                    AppDelegate.registrar = pushRegistrar
                     await environment.restoreSession()
                     // Only after the session is restored: a device token is
                     // stored against a user id, so there is nowhere to put one

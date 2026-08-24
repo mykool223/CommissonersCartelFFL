@@ -31,6 +31,19 @@
                 <data android:scheme="cartel" android:host="auth" />
             </intent-filter>
         </activity>
+        <!-- Used when the system displays a notification itself, which is
+             what happens while the app is in the background. Without these it
+             falls back to the launcher icon and a generic channel. -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_notification" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_color"
+            android:resource="@color/cartel_gold" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="league_activity" />
+
         <service
             android:name=".data.CartelMessagingService"
             android:exported="false">

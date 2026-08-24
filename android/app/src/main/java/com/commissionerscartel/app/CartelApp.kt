@@ -1,6 +1,9 @@
 package com.commissionerscartel.app
 
 import android.app.Application
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import androidx.core.app.NotificationManagerCompat
 import coil3.ImageLoader
 import coil3.PlatformContext
 import coil3.SingletonImageLoader
@@ -25,6 +28,16 @@ class CartelApp : Application(), SingletonImageLoader.Factory {
 
     override fun onCreate() {
         super.onCreate()
+
+        // Declared up front: a message that arrives while the app is in the
+        // background is posted by the system, which will not create it for us.
+        NotificationManagerCompat.from(this).createNotificationChannel(
+            NotificationChannel(
+                "league_activity",
+                "League activity",
+                NotificationManager.IMPORTANCE_DEFAULT,
+            )
+        )
         // Fetch the Firebase token up front. Asking for it needs no account,
         // and having it in hand means signing in registers the device
         // immediately rather than on the launch after.

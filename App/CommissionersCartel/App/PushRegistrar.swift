@@ -14,6 +14,12 @@ import CartelCore
 @Observable
 @MainActor
 final class PushRegistrar: NSObject {
+    /// Shared because `AppDelegate` has to reach it during launch, before any
+    /// view exists. iOS delivers a notification tap that launched the app very
+    /// early — a delegate set later than `didFinishLaunching` misses it.
+    @ObservationIgnored
+    static let shared = PushRegistrar()
+
     /// Where a tapped notification should take the reader. Read by RootView.
     private(set) var pendingDestination: String?
 
@@ -31,7 +37,7 @@ final class PushRegistrar: NSObject {
     /// Ignored by @Observable: it is plumbing, and the macro cannot synthesise
     /// tracking for a lazy property.
     @ObservationIgnored
-    private lazy var notificationDelegate = PushNotificationDelegate { [weak self] destination in
+    fileprivate lazy var notificationDelegate = PushNotificationDelegate { [weak self] destination in
         Task { @MainActor in self?.pendingDestination = destination }
     }
 
@@ -156,24 +162,33 @@ private final class PushNotificationDelegate: NSObject, UNUserNotificationCenter
 /// UIKit still owns remote-notification registration; there is no SwiftUI
 /// equivalent, so the app keeps a delegate purely to forward these two calls.
 final class AppDelegate: NSObject, UIApplicationDelegate {
-    /// Set by the App struct as soon as the scene exists.
-    @MainActor static var registrar: PushRegistrar?
+    /// Installs the notification delegate before launch finishes.
+    ///
+    /// A tap that launches the app is delivered almost immediately; a delegate
+    /// installed later — when the first view runs its `task` — is not there
+    /// yet, and the response is dropped.
+    func application(
+        _ application: UIApplication,
+        didFinishLaunchingWithOptions options: [UIApplication.LaunchOptionsKey: Any]? = nil
+    ) -> Bool {
+        UNUserNotificationCenter.current().delegate = PushRegistrar.shared.notificationDelegate
+        return true
+    }
 
     func application(
         _ application: UIApplication,
         didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data
     ) {
-        MainActor.assumeIsolated {
-            AppDelegate.registrar?.didRegister(deviceToken: deviceToken)
-        }
+        // A hop rather than MainActor.assumeIsolated: assumeIsolated traps if
+        // UIKit ever calls this off the main thread, and trading a dropped
+        // token for a crash is a bad trade.
+        Task { @MainActor in PushRegistrar.shared.didRegister(deviceToken: deviceToken) }
     }
 
     func application(
         _ application: UIApplication,
         didFailToRegisterForRemoteNotificationsWithError error: any Error
     ) {
-        MainActor.assumeIsolated {
-            AppDelegate.registrar?.didFailToRegister(error: error)
-        }
+        Task { @MainActor in PushRegistrar.shared.didFailToRegister(error: error) }
     }
 }

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The gold from the league crest, matching CartelGold in the theme. -->
+    <color name="cartel_gold">#FF9A7B2F</color>
+</resources>

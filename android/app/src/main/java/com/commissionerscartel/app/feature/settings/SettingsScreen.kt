@@ -27,12 +27,21 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.commissionerscartel.app.ui.rememberNotificationPermission
 
 @Composable
 fun SettingsScreen(modifier: Modifier = Modifier, model: SettingsViewModel = viewModel()) {
     val state by model.state.collectAsStateWithLifecycle()
+    val permission = rememberNotificationPermission()
     var claiming by remember { mutableStateOf(false) }
+
+    // Ask once, when there is finally a reason to: signing in is the moment
+    // the member joins a thread eleven other people can post in.
+    LaunchedEffect(state.signedIn) {
+        if (state.signedIn && !permission.isGranted) permission.request()
+    }
 
     if (claiming) {
         ClaimTeamScreen(
@@ -68,6 +77,17 @@ fun SettingsScreen(modifier: Modifier = Modifier, model: SettingsViewModel = vie
 
         if (state.signedIn) {
             Section("Notifications") {
+                if (!permission.isGranted) {
+                    Text(
+                        "Android needs your permission before the Cartel can " +
+                            "notify you about anything.",
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                    Button(onClick = permission.request) { Text("Turn on notifications") }
+                    OutlinedButton(onClick = permission.openSettings) {
+                        Text("Open phone settings")
+                    }
+                }
                 Toggle("League thread", state.preferences.messages) {
                     model.setPreferences(state.preferences.copy(messages = it))
                 }
