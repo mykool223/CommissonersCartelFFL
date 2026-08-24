@@ -14,6 +14,8 @@ import kotlinx.coroutines.launch
 sealed interface PollsState {
     data object Loading : PollsState
     data object SignInRequired : PollsState
+    /** Signed in, but the address is not on the league list. */
+    data object NotAMember : PollsState
     data class Loaded(val polls: List<Poll>) : PollsState
     data class Failed(val message: String) : PollsState
 }
@@ -36,6 +38,13 @@ class PollsViewModel : ViewModel() {
             // rather than shown a poll they cannot use.
             if (!Session.isSignedIn) {
                 _state.value = PollsState.SignInRequired
+                return@launch
+            }
+            // Signed in is not the same as being a member: an address that is
+            // not on the invite list gets no profile, and every members-only
+            // policy then returns nothing. Saying so beats an empty screen.
+            if (!Session.isLeagueMember()) {
+                _state.value = PollsState.NotAMember
                 return@launch
             }
             _state.value = runCatching { Supabase.polls(AppGraph.season) }

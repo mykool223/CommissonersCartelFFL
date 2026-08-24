@@ -15,6 +15,8 @@ struct LeagueChatView: View {
         VStack(spacing: 0) {
             if !environment.isSignedIn {
                 signedOutState
+            } else if !environment.isLeagueMember {
+                NotOnTheRosterView(email: environment.session?.email)
             } else {
                 thread
                 composer

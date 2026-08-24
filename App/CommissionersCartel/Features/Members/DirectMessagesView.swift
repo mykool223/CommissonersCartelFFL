@@ -14,6 +14,8 @@ struct DirectMessagesView: View {
                     message: "Sign in under Settings to send and read private messages.",
                     systemImage: "lock"
                 )
+            } else if !environment.isLeagueMember {
+                NotOnTheRosterView(email: environment.session?.email)
             } else if model.isLoading && model.conversations.isEmpty {
                 LoadingPlaceholder()
             } else if model.conversations.isEmpty {

@@ -68,6 +68,8 @@ fun PollsScreen(modifier: Modifier = Modifier, model: PollsViewModel = viewModel
                 CircularProgressIndicator()
             }
 
+            is PollsState.NotAMember -> Message("You're signed in, but that address isn't on the league list. Ask the commissioner to add it \u2014 they've been told.")
+
             is PollsState.SignInRequired -> Message(
                 "Sign in under Settings to vote in league polls."
             )

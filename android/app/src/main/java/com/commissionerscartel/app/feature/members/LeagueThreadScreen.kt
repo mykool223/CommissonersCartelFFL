@@ -60,6 +60,8 @@ import kotlinx.coroutines.launch
 sealed interface ThreadState {
     data object Loading : ThreadState
     data object SignInRequired : ThreadState
+    /** Signed in, but the address is not on the league list. */
+    data object NotAMember : ThreadState
     data class Loaded(
         val messages: List<LeagueMessage>,
         val reactions: List<MessageReaction>,
@@ -84,6 +86,13 @@ class LeagueThreadViewModel : ViewModel() {
         viewModelScope.launch {
             if (!Session.isSignedIn) {
                 _state.value = ThreadState.SignInRequired
+                return@launch
+            }
+            // Signed in is not the same as being a member: an address that is
+            // not on the invite list gets no profile, and every members-only
+            // policy then returns nothing. Saying so beats an empty screen.
+            if (!Session.isLeagueMember()) {
+                _state.value = ThreadState.NotAMember
                 return@launch
             }
             _state.value = runCatching {
@@ -129,6 +138,13 @@ fun LeagueThreadScreen(modifier: Modifier = Modifier, model: LeagueThreadViewMod
     when (val current = state) {
         is ThreadState.Loading -> Box(modifier.fillMaxSize(), Alignment.Center) {
             CircularProgressIndicator()
+        }
+
+        is ThreadState.NotAMember -> Box(
+            modifier.fillMaxSize().padding(32.dp),
+            Alignment.Center,
+        ) {
+            Text("You're signed in, but that address isn't on the league list. Ask the commissioner to add it \u2014 they've been told.", style = MaterialTheme.typography.bodyMedium)
         }
 
         is ThreadState.SignInRequired -> Box(

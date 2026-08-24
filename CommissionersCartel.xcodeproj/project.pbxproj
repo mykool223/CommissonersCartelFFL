@@ -57,6 +57,7 @@
 		E5332F1273FE03A1F9CDE25E /* Formatters.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15561B9A02063BAAA0B9131 /* Formatters.swift */; };
 		E69E94DB7F2D0EB288275485 /* CartelCore in Frameworks */ = {isa = PBXBuildFile; productRef = 6983365F6925E23D7A5F7253 /* CartelCore */; };
 		EC08F06B3C701F7F9467EBA4 /* DirectMessagesViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBEE9BFA48CE65F2C9E3693E /* DirectMessagesViewModel.swift */; };
+		F2AAD746A736BD290B921765 /* NotOnTheRosterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76013A84901DC11BF8157CAA /* NotOnTheRosterView.swift */; };
 		F6692FE43393690B2EBCF429 /* LeagueChatViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2E30CCCA2596F1DD148C54D /* LeagueChatViewModel.swift */; };
 /* End PBXBuildFile section */
 
@@ -108,6 +109,7 @@
 		6400996C8909B068E1496C1C /* AppConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfiguration.swift; sourceTree = "<group>"; };
 		6685FC13C6BDCFF3928269DF /* SectionPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SectionPicker.swift; sourceTree = "<group>"; };
 		722EC606D4D20DB5CACCE5E1 /* SignInView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignInView.swift; sourceTree = "<group>"; };
+		76013A84901DC11BF8157CAA /* NotOnTheRosterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotOnTheRosterView.swift; sourceTree = "<group>"; };
 		7D337817B4D94977D9118686 /* Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Debug.xcconfig; sourceTree = "<group>"; };
 		7FD2A5DD48CE6331EFA0E30A /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		8D39D479E5AFA1FCB607E5ED /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
@@ -333,6 +335,7 @@
 			isa = PBXGroup;
 			children = (
 				D15561B9A02063BAAA0B9131 /* Formatters.swift */,
+				76013A84901DC11BF8157CAA /* NotOnTheRosterView.swift */,
 				6685FC13C6BDCFF3928269DF /* SectionPicker.swift */,
 				8FE33B6365427F981FD356BE /* SectionsHint.swift */,
 				6169B7B9F9F50A43F4E6F14A /* StateViews.swift */,
@@ -488,6 +491,7 @@
 				B11A87F46FFEAAEAC971C3C9 /* NewsFeedView.swift in Sources */,
 				7B0F47FD6B319E75B8BE692C /* NewsFeedViewModel.swift in Sources */,
 				4417DB5BC76A27D7892D3EB8 /* NewsPostDetailView.swift in Sources */,
+				F2AAD746A736BD290B921765 /* NotOnTheRosterView.swift in Sources */,
 				0AFD7D7C50451F96DA202CE4 /* NotificationSettingsSection.swift in Sources */,
 				7B7D9ADD54F336A6C9F41111 /* PollsView.swift in Sources */,
 				9B30FC45D6A0E6FA51305F58 /* PollsViewModel.swift in Sources */,

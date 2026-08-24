@@ -66,6 +66,8 @@ fun DirectMessagesScreen(
             CircularProgressIndicator()
         }
 
+        is DirectState.NotAMember -> Message(modifier, "You're signed in, but that address isn't on the league list. Ask the commissioner to add it \u2014 they've been told.")
+
         is DirectState.SignInRequired -> Message(
             modifier,
             "Sign in under Settings to send and read private messages.",

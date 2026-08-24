@@ -14,6 +14,8 @@ import kotlinx.coroutines.launch
 sealed interface DirectState {
     data object Loading : DirectState
     data object SignInRequired : DirectState
+    /** Signed in, but the address is not on the league list. */
+    data object NotAMember : DirectState
     data class Loaded(
         val messages: List<DirectMessage>,
         val conversations: List<Conversation>,
@@ -33,6 +35,13 @@ class DirectMessagesViewModel : ViewModel() {
         viewModelScope.launch {
             if (!Session.isSignedIn) {
                 _state.value = DirectState.SignInRequired
+                return@launch
+            }
+            // Signed in is not the same as being a member: an address that is
+            // not on the invite list gets no profile, and every members-only
+            // policy then returns nothing. Saying so beats an empty screen.
+            if (!Session.isLeagueMember()) {
+                _state.value = DirectState.NotAMember
                 return@launch
             }
             _state.value = runCatching {
