@@ -10,6 +10,7 @@ import coil3.SingletonImageLoader
 import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import com.commissionerscartel.app.data.Config
 import com.commissionerscartel.app.data.Push
+import com.commissionerscartel.app.data.Session
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -38,10 +39,16 @@ class CartelApp : Application(), SingletonImageLoader.Factory {
                 NotificationManager.IMPORTANCE_DEFAULT,
             )
         )
-        // Fetch the Firebase token up front. Asking for it needs no account,
-        // and having it in hand means signing in registers the device
-        // immediately rather than on the launch after.
-        CoroutineScope(Dispatchers.IO).launch { runCatching { Push.ensureToken() } }
+        // Registration lives here, at application scope, rather than in a
+        // screen's view model: the app opens on News, so anything driven by
+        // the Settings screen only runs for members who happen to visit it —
+        // which is how this silently failed to register at all.
+        CoroutineScope(Dispatchers.IO).launch {
+            runCatching { Push.ensureToken() }
+            Session.status.collect { signedIn ->
+                if (signedIn) runCatching { Push.register() }
+            }
+        }
     }
 
     override fun newImageLoader(context: PlatformContext): ImageLoader {

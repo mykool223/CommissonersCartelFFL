@@ -241,3 +241,31 @@ class PollDecodingTest {
         assertEquals(1f, poll.share(poll.options[1]), 0.0001f)
     }
 }
+
+/**
+ * The device row must carry its platform on the wire.
+ *
+ * kotlinx.serialization omits any property equal to its default. With
+ * `platform = "android"` as a default it was never sent, so Postgres applied
+ * the column default of 'ios' — the Android device was registered as an
+ * iPhone, Apple rejected its Firebase token, and it was pruned as dead. The
+ * only visible symptom was that notifications never arrived.
+ */
+class DeviceRegistrationTest {
+    @kotlinx.serialization.Serializable
+    private data class Row(
+        val token: String,
+        @kotlinx.serialization.SerialName("user_id") val userId: String,
+        val platform: String,
+        val environment: String,
+    )
+
+    @Test
+    fun `platform and environment are always encoded`() {
+        val json = kotlinx.serialization.json.Json.encodeToString(
+            Row("tok", "user", "android", "production")
+        )
+        assertTrue("platform missing from $json", json.contains("\"platform\":\"android\""))
+        assertTrue("environment missing from $json", json.contains("\"environment\":\"production\""))
+    }
+}

@@ -36,9 +36,6 @@ class SettingsViewModel : ViewModel() {
     fun refresh() {
         viewModelScope.launch {
             val signedIn = Session.isSignedIn
-            // Register on every launch, not only at the moment of signing in:
-            // tokens rotate, and a reinstall issues a fresh one.
-            if (signedIn) runCatching { Push.register() }
             _state.value = _state.value.copy(
                 signedIn = signedIn,
                 email = Session.email,

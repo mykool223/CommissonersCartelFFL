@@ -26,14 +26,21 @@ private data class PreferencesRow(
     val polls: Boolean = true,
 )
 
+/**
+ * No default values, deliberately.
+ *
+ * kotlinx.serialization omits a property whose value equals its default, so a
+ * default of "android" was never sent — and the column's own default is 'ios',
+ * because every row predated Android. The device registered itself as an
+ * iPhone, Apple rejected the Firebase token, and it was pruned as dead.
+ */
 @Serializable
 private data class DeviceRow(
     val token: String,
     @SerialName("user_id") val userId: String,
-    val platform: String = "android",
-    // Meaningless on Android — the column exists for APNs — but the check
-    // constraint requires one of the two values.
-    val environment: String = "production",
+    val platform: String,
+    /** Meaningless on Android; the column exists for APNs, which needs it. */
+    val environment: String,
 )
 
 /**
@@ -68,20 +75,46 @@ object Push {
                     .addOnSuccessListener { continuation.resume(it) {} }
                     .addOnFailureListener { continuation.resumeWithException(it) }
             }
-        }.getOrNull()
+        }
+            // Logged in release too. Silently returning null here is what made
+            // a device that never registers look identical to one that has
+            // notifications switched off.
+            .onFailure { Log.w(TAG, "Could not get an FCM token", it) }
+            .getOrNull()
         if (fetched != null) {
             token = fetched
-            if (BuildConfig.DEBUG) Log.d("Push", "FCM token: $fetched")
+            if (BuildConfig.DEBUG) Log.d(TAG, "FCM token: $fetched")
         }
         return fetched
     }
 
     suspend fun register() {
-        val token = ensureToken() ?: return
-        val userId = Session.userId ?: return
-        Supabase.client.from("device_tokens")
-            .upsert(DeviceRow(token = token, userId = userId)) { onConflict = "token" }
+        val token = ensureToken()
+        if (token == null) {
+            Log.w(TAG, "Not registering: no FCM token")
+            return
+        }
+        val userId = Session.userId
+        if (userId == null) {
+            Log.w(TAG, "Not registering: not signed in")
+            return
+        }
+        runCatching {
+            Supabase.client.from("device_tokens")
+                .upsert(
+                    DeviceRow(
+                        token = token,
+                        userId = userId,
+                        platform = "android",
+                        environment = "production",
+                    )
+                ) { onConflict = "token" }
+        }
+            .onSuccess { Log.i(TAG, "Registered this device for notifications") }
+            .onFailure { Log.w(TAG, "Could not register device", it) }
     }
+
+    private const val TAG = "CartelPush"
 
     suspend fun unregister() {
         val token = token ?: return

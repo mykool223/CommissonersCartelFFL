@@ -38,8 +38,10 @@ android {
         applicationId = "com.commissionerscartel.app"
         minSdk = 26
         targetSdk = 37
-        versionCode = 1
-        versionName = "0.1.0"
+        // Bump on every build handed out: Android refuses an install whose
+        // versionCode is not higher than what is already on the phone.
+        versionCode = 2
+        versionName = "0.2.0"
 
         buildConfigField("String", "SUPABASE_HOST", "\"${secret("SUPABASE_HOST")}\"")
         buildConfigField("String", "SUPABASE_ANON_KEY", "\"${secret("SUPABASE_ANON_KEY")}\"")
