@@ -8,6 +8,7 @@ enum MatchupsSection: String, TabSection {
     case recap
     case standings
     case nfl
+    case coach
 
     var title: String {
         switch self {
@@ -15,6 +16,7 @@ enum MatchupsSection: String, TabSection {
         case .recap: "Weekly recap"
         case .standings: "Standings"
         case .nfl: "NFL scores"
+        case .coach: "Coach"
         }
     }
 
@@ -24,12 +26,13 @@ enum MatchupsSection: String, TabSection {
         case .recap: "trophy"
         case .standings: "list.number"
         case .nfl: "football"
+        case .coach: "brain"
         }
     }
 
     /// NFL scores are public and need no league configuration, so that section
     /// works even when everything else is unconfigured or erroring.
-    var needsLeagueData: Bool { self != .nfl }
+    var needsLeagueData: Bool { self != .nfl && self != .coach }
 }
 
 struct MatchupsView: View {
@@ -47,7 +50,11 @@ struct MatchupsView: View {
                         )
                     }
 
-                    if section == .nfl {
+                    if section == .coach {
+                        // Its own screen: it does not need the league payload
+                        // the other sections are waiting on.
+                        CoachView()
+                    } else if section == .nfl {
                         nflScores
                     } else {
                         LoadableView(
@@ -66,6 +73,7 @@ struct MatchupsView: View {
                         case .recap: WeeklyRecapView(board: board, awards: board.awards)
                         case .standings: StandingsView(board: board)
                         case .nfl: EmptyView()
+                        case .coach: EmptyView()
                         }
                         }
                     }

@@ -47,6 +47,9 @@ object Session {
         auth.verifyEmailOtp(type = OtpType.Email.EMAIL, email = email.trim(), token = code.trim())
     }
 
+    /** The signed-in member's access token, for calling edge functions as them. */
+    fun accessToken(): String? = auth.currentAccessTokenOrNull()
+
     suspend fun signOut() = auth.signOut()
 
     /** The ESPN member id this account has claimed, or null. */

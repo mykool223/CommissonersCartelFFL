@@ -14,7 +14,7 @@ struct SectionsHint: View {
 
     private static let sections: [(tab: String, image: String, screens: String)] = [
         ("News", "newspaper", "League news · Activity · Player news"),
-        ("Matchups", "sportscourt", "Scoreboard · Weekly recap · Standings · NFL scores"),
+        ("Matchups", "sportscourt", "Scoreboard · Weekly recap · Standings · NFL scores · Coach"),
         ("Members", "person.3", "Members · League thread · Messages · Trophy case"),
     ]
 

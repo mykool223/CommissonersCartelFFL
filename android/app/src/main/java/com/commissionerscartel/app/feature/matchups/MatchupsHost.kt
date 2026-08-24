@@ -31,6 +31,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.commissionerscartel.app.data.Team
 import com.commissionerscartel.app.data.WeeklyAward
+import com.commissionerscartel.app.feature.coach.CoachScreen
 import com.commissionerscartel.app.ui.CartelGold
 import com.commissionerscartel.app.ui.TeamLogo
 import java.util.Locale
@@ -40,6 +41,7 @@ enum class MatchupsSection(val label: String) {
     Recap("Weekly recap"),
     Standings("Standings"),
     Nfl("NFL scores"),
+    Coach("Coach"),
 }
 
 /** The Matchups tab, with the four sections the iOS dropdown offers. */
@@ -79,6 +81,7 @@ fun MatchupsHost(modifier: Modifier = Modifier, model: MatchupsViewModel = viewM
                 MatchupsSection.Recap -> RecapSection(current.data)
                 MatchupsSection.Standings -> StandingsSection(current.data.standings)
                 MatchupsSection.Nfl -> NflSection(current.data)
+                MatchupsSection.Coach -> CoachScreen()
             }
         }
     }

@@ -23,6 +23,8 @@
 		4B45F6825D3EE456218A14E5 /* CartelCore in Frameworks */ = {isa = PBXBuildFile; productRef = 594DBDFAD60BBE9EF7E46561 /* CartelCore */; };
 		507E57CB1AC3A1CCA0648BDE /* KeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 457FE48CBCFD9A680A7A0B00 /* KeychainStore.swift */; };
 		52336F7120F8E612A2A04EBB /* MemberDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C25E5646CF454142CCA9E361 /* MemberDetailView.swift */; };
+		55D721F9EC288243EF3D0CA8 /* CoachViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 040A21A41FBC8D0A46A7CAB9 /* CoachViewModel.swift */; };
+		60081A5FD62FE42A48F43F4E /* CoachView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F8E12DD1D1FACD5AD7C4F45 /* CoachView.swift */; };
 		65F8592486F245A19B3066DF /* CommissionersCartelApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D256F9DE3A680438DD5AE32 /* CommissionersCartelApp.swift */; };
 		66CE10332C3B33895DF06ACC /* DirectMessagesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28FB8B90A46A708C9F913DC0 /* DirectMessagesView.swift */; };
 		69D52231B9DEDFA927F00B5C /* TrophyCaseViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD5373CBFCE6F0C8E3596250 /* TrophyCaseViewModel.swift */; };
@@ -86,6 +88,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		040A21A41FBC8D0A46A7CAB9 /* CoachViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoachViewModel.swift; sourceTree = "<group>"; };
 		096F4868120CB3CBD155E561 /* Loadable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Loadable.swift; sourceTree = "<group>"; };
 		186614AFCC75669D6703C2BE /* SharedStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedStore.swift; sourceTree = "<group>"; };
 		19CAF352C89479A5D8415900 /* MatchupsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MatchupsViewModel.swift; sourceTree = "<group>"; };
@@ -118,6 +121,7 @@
 		950BDC3CA78FDE8BFA07A82D /* MatchupWidgetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MatchupWidgetView.swift; sourceTree = "<group>"; };
 		98A79C4D20F246ADB024E300 /* CartelWidgetBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartelWidgetBundle.swift; sourceTree = "<group>"; };
 		9C85CA1B92922F1FA6F453CA /* CartelWidget.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = CartelWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		9F8E12DD1D1FACD5AD7C4F45 /* CoachView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoachView.swift; sourceTree = "<group>"; };
 		A2E30CCCA2596F1DD148C54D /* LeagueChatViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LeagueChatViewModel.swift; sourceTree = "<group>"; };
 		AB9171C63B6603835C7B65EE /* StandingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StandingsView.swift; sourceTree = "<group>"; };
 		B49C2F69739A05DA6E30EFDB /* AppEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppEnvironment.swift; sourceTree = "<group>"; };
@@ -175,6 +179,8 @@
 		2BD883E6414246CBB6880F4B /* Matchups */ = {
 			isa = PBXGroup;
 			children = (
+				9F8E12DD1D1FACD5AD7C4F45 /* CoachView.swift */,
+				040A21A41FBC8D0A46A7CAB9 /* CoachViewModel.swift */,
 				BF7395A6303E9F6392B366FC /* MatchupsView.swift */,
 				19CAF352C89479A5D8415900 /* MatchupsViewModel.swift */,
 				E2ECC67CFE4ACEAA8E570FA7 /* NFLScoresView.swift */,
@@ -473,6 +479,8 @@
 				31A809E0CA27524EC2EAA406 /* AppConfiguration.swift in Sources */,
 				12A315BCEF72BF1BAEA5D515 /* AppEnvironment.swift in Sources */,
 				9B31A35278D954D5A2CDB369 /* ClaimTeamView.swift in Sources */,
+				60081A5FD62FE42A48F43F4E /* CoachView.swift in Sources */,
+				55D721F9EC288243EF3D0CA8 /* CoachViewModel.swift in Sources */,
 				65F8592486F245A19B3066DF /* CommissionersCartelApp.swift in Sources */,
 				A5492B9492A9D86A52D247D2 /* CreatePollView.swift in Sources */,
 				66CE10332C3B33895DF06ACC /* DirectMessagesView.swift in Sources */,

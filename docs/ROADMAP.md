@@ -60,3 +60,37 @@ Left to do:
   icon variants; only the standard one is provided. A version of the artwork
   with a transparent background would also let the crest sit on a light
   surface without its black field.
+
+## The coach
+
+Three pieces, two of which need no language model at all.
+
+**Lineup coach** (`Scripts/lineup_coach.py`) — every player has a weekly
+projection and a list of eligible slots, so the best legal lineup is a solved
+assignment problem. Exact rather than greedy: filling FLEX with the best player
+available can strand a position slot, which is the case that comes up most.
+Runs Sunday mornings alongside the bye-week guard.
+
+**Waiver coach** (`Scripts/waiver_coach.py`) — value is what a player adds to
+your *best lineup*, not what they project. C.J. Stroud at 16.7 is worth 0.06 to
+a team that already has a better quarterback. Runs Tuesday, before waivers
+process.
+
+**Chat coach** (`supabase/functions/coach`) — the only part using a language
+model. It is handed the roster, the projections and the solved lineup and asked
+to reason about them, rather than asked to recall them: that is what stops it
+inventing a player. Members only, capped per person per day, and inert until
+`ANTHROPIC_API_KEY` is set.
+
+```sh
+supabase secrets set ANTHROPIC_API_KEY=sk-ant-...
+```
+
+`COACH_MODEL` overrides the model and `COACH_DAILY_LIMIT` the per-person cap
+(20 by default).
+
+### Trades — deliberately not built
+
+Valuing players is arithmetic; a good trade *suggestion* has to model what the
+other manager wants, which is social. A bot proposing trades produces confident
+nonsense that reads well. Worth discussing before writing any of it.
