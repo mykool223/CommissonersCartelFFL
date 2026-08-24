@@ -6,6 +6,10 @@ import coil3.PlatformContext
 import coil3.SingletonImageLoader
 import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import com.commissionerscartel.app.data.Config
+import com.commissionerscartel.app.data.Push
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
 
 /**
@@ -18,6 +22,14 @@ import okhttp3.OkHttpClient
  * exactly like "this team has no logo".
  */
 class CartelApp : Application(), SingletonImageLoader.Factory {
+
+    override fun onCreate() {
+        super.onCreate()
+        // Fetch the Firebase token up front. Asking for it needs no account,
+        // and having it in hand means signing in registers the device
+        // immediately rather than on the launch after.
+        CoroutineScope(Dispatchers.IO).launch { runCatching { Push.ensureToken() } }
+    }
 
     override fun newImageLoader(context: PlatformContext): ImageLoader {
         val client = OkHttpClient.Builder()

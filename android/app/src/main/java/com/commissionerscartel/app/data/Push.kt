@@ -4,7 +4,12 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
+import android.util.Log
+import com.commissionerscartel.app.BuildConfig
+import com.google.firebase.messaging.FirebaseMessaging
 import io.github.jan.supabase.postgrest.from
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlin.coroutines.resumeWithException
 import io.github.jan.supabase.postgrest.postgrest
 
 /** What a member wants to hear about. Everything on unless they say otherwise. */
@@ -48,8 +53,31 @@ object Push {
     @Volatile
     var token: String? = null
 
+    /**
+     * Fetches this device's Firebase token if it is not already known.
+     *
+     * [CartelMessagingService.onNewToken] only fires on first install and on
+     * rotation, so relying on it alone means a member who signs in on any
+     * later launch is never registered and silently receives nothing.
+     */
+    suspend fun ensureToken(): String? {
+        token?.let { return it }
+        val fetched = runCatching {
+            suspendCancellableCoroutine { continuation ->
+                FirebaseMessaging.getInstance().token
+                    .addOnSuccessListener { continuation.resume(it) {} }
+                    .addOnFailureListener { continuation.resumeWithException(it) }
+            }
+        }.getOrNull()
+        if (fetched != null) {
+            token = fetched
+            if (BuildConfig.DEBUG) Log.d("Push", "FCM token: $fetched")
+        }
+        return fetched
+    }
+
     suspend fun register() {
-        val token = token ?: return
+        val token = ensureToken() ?: return
         val userId = Session.userId ?: return
         Supabase.client.from("device_tokens")
             .upsert(DeviceRow(token = token, userId = userId)) { onConflict = "token" }
