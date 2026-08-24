@@ -1,0 +1,46 @@
+# Suggests waiver claims that would actually improve a lineup.
+#
+# Tuesday morning, before waivers process on Wednesday. Value is measured as
+# what a player adds to your best legal lineup, not what they project — a
+# brilliant tight end is worth nothing to a team that already has a better one.
+#
+# Silent below a couple of points, and silent entirely when nobody is worth
+# claiming, which is the usual answer in the week after a draft.
+name: Waiver coach
+
+on:
+  schedule:
+    # 16:00 UTC Tuesday — around 11am Central, after the recap has posted.
+    - cron: "0 16 * * 2"
+  workflow_dispatch:
+    inputs:
+      week:
+        description: "Force a week (defaults to ESPN's current)"
+        type: string
+      dry_run:
+        description: "Print what would be sent, without sending"
+        type: boolean
+        default: true
+
+jobs:
+  suggest:
+    name: Suggest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Suggest
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          PUSH_SECRET: ${{ secrets.PUSH_SECRET }}
+          ESPN_S2: ${{ secrets.ESPN_S2 }}
+          ESPN_SWID: ${{ secrets.ESPN_SWID }}
+          ESPN_LEAGUE_ID: ${{ secrets.ESPN_LEAGUE_ID }}
+          WAIVER_WEEK: ${{ inputs.week }}
+          DRY_RUN: ${{ inputs.dry_run && '1' || '' }}
+        run: |
+          if [ -z "$ESPN_S2" ]; then
+            echo "ESPN secrets are not set; nothing to suggest."
+            exit 0
+          fi
+          ./Scripts/waiver_coach.py

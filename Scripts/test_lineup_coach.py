@@ -78,5 +78,53 @@ class Projections(unittest.TestCase):
         self.assertEqual(coach.projection({"stats": []}, 1), 0.0)
 
 
+_wspec = importlib.util.spec_from_file_location(
+    "waiver", pathlib.Path(__file__).with_name("waiver_coach.py")
+)
+waiver = importlib.util.module_from_spec(_wspec)
+_wspec.loader.exec_module(waiver)
+
+
+class WaiverValue(unittest.TestCase):
+    """The point of the waiver coach: value is what a player adds to your
+    lineup, not what they project. Ranking by raw projection is how people end
+    up with a fourth running back they will never start."""
+
+    def setUp(self):
+        self.slots = [QB, RB, WR]
+
+    def test_a_great_player_at_a_position_you_are_strong_at_adds_nothing(self):
+        roster = [player("MyQB", 25, QB), player("MyRB", 15, RB), player("MyWR", 12, WR)]
+        before, _ = coach.best_lineup(roster, self.slots)
+        candidate = player("BackupQB", 20, QB)
+        self.assertEqual(waiver.value_added(roster, candidate, self.slots, before), 0)
+
+    def test_an_upgrade_is_worth_the_difference(self):
+        roster = [player("MyQB", 10, QB), player("MyRB", 15, RB), player("MyWR", 12, WR)]
+        before, _ = coach.best_lineup(roster, self.slots)
+        candidate = player("BetterQB", 18, QB)
+        self.assertEqual(waiver.value_added(roster, candidate, self.slots, before), 8)
+
+    def test_filling_an_empty_slot_is_worth_everything(self):
+        roster = [player("MyQB", 10, QB), player("MyRB", 15, RB)]
+        before, _ = coach.best_lineup(roster, self.slots)
+        candidate = player("AnyWR", 7, WR)
+        self.assertEqual(waiver.value_added(roster, candidate, self.slots, before), 7)
+
+    def test_the_upper_bound_never_understates_the_gain(self):
+        # The prefilter is only safe if it cannot discard a genuinely useful
+        # player, so the bound has to be at least the real gain.
+        roster = [player("MyQB", 10, QB), player("MyRB", 15, RB), player("MyWR", 12, WR)]
+        before, _ = coach.best_lineup(roster, self.slots)
+        weakest = min(p["points"] for p in roster)
+        for points in (5, 11, 14, 30):
+            candidate = player("Candidate", points, QB, RB, WR)
+            actual = waiver.value_added(roster, candidate, self.slots, before)
+            bound = waiver.upper_bound(candidate, weakest)
+            self.assertGreaterEqual(
+                bound, actual, f"bound {bound} understated real gain {actual}"
+            )
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
