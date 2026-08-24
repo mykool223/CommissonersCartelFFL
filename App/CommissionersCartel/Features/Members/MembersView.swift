@@ -4,12 +4,14 @@ import CartelCore
 enum MembersSection: String, TabSection {
     case roster
     case thread
+    case messages
     case trophies
 
     var title: String {
         switch self {
         case .roster: "Members"
         case .thread: "League thread"
+        case .messages: "Messages"
         case .trophies: "Trophy case"
         }
     }
@@ -18,6 +20,7 @@ enum MembersSection: String, TabSection {
         switch self {
         case .roster: "person.3"
         case .thread: "bubble.left.and.bubble.right"
+        case .messages: "envelope"
         case .trophies: "trophy"
         }
     }
@@ -36,6 +39,7 @@ struct MembersView: View {
                 switch section {
                 case .roster: roster
                 case .thread: LeagueChatView()
+                case .messages: DirectMessagesView()
                 case .trophies: TrophyCaseView()
                 }
             }

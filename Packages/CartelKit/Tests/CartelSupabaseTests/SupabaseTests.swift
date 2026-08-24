@@ -418,17 +418,23 @@ struct PushRepositoryTests {
 
     @Test("Turning everything off is reported as such")
     func nothingEnabled() {
-        // Every kind, not merely the ones that existed when this was
-        // written: the point of the check is that nothing is left on.
-        #expect(!NotificationPreferences(
-            messages: false, news: false, polls: false,
-            activity: false, lineup: false, matchups: false
-        ).isAnythingEnabled)
-        // And that any single kind still counts as "something on".
-        #expect(NotificationPreferences(
-            messages: false, news: false, polls: false,
-            activity: false, lineup: false, matchups: true
-        ).isAnythingEnabled)
+        #expect(!NotificationPreferences.none.isAnythingEnabled)
+        // And the other direction: one kind left on still counts.
+        var one = NotificationPreferences.none
+        one.matchups = true
+        #expect(one.isAnythingEnabled)
+    }
+
+    /// Guards the guard. This assertion has gone stale twice by being written
+    /// as a list of kinds, so it reflects over the properties instead: adding
+    /// a kind and forgetting `.none` now fails here rather than silently
+    /// weakening every other check that uses it.
+    @Test("`none` really means none, whatever kinds exist")
+    func noneCoversEveryKind() {
+        let leftOn = Mirror(reflecting: NotificationPreferences.none).children
+            .filter { ($0.value as? Bool) == true }
+            .compactMap(\.label)
+        #expect(leftOn.isEmpty, "still switched on in .none: \(leftOn)")
     }
 
     @Test("Unregistering deletes only this device's row")

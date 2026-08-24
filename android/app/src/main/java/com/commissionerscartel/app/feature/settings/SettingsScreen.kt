@@ -106,6 +106,9 @@ fun SettingsScreen(modifier: Modifier = Modifier, model: SettingsViewModel = vie
                 Toggle("My matchup", state.preferences.matchups) {
                     model.setPreferences(state.preferences.copy(matchups = it))
                 }
+                Toggle("Private messages", state.preferences.direct) {
+                    model.setPreferences(state.preferences.copy(direct = it))
+                }
                 Text(
                     "You won't be notified about your own posts.",
                     style = MaterialTheme.typography.bodySmall,

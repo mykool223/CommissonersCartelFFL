@@ -164,3 +164,24 @@ object Reactions {
             }
             .sortedByDescending { it.count }
 }
+
+@Serializable
+data class DirectMessage(
+    val id: String,
+    @SerialName("sender_id") val senderId: String,
+    @SerialName("recipient_id") val recipientId: String,
+    val body: String,
+    @SerialName("created_at") val createdAt: String,
+) {
+    /** The other party, whichever end of it you are. */
+    fun counterpart(me: String?): String =
+        if (senderId == me) recipientId else senderId
+}
+
+/** One conversation, folded down to what an inbox row needs. */
+data class Conversation(
+    val userId: String,
+    val displayName: String,
+    val lastMessage: String,
+    val lastAt: String,
+)

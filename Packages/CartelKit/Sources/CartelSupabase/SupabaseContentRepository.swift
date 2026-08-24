@@ -155,6 +155,26 @@ private struct RecapRow: Decodable {
     }
 }
 
+private struct DirectMessageRow: Decodable {
+    let id: UUID
+    let sender_id: UUID
+    let recipient_id: UUID
+    let body: String
+    let created_at: Date
+
+    var model: DirectMessage {
+        DirectMessage(
+            id: id, senderID: sender_id, recipientID: recipient_id,
+            body: body, createdAt: created_at
+        )
+    }
+}
+
+private struct MemberNameRow: Decodable {
+    let id: UUID
+    let display_name: String?
+}
+
 private struct ReactionRow: Decodable {
     let message_id: UUID
     let user_id: UUID
@@ -332,6 +352,35 @@ extension SupabaseContentRepository: LeagueChatRepository {
                 "message_id": "eq.\(messageID.uuidString.lowercased())",
                 "emoji": "eq.\(emoji)"
             ]
+        )
+    }
+
+    public func directMessages() async throws -> [DirectMessage] {
+        let rows: [DirectMessageRow] = try await client.select(
+            "direct_messages", query: ["select": "*", "order": "created_at.asc"]
+        )
+        return rows.map(\.model)
+    }
+
+    /// The sender is defaulted from the session in Postgres, so the client
+    /// never states who it is.
+    public func sendDirectMessage(to recipientID: UUID, body: String) async throws {
+        try await client.upsert(
+            "direct_messages",
+            values: [
+                "recipient_id": AnyEncodable(recipientID.uuidString.lowercased()),
+                "body": AnyEncodable(body)
+            ],
+            onConflict: "id"
+        )
+    }
+
+    public func memberNames() async throws -> [UUID: String] {
+        let rows: [MemberNameRow] = try await client.select(
+            "profiles", query: ["select": "id,display_name"]
+        )
+        return Dictionary(
+            uniqueKeysWithValues: rows.map { ($0.id, $0.display_name ?? "Someone") }
         )
     }
 

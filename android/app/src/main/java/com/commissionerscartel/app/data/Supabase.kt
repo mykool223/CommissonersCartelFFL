@@ -7,6 +7,7 @@ import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Order
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.add
 import kotlinx.serialization.json.buildJsonObject
@@ -54,6 +55,30 @@ object Supabase {
             limit(limit)
         }.decodeList()
 
+    /**
+     * Every message you are party to. Row level security returns only those,
+     * so there is no filter here — and could not usefully be one.
+     */
+    suspend fun directMessages(): List<DirectMessage> =
+        client.from("direct_messages").select {
+            order("created_at", Order.ASCENDING)
+        }.decodeList()
+
+    suspend fun sendDirectMessage(recipientId: String, body: String) {
+        client.from("direct_messages").insert(
+            buildJsonObject {
+                put("recipient_id", recipientId)
+                put("body", body)
+            }
+        )
+    }
+
+    /** Display names for everyone who has signed in, for conversation titles. */
+    suspend fun profiles(): Map<String, String> =
+        client.from("profiles").select { }
+            .decodeList<ProfileRow>()
+            .associate { it.id to (it.display_name ?: "Someone") }
+
     suspend fun reactions(): List<MessageReaction> =
         client.from("message_reactions").select().decodeList()
 
@@ -76,6 +101,9 @@ object Supabase {
             }
         }
     }
+
+    @Serializable
+    private data class ProfileRow(val id: String, val display_name: String? = null)
 
     /** The trophy case. Empty until the first week is in the books. */
     suspend fun trophies(season: Int): List<Trophy> =

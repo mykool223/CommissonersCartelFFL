@@ -23,6 +23,7 @@
 		507E57CB1AC3A1CCA0648BDE /* KeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 457FE48CBCFD9A680A7A0B00 /* KeychainStore.swift */; };
 		52336F7120F8E612A2A04EBB /* MemberDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C25E5646CF454142CCA9E361 /* MemberDetailView.swift */; };
 		65F8592486F245A19B3066DF /* CommissionersCartelApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D256F9DE3A680438DD5AE32 /* CommissionersCartelApp.swift */; };
+		66CE10332C3B33895DF06ACC /* DirectMessagesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28FB8B90A46A708C9F913DC0 /* DirectMessagesView.swift */; };
 		69D52231B9DEDFA927F00B5C /* TrophyCaseViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD5373CBFCE6F0C8E3596250 /* TrophyCaseViewModel.swift */; };
 		6B997AC61DA6A4FF0F83170F /* SplashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FCB96C6D0B45F65D335B2F0 /* SplashView.swift */; };
 		6BE2AE9F104DD5C28320496A /* TeamLogoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAE8F39CCE2C0B567F46F6B9 /* TeamLogoView.swift */; };
@@ -46,6 +47,7 @@
 		DA7D2E35F52A48FB6402D851 /* WeeklyRecapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EB1DB5778A90FE77F80CEA1 /* WeeklyRecapView.swift */; };
 		DF1DC7BCF83E1E3EE2256B45 /* StateViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6169B7B9F9F50A43F4E6F14A /* StateViews.swift */; };
 		E5332F1273FE03A1F9CDE25E /* Formatters.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15561B9A02063BAAA0B9131 /* Formatters.swift */; };
+		EC08F06B3C701F7F9467EBA4 /* DirectMessagesViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBEE9BFA48CE65F2C9E3693E /* DirectMessagesViewModel.swift */; };
 		F6692FE43393690B2EBCF429 /* LeagueChatViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2E30CCCA2596F1DD148C54D /* LeagueChatViewModel.swift */; };
 /* End PBXBuildFile section */
 
@@ -55,6 +57,7 @@
 		1B1DCADEB27EFF3B6943804B /* CreatePollView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatePollView.swift; sourceTree = "<group>"; };
 		1E4D03F3F048E702B1FEEE14 /* PollsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PollsViewModel.swift; sourceTree = "<group>"; };
 		1E86DC157594C0AA807FB016 /* ClaimTeamView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaimTeamView.swift; sourceTree = "<group>"; };
+		28FB8B90A46A708C9F913DC0 /* DirectMessagesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DirectMessagesView.swift; sourceTree = "<group>"; };
 		2BB2006E986A9040A4FFD91A /* NewsFeedViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewsFeedViewModel.swift; sourceTree = "<group>"; };
 		2EF49E1E081A6ADE03F5E2DA /* NotificationSettingsSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationSettingsSection.swift; sourceTree = "<group>"; };
 		35CEFE01E58DE2DE8ABEEB51 /* CartelKit */ = {isa = PBXFileReference; lastKnownFileType = folder; name = CartelKit; path = Packages/CartelKit; sourceTree = SOURCE_ROOT; };
@@ -78,6 +81,7 @@
 		A2E30CCCA2596F1DD148C54D /* LeagueChatViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LeagueChatViewModel.swift; sourceTree = "<group>"; };
 		AB9171C63B6603835C7B65EE /* StandingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StandingsView.swift; sourceTree = "<group>"; };
 		B49C2F69739A05DA6E30EFDB /* AppEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppEnvironment.swift; sourceTree = "<group>"; };
+		BBEE9BFA48CE65F2C9E3693E /* DirectMessagesViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DirectMessagesViewModel.swift; sourceTree = "<group>"; };
 		BF7395A6303E9F6392B366FC /* MatchupsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MatchupsView.swift; sourceTree = "<group>"; };
 		C25E5646CF454142CCA9E361 /* MemberDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemberDetailView.swift; sourceTree = "<group>"; };
 		C30309D2144830C532881002 /* PushRegistrar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushRegistrar.swift; sourceTree = "<group>"; };
@@ -216,6 +220,8 @@
 		C08B9EA5507AD32736322DFE /* Members */ = {
 			isa = PBXGroup;
 			children = (
+				28FB8B90A46A708C9F913DC0 /* DirectMessagesView.swift */,
+				BBEE9BFA48CE65F2C9E3693E /* DirectMessagesViewModel.swift */,
 				92F9DFF754F1EE3C1BB8A50F /* LeagueChatView.swift */,
 				A2E30CCCA2596F1DD148C54D /* LeagueChatViewModel.swift */,
 				C25E5646CF454142CCA9E361 /* MemberDetailView.swift */,
@@ -349,6 +355,8 @@
 				9B31A35278D954D5A2CDB369 /* ClaimTeamView.swift in Sources */,
 				65F8592486F245A19B3066DF /* CommissionersCartelApp.swift in Sources */,
 				A5492B9492A9D86A52D247D2 /* CreatePollView.swift in Sources */,
+				66CE10332C3B33895DF06ACC /* DirectMessagesView.swift in Sources */,
+				EC08F06B3C701F7F9467EBA4 /* DirectMessagesViewModel.swift in Sources */,
 				E5332F1273FE03A1F9CDE25E /* Formatters.swift in Sources */,
 				507E57CB1AC3A1CCA0648BDE /* KeychainStore.swift in Sources */,
 				C7B013AA42E98992D0791121 /* LeagueChatView.swift in Sources */,

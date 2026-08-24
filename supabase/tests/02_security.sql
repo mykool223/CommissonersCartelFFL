@@ -307,6 +307,60 @@ delete from vault.decrypted_secrets;
 delete from net.sent;
 
 \echo ''
+\echo '--- direct messages ---'
+reset role;
+
+-- The second party to the conversation, created before any impersonation:
+-- auth.users is not writable from a restricted role.
+insert into auth.users (id, email)
+values ('44444444-4444-4444-4444-444444444444', 'second@example.com')
+on conflict do nothing;
+insert into public.profiles (id, display_name)
+values ('44444444-4444-4444-4444-444444444444', 'Second Member')
+on conflict do nothing;
+
+set role authenticated;
+
+do $$
+declare
+    member   constant text := '22222222-2222-2222-2222-222222222222';
+    outsider constant text := '33333333-3333-3333-3333-333333333333';
+    other    constant uuid := '44444444-4444-4444-4444-444444444444';
+begin
+    perform set_config('request.jwt.claim.sub', member, true);
+    insert into public.direct_messages (recipient_id, body) values (other, 'Just between us.');
+
+    perform assert((select count(*) from public.direct_messages) = 1,
+                   'the sender sees their own message');
+
+    -- The whole point of the table.
+    perform set_config('request.jwt.claim.sub', outsider, true);
+    perform assert((select count(*) from public.direct_messages) = 0,
+                   'a third member cannot read someone else''s conversation');
+
+    perform assert(blocked($q$
+        insert into public.direct_messages (sender_id, recipient_id, body)
+        values ('22222222-2222-2222-2222-222222222222',
+                '22222222-2222-2222-2222-222222222222', 'forged') $q$),
+        'a member cannot send a message as somebody else');
+
+    perform set_config('request.jwt.claim.sub', member, true);
+    perform assert(blocked($q$
+        insert into public.direct_messages (recipient_id, body)
+        values ('22222222-2222-2222-2222-222222222222', 'talking to myself') $q$),
+        'a member cannot message themselves');
+
+    perform assert(blocked($q$
+        update public.direct_messages set body = 'I never said that' $q$)
+        or (select count(*) from public.direct_messages
+             where body = 'I never said that') = 0,
+        'a sender cannot edit a message after sending it');
+end $$;
+
+reset role;
+delete from public.direct_messages;
+
+\echo ''
 \echo '--- anon (the key shipped in the app) ---'
 reset role;
 set role anon;

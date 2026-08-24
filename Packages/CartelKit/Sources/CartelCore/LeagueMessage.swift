@@ -89,6 +89,12 @@ public protocol LeagueChatRepository: Sendable {
     func addReaction(messageID: UUID, emoji: String) async throws
     func removeReaction(messageID: UUID, emoji: String) async throws
 
+    /// Every message you are party to. Row level security returns only those.
+    func directMessages() async throws -> [DirectMessage]
+    func sendDirectMessage(to recipientID: UUID, body: String) async throws
+    /// Display names, for conversation titles.
+    func memberNames() async throws -> [UUID: String]
+
     /// Links the signed-in account to an ESPN member. ESPN publishes no email
     /// addresses, so this cannot be worked out automatically — the member picks
     /// their team once.

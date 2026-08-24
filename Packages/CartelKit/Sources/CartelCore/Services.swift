@@ -146,8 +146,18 @@ public struct NotificationPreferences: Equatable, Sendable {
     public var lineup: Bool
     /// Lead changes and final scores in your own fixture.
     public var matchups: Bool
+    /// Private messages from another member.
+    public var direct: Bool
 
     public static let all = NotificationPreferences()
+
+    /// Everything off. Defined next to the properties so adding a kind and
+    /// forgetting this is one edit away rather than one file away — and there
+    /// is a test that catches it if you do.
+    public static let none = NotificationPreferences(
+        messages: false, news: false, polls: false,
+        activity: false, lineup: false, matchups: false, direct: false
+    )
 
     public init(
         messages: Bool = true,
@@ -155,7 +165,8 @@ public struct NotificationPreferences: Equatable, Sendable {
         polls: Bool = true,
         activity: Bool = true,
         lineup: Bool = true,
-        matchups: Bool = true
+        matchups: Bool = true,
+        direct: Bool = true
     ) {
         self.messages = messages
         self.news = news
@@ -163,9 +174,10 @@ public struct NotificationPreferences: Equatable, Sendable {
         self.activity = activity
         self.lineup = lineup
         self.matchups = matchups
+        self.direct = direct
     }
 
     public var isAnythingEnabled: Bool {
-        messages || news || polls || activity || lineup || matchups
+        messages || news || polls || activity || lineup || matchups || direct
     }
 }

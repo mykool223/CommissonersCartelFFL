@@ -33,6 +33,7 @@ const PREFERENCE_COLUMN: Record<string, string> = {
     activity: "activity",
     lineup: "lineup",
     matchup: "matchups",
+    direct: "direct",
 };
 
 /** The tab to open when the notification is tapped. */
@@ -45,6 +46,9 @@ const DESTINATION: Record<string, string> = {
     // A lineup warning is about this week's fixture.
     lineup: "matchups",
     matchup: "matchups",
+    // A DM opens the Members tab, where conversations live. This is a tab
+    // name, not a kind — they are not interchangeable.
+    direct: "members",
 };
 
 function base64URL(bytes: Uint8Array): string {

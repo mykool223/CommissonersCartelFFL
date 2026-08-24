@@ -8,11 +8,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import com.commissionerscartel.app.feature.direct.DirectMessagesScreen
 import com.commissionerscartel.app.ui.SectionPicker
 
 enum class MembersSection(val label: String) {
     Roster("Roster"),
     Thread("League thread"),
+    Messages("Messages"),
     Trophies("Trophy case"),
 }
 
@@ -31,6 +33,7 @@ fun MembersHost(modifier: Modifier = Modifier, onOpen: (MemberEntry) -> Unit) {
         when (section) {
             MembersSection.Roster -> MembersScreen(onOpen = onOpen)
             MembersSection.Thread -> LeagueThreadScreen()
+            MembersSection.Messages -> DirectMessagesScreen()
             MembersSection.Trophies -> TrophyCaseScreen()
         }
     }
