@@ -238,6 +238,14 @@ begin
 
     perform assert((select count(*) from public.device_tokens) = 1,
                    'a member sees their own device token');
+    -- Existing rows predate Android, so the default has to be iOS or every
+    -- iPhone in the league silently stops being sent to.
+    perform assert((select platform from public.device_tokens where token = 'token-member') = 'ios',
+                   'a device registered without a platform is treated as iOS');
+    perform assert(blocked($q$
+        insert into public.device_tokens (token, user_id, platform)
+        values ('bad', '22222222-2222-2222-2222-222222222222', 'windows-phone') $q$),
+        'an unknown platform is refused');
 
     -- A device token is a push address. Another member holding it could
     -- send to that device, so the row must be invisible across users.

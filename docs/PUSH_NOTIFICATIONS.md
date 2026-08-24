@@ -29,10 +29,12 @@ api.push.apple.com
 | `PUSH_SECRET` | function secret + Vault `push_service_key` | set |
 | `push_function_url` | Vault | set |
 | `aps-environment` entitlement | `Resources/CommissionersCartel.entitlements` | in the next build |
-| **APNs key** | `APNS_KEY_ID`, `APNS_TEAM_ID`, `APNS_PRIVATE_KEY` | **not set — see below** |
+| **APNs key** (iOS) | `APNS_KEY_ID`, `APNS_TEAM_ID`, `APNS_PRIVATE_KEY` | **not set — see below** |
+| **Firebase service account** (Android) | `FCM_SERVICE_ACCOUNT` | **not set — see below** |
 
-Until the APNs key is set the chain runs end to end and delivers nothing: the
-function has no credential to authenticate to Apple with.
+Each platform is configured independently. A platform with no credentials is
+skipped with a warning in the function logs rather than failing the send, so
+iOS can go live before Android exists and vice versa.
 
 ## Creating the APNs key
 
@@ -58,6 +60,26 @@ supabase secrets set \
 
 Keep the `.p8` somewhere safe and out of the repo; `supabase secrets` is the
 only copy the server needs.
+
+## Android
+
+Android devices are pushed through Firebase Cloud Messaging. The same trigger,
+the same function, the same preferences — only the credential and the wire
+format differ, so a message reaches both platforms from one insert.
+
+1. Create a project at <https://console.firebase.google.com> (free).
+2. Add an **Android app** with package name `com.commissionerscartel.app`.
+   Download `google-services.json` into the Android project.
+3. **Project settings → Service accounts → Generate new private key**. This
+   downloads a JSON file.
+4. Load it as one secret:
+
+```sh
+supabase secrets set FCM_SERVICE_ACCOUNT="$(cat ~/Downloads/cartel-firebase-adminsdk.json)"
+```
+
+The function reads `project_id` and `client_email` out of that JSON and mints
+its own OAuth token, so nothing else needs configuring.
 
 ## Sandbox versus production
 

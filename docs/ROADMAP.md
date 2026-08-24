@@ -2,41 +2,49 @@
 
 Rough order, most useful first. Nothing here is committed to a date.
 
-## Next: sign-in
+## Next: an Android app
 
-Everything else is blocked on this. Today the app talks to Supabase with the
-anon key and no session, which means **row level security returns nothing** —
-that's why the News and Polls tabs run on mock data until you're authenticated.
+Four or more of the twelve are on Android, which is too many to leave out.
 
-The plan:
+**Nothing server-side has to change.** The 15 migrations, row level security,
+the invite allowlist, magic-link auth, the ESPN proxy, the push trigger, the
+bios and the polls are all plain Postgres and HTTP. An Android client talks to
+the identical backend. The groundwork that *was* needed is already done:
+`device_tokens.platform` exists and `supabase/functions/push` sends through
+Firebase as well as APNs.
 
-- Magic-link email auth (a 12-person league doesn't need passwords)
-- A `SupabaseAuth` type wrapping the GoTrue REST endpoints, matching how
-  `SupabaseClient` already wraps PostgREST
-- Store the refresh token in the Keychain — `KeychainStore` already exists
-- Feed the access token into `SupabaseClient`'s existing `accessToken` closure,
-  which is already threaded through and used on every request
+What has to be built, in Kotlin and Jetpack Compose:
 
-The client seam is already in place; this is mostly the auth flow and a sign-in
-screen.
+- The five tabs (News, Matchups, Polls, Members, Settings), member detail, the
+  league thread, poll voting and creation
+- Supabase's official Kotlin SDK replaces most of `CartelSupabase` by hand
+- An ESPN client — a port of `CartelESPN`, keeping the quirks it documents:
+  SVG logos that will not decode, `playoffSeed = 0` meaning "no seed yet",
+  timestamps that arrive without seconds
+- `EncryptedSharedPreferences` where iOS uses the Keychain
+- An intent filter for the magic-link callback
+- Firebase Cloud Messaging registration, writing `platform = 'android'`
 
-## Then: writing content from the app
+It is a rewrite of the client, not a redesign: every product decision is
+already made and every backend contract is already fixed.
 
-The app is read-only today — posts and polls are created in the Supabase SQL
-editor, which is fine for the commissioner and no good for anyone else.
+**Distribution is easier than iOS.** Google Play is $25 once rather than $99 a
+year, and for twelve people an APK can be handed out directly — no store, no
+review, and none of TestFlight's 90-day expiry.
 
-- Compose a news post (commissioner only)
-- Create a poll with options
-- Write a recap from a matchup, pre-filled with the two team names
-- `ContentRepository` grows write methods; RLS already allows all of this
+**Prerequisites:** Android Studio, and a Firebase project for push (both free).
+See [PUSH_NOTIFICATIONS.md](PUSH_NOTIFICATIONS.md#android).
 
-## Push notifications
+## Done
 
-The obvious moments: a new post, a poll opening, a poll about to close, and
-Sunday's final scores.
-
-Needs an Apple Developer account, APNs keys, and a Supabase edge function
-triggered on insert. Worth doing once people actually use the app.
+- **Sign-in** — magic link plus a 6-digit code, sessions in the Keychain,
+  restricted to an invite list of league email addresses
+- **Writing content from the app** — members create polls; the league thread
+  is read/write. Composing news posts from the app is still open (issue #6)
+- **Push notifications** — league messages, news and polls, fired by database
+  triggers so a hand-written insert notifies everyone too. Needs an APNs key
+  before anything is delivered
+- **Weekly awards, NFL scores, team bios, divisions, team logos**
 
 ## Smaller things worth doing
 
