@@ -17,6 +17,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import com.commissionerscartel.app.R
@@ -49,7 +51,13 @@ fun NewsScreen(modifier: Modifier = Modifier, model: NewsViewModel = viewModel()
                     androidx.compose.foundation.Image(
                         painter = painterResource(R.drawable.league_crest),
                         contentDescription = null,
-                        modifier = Modifier.size(180.dp).padding(bottom = 8.dp),
+                        // Rounded like an app icon rather than a bare square.
+                        // 22% of the side is roughly what iOS uses for its
+                        // icon corners, so the two read the same.
+                        modifier = Modifier
+                            .padding(bottom = 8.dp)
+                            .size(180.dp)
+                            .clip(RoundedCornerShape(40.dp)),
                     )
                 }
             }

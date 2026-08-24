@@ -23,7 +23,7 @@ import com.commissionerscartel.app.feature.members.MemberEntry
 import com.commissionerscartel.app.feature.members.MemberDetailScreen
 import com.commissionerscartel.app.feature.members.MembersHost
 import com.commissionerscartel.app.feature.news.NewsHost
-import com.commissionerscartel.app.feature.matchups.MatchupsScreen
+import com.commissionerscartel.app.feature.matchups.MatchupsHost
 import com.commissionerscartel.app.feature.polls.PollsScreen
 import com.commissionerscartel.app.feature.settings.SettingsScreen
 
@@ -65,7 +65,7 @@ fun RootScreen() {
         val inner = Modifier.padding(padding)
         when (selected) {
             Tab.News -> NewsHost(inner)
-            Tab.Matchups -> MatchupsScreen(inner)
+            Tab.Matchups -> MatchupsHost(inner)
             Tab.Polls -> PollsScreen(inner)
             Tab.Members -> MembersHost(inner, onOpen = { openMember = it })
             Tab.Settings -> SettingsScreen(inner)

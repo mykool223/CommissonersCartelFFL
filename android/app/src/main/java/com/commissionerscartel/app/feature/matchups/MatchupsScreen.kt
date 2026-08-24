@@ -32,58 +32,44 @@ import com.commissionerscartel.app.ui.TeamLogo
 import java.util.Locale
 
 @Composable
-fun MatchupsScreen(modifier: Modifier = Modifier, model: MatchupsViewModel = viewModel()) {
-    val state by model.state.collectAsStateWithLifecycle()
-
-    when (val current = state) {
-        is MatchupsState.Loading -> Box(modifier.fillMaxSize(), Alignment.Center) {
-            CircularProgressIndicator()
+fun ScoreboardSection(data: MatchupsData) {
+    LazyColumn(
+        Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        item {
+            Text(
+                "WEEK ${data.week}",
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+                color = CartelGold,
+            )
         }
-
-        is MatchupsState.Failed -> Box(modifier.fillMaxSize().padding(24.dp), Alignment.Center) {
-            Text(current.message, style = MaterialTheme.typography.bodyMedium)
+        if (data.matchups.isEmpty()) {
+            item { Text("No fixtures for this week yet.", style = MaterialTheme.typography.bodyMedium) }
         }
+        items(data.matchups.size) { index -> MatchupCard(data.matchups[index], data.teams) }
+    }
+}
 
-        is MatchupsState.Loaded -> LazyColumn(
-            modifier.fillMaxSize(),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            item {
-                Text(
-                    "WEEK ${current.data.week}",
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = CartelGold,
-                )
-            }
-
-            if (current.data.matchups.isEmpty()) {
-                item {
-                    Text(
-                        "No fixtures for this week yet.",
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                }
-            }
-
-            items(current.data.matchups.size) { index ->
-                MatchupCard(current.data.matchups[index], current.data.teams)
-            }
-
-            if (current.data.nfl.isNotEmpty()) {
-                item {
-                    Text(
-                        "AROUND THE NFL",
-                        Modifier.padding(top = 20.dp),
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = CartelGold,
-                    )
-                }
-                items(current.data.nfl.size) { index -> NflRow(current.data.nfl[index]) }
-            }
+@Composable
+fun NflSection(data: MatchupsData) {
+    if (data.nfl.isEmpty()) {
+        Box(Modifier.fillMaxSize().padding(32.dp), Alignment.Center) {
+            Text(
+                "No NFL games to show right now.",
+                style = MaterialTheme.typography.bodyMedium,
+            )
         }
+        return
+    }
+    LazyColumn(
+        Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        items(data.nfl.size) { index -> NflRow(data.nfl[index]) }
     }
 }
 

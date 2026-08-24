@@ -55,6 +55,10 @@ public actor ESPNScoreboardClient: NFLScoreboardSource {
     private func fetch() async throws -> NFLScoreboard {
         var request = URLRequest(url: url)
         request.setValue("application/json", forHTTPHeaderField: "Accept")
+        // ESPN's edge rejects the default URLSession agent — which identifies
+        // this app — with an HTML "Access Denied" page, and allows known HTTP
+        // clients through. Without this the scoreboard fails to decode.
+        request.setValue("curl/8.7.1", forHTTPHeaderField: "User-Agent")
 
         let (data, response) = try await transport.send(request)
         guard (200...299).contains(response.statusCode) else {

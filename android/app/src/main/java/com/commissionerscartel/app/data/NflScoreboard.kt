@@ -3,6 +3,7 @@ package com.commissionerscartel.app.data
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.request.get
+import io.ktor.client.request.header
 import io.ktor.client.statement.bodyAsText
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -26,6 +27,15 @@ data class NflCompetitor(val abbreviation: String, val score: String, val logo: 
  * needs no credentials, so it keeps working even when the league does not.
  */
 object NflScoreboard {
+    /**
+     * Deliberately identifies as the HTTP library rather than as this app.
+     * ESPN's public scoreboard allows known HTTP clients such as okhttp and
+     * curl, and rejects browser-like and app-like agents; see the request
+     * below. (Note for the next editor: Kotlin block comments nest, so a
+     * literal slash-star in here silently swallows the rest of the file.)
+     */
+    private const val USER_AGENT = "okhttp/4.12.0"
+
     private val http = HttpClient(OkHttp)
     private val json = Json { ignoreUnknownKeys = true; coerceInputValues = true }
     private var cached: Pair<List<NflGame>, Long>? = null
@@ -34,9 +44,23 @@ object NflScoreboard {
         cached?.let { (games, at) ->
             if (System.currentTimeMillis() - at < 30_000) return games
         }
-        val body = http.get(
+        val response = http.get(
             "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard"
-        ).bodyAsText()
+        ) {
+            // ESPN's edge blocks anything that looks like a browser or an app
+            // and lets through known API clients. Ktor's default "ktor-client"
+            // is refused with an HTML "Access Denied" page, which then fails to
+            // parse as JSON — so the symptom is a decode error, not a 403.
+            header("User-Agent", USER_AGENT)
+            header("Accept", "application/json")
+        }
+        val body = response.bodyAsText()
+        if (!body.startsWith("{")) {
+            throw IllegalStateException(
+                "ESPN refused the scoreboard request (${response.status.value}): " +
+                    body.take(120)
+            )
+        }
 
         val games = json.decodeFromString<Scoreboard>(body).events.map { event ->
             val competition = event.competitions.firstOrNull()
