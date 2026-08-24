@@ -15,7 +15,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import com.commissionerscartel.app.R
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -39,6 +43,16 @@ fun NewsScreen(modifier: Modifier = Modifier, model: NewsViewModel = viewModel()
             contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            // The crest heads the feed, the same as iOS.
+            item(key = "crest") {
+                Box(Modifier.fillMaxWidth(), Alignment.Center) {
+                    androidx.compose.foundation.Image(
+                        painter = painterResource(R.drawable.league_crest),
+                        contentDescription = null,
+                        modifier = Modifier.size(180.dp).padding(bottom = 8.dp),
+                    )
+                }
+            }
             items(current.posts, key = { it.id }) { PostCard(it) }
         }
     }
