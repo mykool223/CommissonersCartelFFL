@@ -51,7 +51,7 @@ final class CoachViewModel {
                 ?? (body?["error"] as? String)
                 ?? "No answer came back."
         } catch {
-            return "I couldn't reach the coach just now."
+            return "Coach Madden isn't answering just now."
         }
     }
 }

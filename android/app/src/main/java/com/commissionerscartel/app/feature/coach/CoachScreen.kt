@@ -32,7 +32,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import com.commissionerscartel.app.R
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.commissionerscartel.app.ui.CartelGold
@@ -54,9 +57,15 @@ fun CoachScreen(modifier: Modifier = Modifier, model: CoachViewModel = viewModel
         if (state.turns.isEmpty() && !state.busy) {
             Box(Modifier.weight(1f).fillMaxWidth().padding(24.dp), Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(
+                        painterResource(R.drawable.ic_coach),
+                        contentDescription = null,
+                        tint = CartelGold,
+                        modifier = Modifier.size(40.dp).padding(bottom = 10.dp),
+                    )
                     Text(
-                        "Ask about your own team. I have your roster and this " +
-                            "week's projections in front of me.",
+                        "Ask about your own team. He has your roster and this " +
+                            "week's projections in front of him.",
                         style = MaterialTheme.typography.bodyMedium,
                         textAlign = TextAlign.Center,
                     )
@@ -79,7 +88,7 @@ fun CoachScreen(modifier: Modifier = Modifier, model: CoachViewModel = viewModel
                             verticalArrangement = Arrangement.spacedBy(4.dp),
                         ) {
                             Text(
-                                if (turn.fromCoach) "THE COACH" else "YOU",
+                                if (turn.fromCoach) "COACH MADDEN" else "YOU",
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = if (turn.fromCoach) CartelGold
@@ -117,7 +126,7 @@ fun CoachScreen(modifier: Modifier = Modifier, model: CoachViewModel = viewModel
             OutlinedTextField(
                 value = draft,
                 onValueChange = { draft = it },
-                placeholder = { Text("Ask the coach") },
+                placeholder = { Text("Ask Coach Madden") },
                 modifier = Modifier.weight(1f),
                 maxLines = 3,
             )

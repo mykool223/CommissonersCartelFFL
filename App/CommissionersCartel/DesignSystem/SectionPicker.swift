@@ -7,6 +7,12 @@ protocol TabSection: Hashable, CaseIterable, Identifiable where AllCases: Random
 }
 
 extension TabSection {
+    /// SF Symbol by default. A section with a drawn icon overrides this —
+    /// no symbol set has a cap and shades.
+    var icon: Image { Image(systemName: systemImage) }
+}
+
+extension TabSection {
     var id: Self { self }
 }
 
@@ -44,7 +50,7 @@ struct SectionPicker<Section: TabSection>: View {
             // which a plain list of buttons would not.
             Picker("Section", selection: $selection) {
                 ForEach(Section.allCases) { section in
-                    Label(section.title, systemImage: section.systemImage)
+                    Label { Text(section.title) } icon: { section.icon }
                         .tag(section)
                 }
             }

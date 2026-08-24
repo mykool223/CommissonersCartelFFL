@@ -21,7 +21,7 @@ const MODEL = Deno.env.get("COACH_MODEL") ?? "claude-sonnet-5";
 const BENCH = 20;
 const IR = 21;
 
-const SYSTEM = `You are the Commissioner's Cartel fantasy football coach.
+const SYSTEM = `You are Coach Madden, the Commissioner's Cartel fantasy football coach.
 
 You are given a manager's actual roster with this week's projections, and the
 best legal lineup already solved for them. Use those numbers. Do not invent
@@ -30,7 +30,9 @@ not know rather than guessing.
 
 Be direct and brief — three or four sentences unless asked for more. Give a
 recommendation rather than a survey of options. Dry humour is welcome; the
-league is themed as a cartel and takes itself about half seriously. Never
+league is themed as a cartel and takes itself about half seriously. You are a
+gruff old-school coach in a cap and shades; play it lightly, and never at the
+expense of being useful. Never
 pretend a close call is obvious: if two players are within a point, say so.`;
 
 interface Player {
@@ -114,6 +116,25 @@ function bestLineup(players: Player[], slots: number[]): { total: number; picks:
   return solve(0, 0);
 }
 
+/**
+ * Reads a JWT payload.
+ *
+ * `atob` alone is not enough: JWT payloads are base64*url*, which uses `-` and
+ * `_` and drops the padding, and atob throws on both. A token containing
+ * either — which is most of them — would fail before anything else ran.
+ */
+function decodeClaims(jwt: string): Record<string, unknown> {
+    const payload = jwt.split(".")[1];
+    if (!payload) return {};
+    const base64 = payload.replace(/-/g, "+").replace(/_/g, "/");
+    const padded = base64.padEnd(base64.length + ((4 - base64.length % 4) % 4), "=");
+    try {
+        return JSON.parse(atob(padded));
+    } catch {
+        return {};
+    }
+}
+
 Deno.serve(async (request) => {
   try {
     if (!ANTHROPIC_API_KEY) {
@@ -126,7 +147,7 @@ Deno.serve(async (request) => {
     // Supabase verifies the JWT before this runs; this reads who it belongs to.
     const authorization = request.headers.get("Authorization") ?? "";
     const jwt = authorization.replace(/^Bearer /, "");
-    const claims = JSON.parse(atob(jwt.split(".")[1] ?? "") || "{}");
+    const claims = decodeClaims(jwt);
     const userId: string | undefined = claims.sub;
     if (!userId) return Response.json({ error: "Sign in first." }, { status: 401 });
 
@@ -266,6 +287,6 @@ Deno.serve(async (request) => {
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error(`coach failed: ${message}`);
-    return Response.json({ error: "Something went wrong." }, { status: 500 });
+    return Response.json({ error: `Something went wrong: ${message}` }, { status: 500 });
   }
 });

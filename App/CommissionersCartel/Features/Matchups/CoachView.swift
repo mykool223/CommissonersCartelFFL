@@ -1,7 +1,7 @@
 import SwiftUI
 import CartelCore
 
-/// Ask about your own team.
+/// Coach Madden: ask about your own team.
 ///
 /// The function behind this is given the real roster, the real projections and
 /// the solved best lineup — it reasons about numbers rather than recalling
@@ -21,10 +21,10 @@ struct CoachView: View {
         VStack(spacing: 0) {
             if model.turns.isEmpty && !model.isBusy {
                 ContentUnavailableView {
-                    Label("Ask the coach", systemImage: "brain")
+                    Label("Coach Madden", image: "CoachIcon")
                 } description: {
-                    Text("Ask about your own team. It has your roster and this "
-                         + "week's projections in front of it.")
+                    Text("Ask about your own team. He has your roster and this "
+                         + "week's projections in front of him.")
                 }
             } else {
                 ScrollViewReader { proxy in
@@ -33,7 +33,7 @@ struct CoachView: View {
                             ForEach(model.turns) { turn in
                                 Card {
                                     VStack(alignment: .leading, spacing: 4) {
-                                        Text(turn.isCoach ? "THE COACH" : "YOU")
+                                        Text(turn.isCoach ? "COACH MADDEN" : "YOU")
                                             .font(.caption2.weight(.bold))
                                             .foregroundStyle(
                                                 turn.isCoach ? Color.brand : .secondary
@@ -77,7 +77,7 @@ struct CoachView: View {
             }
 
             HStack(spacing: Theme.Spacing.small) {
-                TextField("Ask the coach", text: $draft, axis: .vertical)
+                TextField("Ask Coach Madden", text: $draft, axis: .vertical)
                     .lineLimit(1...3)
                     .padding(.horizontal, Theme.Spacing.medium)
                     .padding(.vertical, Theme.Spacing.small)

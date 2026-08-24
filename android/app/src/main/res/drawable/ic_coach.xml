@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Coach Madden: a cap and shades. Drawn rather than borrowed, because no
+     system icon set has one and a football emoji is not a character. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- cap crown -->
+    <path android:fillColor="#FF000000"
+        android:pathData="M4,10.5 C4,6.4 7.6,3.2 12,3.2 C16.4,3.2 20,6.4 20,10.5 Z" />
+    <!-- brim -->
+    <path android:fillColor="#FF000000"
+        android:pathData="M2.2,10.6 C2.2,10.0 2.7,9.6 3.3,9.6 L20.7,9.6 C21.3,9.6 21.8,10.0 21.8,10.6 C21.8,11.8 20.6,12.6 19.1,12.6 L4.9,12.6 C3.4,12.6 2.2,11.8 2.2,10.6 Z" />
+    <!-- lenses -->
+    <path android:fillColor="#FF000000"
+        android:pathData="M7.9,14.3 a2.75,2.75 0 1 0 0.01,0 z" />
+    <path android:fillColor="#FF000000"
+        android:pathData="M16.1,14.3 a2.75,2.75 0 1 0 0.01,0 z" />
+    <!-- bridge -->
+    <path android:fillColor="#FF000000"
+        android:pathData="M10.5,16.5 L13.5,16.5 L13.5,17.4 L10.5,17.4 Z" />
+</vector>
