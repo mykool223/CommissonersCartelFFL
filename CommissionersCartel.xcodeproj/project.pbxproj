@@ -469,7 +469,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = App/CommissionersCartel/Resources/CommissionersCartel.entitlements;
+				CODE_SIGN_ENTITLEMENTS = App/CommissionersCartel/Resources/CommissionersCartelRelease.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = "$(DEVELOPMENT_TEAM)";

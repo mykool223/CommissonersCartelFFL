@@ -16,6 +16,13 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
+# Command Line Tools cannot archive, and `xcode-select` often points at them
+# on a machine that also builds from the terminal. Pick Xcode explicitly
+# rather than depending on whatever the global setting happens to be.
+if [ -z "${DEVELOPER_DIR:-}" ] && [ -d /Applications/Xcode.app ]; then
+  export DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer
+fi
+
 UPLOAD=true
 [ "${1:-}" = "--no-upload" ] && UPLOAD=false
 
@@ -38,6 +45,8 @@ echo "==> Team $TEAM"
 BUILD_NUMBER=$(date +%Y%m%d%H%M)
 echo "==> Build $BUILD_NUMBER"
 
+PROFILE="iOS Team Store Provisioning Profile: com.commissionerscartel.app"
+
 rm -rf "$ARCHIVE"
 echo "==> Archiving"
 # -allowProvisioningUpdates is needed on the archive too, not only the export:
@@ -52,6 +61,63 @@ xcodebuild archive \
   CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
   -allowProvisioningUpdates \
   -quiet
+
+# Automatic signing archives with the *development* certificate, which rewrites
+# aps-environment from production down to development. -exportArchive then sees
+# a value the App Store profile does not grant and drops the entitlement
+# altogether — producing a build that uploads, installs, and never receives a
+# single push, with no error anywhere.
+#
+# Re-signing the archived app with the distribution identity and the App Store
+# profile puts the right value back before export reads it. Manual signing at
+# archive time is not an option: the profile is Xcode-managed, and the build
+# system refuses to use one of those manually.
+APP="$ARCHIVE/Products/Applications/$SCHEME.app"
+PROFILE_PATH=$(
+  for f in "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles"/*.mobileprovision; do
+    [ -e "$f" ] || continue
+    security cms -D -i "$f" > "$BUILD_DIR/p.plist" 2>/dev/null || continue
+    if [ "$(/usr/libexec/PlistBuddy -c 'Print :Name' "$BUILD_DIR/p.plist" 2>/dev/null)" = "$PROFILE" ]; then
+      echo "$f"; break
+    fi
+  done
+)
+if [ -z "$PROFILE_PATH" ]; then
+  echo "Could not find the App Store provisioning profile locally." >&2
+  echo "Archive once from Xcode to have it issued, then run this again." >&2
+  exit 1
+fi
+
+echo "==> Re-signing for distribution"
+security cms -D -i "$PROFILE_PATH" > "$BUILD_DIR/profile.plist"
+/usr/libexec/PlistBuddy -x -c "Print :Entitlements" "$BUILD_DIR/profile.plist" \
+  > "$BUILD_DIR/entitlements.plist"
+# The profile grants a wildcard keychain group. Keeping it would change which
+# group the app writes to and orphan every stored session and ESPN cookie, so
+# the app keeps its implicit default.
+/usr/libexec/PlistBuddy -c "Delete :keychain-access-groups" "$BUILD_DIR/entitlements.plist" 2>/dev/null || true
+cp "$PROFILE_PATH" "$APP/embedded.mobileprovision"
+codesign --force --sign "Apple Distribution" \
+  --entitlements "$BUILD_DIR/entitlements.plist" \
+  --generate-entitlement-der \
+  --timestamp=none \
+  "$APP" 2>&1 | sed 's/^/    /'
+
+# The failure this guards against is silent: everything below succeeds, the
+# build reaches TestFlight, and notifications simply never arrive.
+echo "==> Checking entitlements"
+APS=$(codesign -d --entitlements :- "$APP" 2>/dev/null \
+      | plutil -extract aps-environment raw - 2>/dev/null || true)
+if [ "$APS" != "production" ]; then
+  echo "" >&2
+  echo "aps-environment is '${APS:-missing}', expected 'production'." >&2
+  echo "This build would install fine and never deliver a notification." >&2
+  echo "Check that the App ID has Push Notifications enabled and that" >&2
+  echo "  $PROFILE" >&2
+  echo "grants aps-environment. See docs/PUSH_NOTIFICATIONS.md." >&2
+  exit 1
+fi
+echo "    aps-environment = production"
 
 cat > "$BUILD_DIR/ExportOptions.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
@@ -71,6 +137,11 @@ cat > "$BUILD_DIR/ExportOptions.plist" <<PLIST
 </dict>
 </plist>
 PLIST
+
+# With destination=upload xcodebuild uploads directly and writes no .ipa, so
+# anything left here is from an earlier run. Removing it stops a stale artifact
+# being mistaken for the build that just went out.
+rm -rf "$BUILD_DIR/export"
 
 echo "==> Exporting$([ "$UPLOAD" = true ] && echo ' and uploading' || echo '')"
 xcodebuild -exportArchive \

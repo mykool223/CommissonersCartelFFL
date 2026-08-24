@@ -52,6 +52,7 @@ targets:
           - "Resources/Info.plist"
           # Referenced via CODE_SIGN_ENTITLEMENTS, same reason.
           - "Resources/CommissionersCartel.entitlements"
+          - "Resources/CommissionersCartelRelease.entitlements"
     dependencies:
       - package: CartelKit
         product: CartelCore
@@ -62,9 +63,6 @@ targets:
     settings:
       base:
         INFOPLIST_FILE: App/CommissionersCartel/Resources/Info.plist
-        # Push notifications. Automatic signing adds the capability to the App
-        # ID on first build, so there is nothing to tick in the portal.
-        CODE_SIGN_ENTITLEMENTS: App/CommissionersCartel/Resources/CommissionersCartel.entitlements
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         # iPhone and iPad.
@@ -77,12 +75,20 @@ targets:
         DEVELOPMENT_TEAM: $(DEVELOPMENT_TEAM)
         SUPPORTS_MACCATALYST: NO
       configs:
+        # Push entitlements differ per configuration: a token minted against
+        # Apple's sandbox is rejected by the production hosts and vice versa.
+        # Setting one file for both configurations makes -exportArchive drop
+        # aps-environment entirely, producing an upload that looks fine and
+        # never delivers a notification.
+        Debug:
+          CODE_SIGN_ENTITLEMENTS: App/CommissionersCartel/Resources/CommissionersCartel.entitlements
         # Left to automatic signing on purpose. With CODE_SIGN_STYLE=Automatic,
         # the archive is signed for *development* and -exportArchive re-signs it
         # for distribution — so pinning CODE_SIGN_IDENTITY to "Apple
         # Distribution" here makes xcodebuild refuse with a conflicting-settings
         # error rather than helping.
-        Release: {}
+        Release:
+          CODE_SIGN_ENTITLEMENTS: App/CommissionersCartel/Resources/CommissionersCartelRelease.entitlements
     scheme:
       gatherCoverageData: true
       environmentVariables:

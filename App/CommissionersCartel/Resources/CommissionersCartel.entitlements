@@ -2,10 +2,11 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-    <!-- `development` is correct here even for TestFlight and the App Store:
-         -exportArchive rewrites this to `production` when it re-signs for
-         distribution. The app reports which APNs environment its token belongs
-         to (see PushRegistrar) so the server sends to the matching one. -->
+    <!-- Debug builds only; Release uses CommissionersCartelRelease.entitlements.
+         The two files exist because -exportArchive does NOT rewrite this value:
+         when the archive says `development` and the App Store profile grants
+         `production`, export silently drops the entitlement altogether and the
+         uploaded build cannot receive a single notification. -->
     <key>aps-environment</key>
     <string>development</string>
 </dict>
