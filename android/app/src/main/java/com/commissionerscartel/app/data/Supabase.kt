@@ -54,6 +54,29 @@ object Supabase {
             limit(limit)
         }.decodeList()
 
+    suspend fun reactions(): List<MessageReaction> =
+        client.from("message_reactions").select().decodeList()
+
+    /** user_id is defaulted from the session in Postgres, not sent by us. */
+    suspend fun addReaction(messageId: String, emoji: String) {
+        client.from("message_reactions").insert(
+            buildJsonObject {
+                put("message_id", messageId)
+                put("emoji", emoji)
+            }
+        )
+    }
+
+    /** No user filter: the delete policy already restricts this to your rows. */
+    suspend fun removeReaction(messageId: String, emoji: String) {
+        client.from("message_reactions").delete {
+            filter {
+                eq("message_id", messageId)
+                eq("emoji", emoji)
+            }
+        }
+    }
+
     /** The trophy case. Empty until the first week is in the books. */
     suspend fun trophies(season: Int): List<Trophy> =
         client.from("trophies").select {

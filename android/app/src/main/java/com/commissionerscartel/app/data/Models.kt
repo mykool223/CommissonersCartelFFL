@@ -137,3 +137,30 @@ data class Trophy(
     val detail: String? = null,
     @SerialName("awarded_at") val awardedAt: String,
 )
+
+@Serializable
+data class MessageReaction(
+    @SerialName("message_id") val messageId: String,
+    @SerialName("user_id") val userId: String,
+    val emoji: String,
+)
+
+/** Reactions on one message, folded into what the row needs to draw. */
+data class ReactionSummary(val emoji: String, val count: Int, val isMine: Boolean)
+
+object Reactions {
+    /** The set offered. A thumbs-down is the point, not an oversight. */
+    val palette = listOf("\uD83D\uDC4D", "\uD83D\uDC4E", "\uD83D\uDE02", "\uD83D\uDD25", "\uD83D\uDC80")
+
+    fun summarise(
+        all: List<MessageReaction>,
+        messageId: String,
+        me: String?,
+    ): List<ReactionSummary> =
+        all.filter { it.messageId == messageId }
+            .groupBy { it.emoji }
+            .map { (emoji, rows) ->
+                ReactionSummary(emoji, rows.size, rows.any { it.userId == me })
+            }
+            .sortedByDescending { it.count }
+}

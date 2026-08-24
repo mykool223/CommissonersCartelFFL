@@ -155,6 +155,16 @@ private struct RecapRow: Decodable {
     }
 }
 
+private struct ReactionRow: Decodable {
+    let message_id: UUID
+    let user_id: UUID
+    let emoji: String
+
+    var model: MessageReaction {
+        MessageReaction(messageID: message_id, userID: user_id, emoji: emoji)
+    }
+}
+
 private struct TrophyRow: Decodable {
     let id: UUID
     let season: Int
@@ -291,6 +301,38 @@ extension SupabaseContentRepository: LeagueChatRepository {
         try await client.rpcVoid("post_league_message", parameters: [
             "p_body": AnyEncodable(trimmed),
         ])
+    }
+
+    public func reactions() async throws -> [MessageReaction] {
+        let rows: [ReactionRow] = try await client.select(
+            "message_reactions", query: ["select": "*"]
+        )
+        return rows.map(\.model)
+    }
+
+    /// The row's user id is defaulted from the session in Postgres, so the
+    /// client never states who it is.
+    public func addReaction(messageID: UUID, emoji: String) async throws {
+        try await client.upsert(
+            "message_reactions",
+            values: [
+                "message_id": AnyEncodable(messageID.uuidString.lowercased()),
+                "emoji": AnyEncodable(emoji)
+            ],
+            onConflict: "message_id,user_id,emoji"
+        )
+    }
+
+    /// No user filter: the delete policy already restricts this to your own
+    /// rows, so a filter would be decoration.
+    public func removeReaction(messageID: UUID, emoji: String) async throws {
+        try await client.deleteRows(
+            "message_reactions",
+            query: [
+                "message_id": "eq.\(messageID.uuidString.lowercased())",
+                "emoji": "eq.\(emoji)"
+            ]
+        )
     }
 
     public func deleteMessage(id: UUID) async throws {

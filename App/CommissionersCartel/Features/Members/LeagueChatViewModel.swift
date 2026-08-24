@@ -6,9 +6,27 @@ import CartelCore
 @MainActor
 final class LeagueChatViewModel {
     private(set) var messages: [LeagueMessage] = []
+    private(set) var reactions: [MessageReaction] = []
     private(set) var isLoading = false
     private(set) var isSending = false
     var postError: String?
+
+    /// Adds or removes one reaction, then re-reads. Re-reading rather than
+    /// patching locally keeps the count honest when two people react at once.
+    func react(
+        to message: LeagueMessage,
+        emoji: String,
+        isMine: Bool,
+        using environment: AppEnvironment
+    ) async {
+        guard let chat = environment.chat else { return }
+        if isMine {
+            try? await chat.removeReaction(messageID: message.id, emoji: emoji)
+        } else {
+            try? await chat.addReaction(messageID: message.id, emoji: emoji)
+        }
+        reactions = (try? await chat.reactions()) ?? reactions
+    }
 
     func load(using environment: AppEnvironment) async {
         guard let chat = environment.chat, environment.isSignedIn else {
@@ -18,6 +36,8 @@ final class LeagueChatViewModel {
         isLoading = true
         defer { isLoading = false }
         messages = (try? await chat.messages()) ?? []
+        // A reaction failure must not cost the thread itself.
+        reactions = (try? await chat.reactions()) ?? []
     }
 
     /// Returns the text to put back in the composer when the post failed, or

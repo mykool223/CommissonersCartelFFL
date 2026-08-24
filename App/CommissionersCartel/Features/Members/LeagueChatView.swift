@@ -61,7 +61,17 @@ struct LeagueChatView: View {
                     ForEach(model.messages) { message in
                         MessageRow(
                             message: message,
-                            isMine: message.isMine(environment.session?.userID)
+                            isMine: message.isMine(environment.session?.userID),
+                            summaries: ReactionSummary.summarise(
+                                model.reactions,
+                                messageID: message.id,
+                                me: environment.session?.userID
+                            ),
+                            onReact: { emoji, mine in
+                                await model.react(
+                                    to: message, emoji: emoji, isMine: mine, using: environment
+                                )
+                            }
                         ) {
                             await model.delete(message, using: environment)
                         }
@@ -127,7 +137,11 @@ struct LeagueChatView: View {
 private struct MessageRow: View {
     let message: LeagueMessage
     let isMine: Bool
+    let summaries: [ReactionSummary]
+    let onReact: (String, Bool) async -> Void
     let onDelete: () async -> Void
+
+    @State private var isPicking = false
 
     var body: some View {
         HStack(alignment: .top, spacing: Theme.Spacing.small) {
@@ -154,6 +168,7 @@ private struct MessageRow: View {
                 }
 
                 Text(message.body)
+                reactionRow
                     .font(.subheadline)
                     .foregroundStyle(isMine ? .white : .primary)
                     .padding(.horizontal, Theme.Spacing.medium)
@@ -176,3 +191,54 @@ private struct MessageRow: View {
         .accessibilityElement(children: .combine)
     }
 }
+
+private extension MessageRow {
+    /// Existing reactions, then a button to add one. Tapping a reaction you
+    /// already gave removes it.
+    var reactionRow: some View {
+        HStack(spacing: 6) {
+            ForEach(summaries) { summary in
+                Button {
+                    Task { await onReact(summary.emoji, summary.isMine) }
+                } label: {
+                    Text("\(summary.emoji) \(summary.count)")
+                        .font(.caption2)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(
+                            Capsule().fill(
+                                summary.isMine
+                                    ? Color.brand.opacity(0.22)
+                                    : Color.secondary.opacity(0.12)
+                            )
+                        )
+                }
+                .buttonStyle(.plain)
+            }
+
+            Button {
+                isPicking.toggle()
+            } label: {
+                Image(systemName: "face.smiling")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .buttonStyle(.plain)
+
+            if isPicking {
+                ForEach(ReactionSummary.palette, id: \.self) { emoji in
+                    Button {
+                        let mine = summaries.contains { $0.emoji == emoji && $0.isMine }
+                        isPicking = false
+                        Task { await onReact(emoji, mine) }
+                    } label: {
+                        Text(emoji).font(.callout)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+        .padding(.top, 2)
+    }
+}
+

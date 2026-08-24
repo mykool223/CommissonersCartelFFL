@@ -14,7 +14,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.AddReaction
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Card
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -36,6 +40,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.commissionerscartel.app.data.LeagueMessage
+import com.commissionerscartel.app.data.MessageReaction
+import com.commissionerscartel.app.data.ReactionSummary
+import com.commissionerscartel.app.data.Reactions
 import com.commissionerscartel.app.data.Session
 import com.commissionerscartel.app.data.Supabase
 import com.commissionerscartel.app.ui.CartelGold
@@ -47,7 +54,10 @@ import kotlinx.coroutines.launch
 sealed interface ThreadState {
     data object Loading : ThreadState
     data object SignInRequired : ThreadState
-    data class Loaded(val messages: List<LeagueMessage>) : ThreadState
+    data class Loaded(
+        val messages: List<LeagueMessage>,
+        val reactions: List<MessageReaction>,
+    ) : ThreadState
     data class Failed(val message: String) : ThreadState
 }
 
@@ -69,10 +79,26 @@ class LeagueThreadViewModel : ViewModel() {
                 _state.value = ThreadState.SignInRequired
                 return@launch
             }
-            _state.value = runCatching { Supabase.messages() }.fold(
-                onSuccess = { ThreadState.Loaded(it) },
+            _state.value = runCatching {
+                val messages = Supabase.messages()
+                // Reactions are a nice-to-have; a failure here should not cost
+                // the thread itself.
+                val reactions = runCatching { Supabase.reactions() }.getOrDefault(emptyList())
+                ThreadState.Loaded(messages, reactions)
+            }.fold(
+                onSuccess = { it },
                 onFailure = { ThreadState.Failed(it.message ?: "Couldn't load the thread.") },
             )
+        }
+    }
+
+    fun react(messageId: String, emoji: String, isMine: Boolean) {
+        viewModelScope.launch {
+            runCatching {
+                if (isMine) Supabase.removeReaction(messageId, emoji)
+                else Supabase.addReaction(messageId, emoji)
+            }
+            load()
         }
     }
 
@@ -128,7 +154,15 @@ fun LeagueThreadScreen(modifier: Modifier = Modifier, model: LeagueThreadViewMod
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    items(current.messages, key = { it.id }) { MessageRow(it) }
+                    items(current.messages, key = { it.id }) { message ->
+                        MessageRow(
+                            message = message,
+                            summaries = Reactions.summarise(
+                                current.reactions, message.id, Session.userId
+                            ),
+                            onReact = { emoji, mine -> model.react(message.id, emoji, mine) },
+                        )
+                    }
                 }
             }
 
@@ -155,10 +189,16 @@ fun LeagueThreadScreen(modifier: Modifier = Modifier, model: LeagueThreadViewMod
 }
 
 @Composable
-private fun MessageRow(message: LeagueMessage) {
+private fun MessageRow(
+    message: LeagueMessage,
+    summaries: List<ReactionSummary>,
+    onReact: (String, Boolean) -> Unit,
+) {
     val mine = message.authorId != null && message.authorId == Session.userId
+    var picking by remember { mutableStateOf(false) }
+
     Card(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(
                 // Names on every message, including your own: a thread where
                 // some posts are anonymous reads as broken.
@@ -168,6 +208,43 @@ private fun MessageRow(message: LeagueMessage) {
                 color = if (mine) CartelGold else MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Text(message.body, style = MaterialTheme.typography.bodyMedium)
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                summaries.forEach { summary ->
+                    AssistChip(
+                        onClick = { onReact(summary.emoji, summary.isMine) },
+                        label = { Text("${summary.emoji} ${summary.count}") },
+                        colors = AssistChipDefaults.assistChipColors(
+                            containerColor = if (summary.isMine) {
+                                CartelGold.copy(alpha = 0.22f)
+                            } else {
+                                MaterialTheme.colorScheme.surfaceVariant
+                            },
+                        ),
+                    )
+                }
+                IconButton(onClick = { picking = !picking }) {
+                    Icon(
+                        Icons.Filled.AddReaction,
+                        contentDescription = "React",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+
+            if (picking) {
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Reactions.palette.forEach { emoji ->
+                        val alreadyMine = summaries.any { it.emoji == emoji && it.isMine }
+                        TextButton(onClick = { onReact(emoji, alreadyMine); picking = false }) {
+                            Text(emoji, style = MaterialTheme.typography.titleMedium)
+                        }
+                    }
+                }
+            }
         }
     }
 }
