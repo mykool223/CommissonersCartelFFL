@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.commissionerscartel.app.data.AppGraph
+import com.commissionerscartel.app.data.Division
 import com.commissionerscartel.app.data.EspnMapper
 import com.commissionerscartel.app.data.Matchup
 import com.commissionerscartel.app.data.NflGame
@@ -22,9 +23,15 @@ data class MatchupsData(
     val teams: Map<Int, Team>,
     val nfl: List<NflGame>,
     val awards: List<WeeklyAward>,
-    /** Standings order: seed where ESPN has one, otherwise record. */
-    val standings: List<Team>,
+    /** Standings, grouped by division as iOS does. */
+    val standings: List<StandingsGroup>,
 )
+
+/**
+ * A division's table. `division` is null for a league without divisions, and
+ * for the group holding any team ESPN did not place in one.
+ */
+data class StandingsGroup(val division: Division?, val teams: List<Team>)
 
 sealed interface MatchupsState {
     data object Loading : MatchupsState
@@ -50,6 +57,26 @@ private val standingsOrder = Comparator<Team> { a, b ->
             b.record.pointsFor.compareTo(a.record.pointsFor)
         else -> a.name.compareTo(b.name)
     }
+}
+
+/**
+ * Splits the table by division. The Cartel runs The Board and The Council, and
+ * a single league-wide table hides which of the two a team is actually racing.
+ */
+private fun groupStandings(ordered: List<Team>, divisions: List<Division>): List<StandingsGroup> {
+    if (divisions.size <= 1) return listOf(StandingsGroup(null, ordered))
+
+    val groups = divisions.map { division ->
+        StandingsGroup(division, ordered.filter { it.divisionId == division.id })
+    }.toMutableList()
+
+    // A team ESPN did not place in a division would otherwise be missing from
+    // the table entirely.
+    val known = divisions.map { it.id }.toSet()
+    val orphans = ordered.filter { it.divisionId?.let { id -> id !in known } ?: true }
+    if (orphans.isNotEmpty()) groups += StandingsGroup(null, orphans)
+
+    return groups.filter { it.teams.isNotEmpty() }
 }
 
 class MatchupsViewModel : ViewModel() {
@@ -87,7 +114,10 @@ class MatchupsViewModel : ViewModel() {
                         previousWeek = if (week > 1) EspnMapper.matchups(payload, week - 1)
                         else emptyList(),
                     ),
-                    standings = teams.values.sortedWith(standingsOrder),
+                    standings = groupStandings(
+                        teams.values.sortedWith(standingsOrder),
+                        league.divisions,
+                    ),
                 )
             }.fold(
                 onSuccess = { MatchupsState.Loaded(it) },

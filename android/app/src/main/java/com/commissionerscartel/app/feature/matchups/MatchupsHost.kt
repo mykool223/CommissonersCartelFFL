@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
@@ -145,49 +146,78 @@ private fun AwardCard(award: WeeklyAward, teams: Map<Int, Team>) {
 }
 
 @Composable
-private fun StandingsSection(standings: List<Team>) {
+private fun StandingsSection(groups: List<StandingsGroup>) {
     LazyColumn(
         Modifier.fillMaxSize(),
         contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        items(standings, key = { it.id }) { team ->
-            Card(Modifier.fillMaxWidth()) {
-                Row(
-                    Modifier.padding(12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        "${standings.indexOf(team) + 1}",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    TeamLogo(team.logoUrl, size = 36.dp)
-                    Column(Modifier.weight(1f)) {
+        groups.forEach { group ->
+            group.division?.let { division ->
+                item(key = "division-${division.id}") {
+                    Row(
+                        Modifier.fillMaxWidth().padding(top = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
                         Text(
-                            team.name,
-                            style = MaterialTheme.typography.titleSmall,
+                            division.name,
+                            style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                         )
                         Text(
-                            team.record.summary,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    Column(horizontalAlignment = Alignment.End) {
-                        Text(
-                            String.format(Locale.US, "%.1f", team.record.pointsFor),
-                            style = MaterialTheme.typography.bodyMedium,
-                        )
-                        Text(
-                            "PF",
-                            style = MaterialTheme.typography.labelSmall,
+                            group.teams.size.toString(),
+                            style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 }
+            }
+            // Rank is within the division, not the league — that is the whole
+            // point of splitting the table.
+            itemsIndexed(group.teams, key = { _, team -> team.id }) { index, team ->
+                StandingsRow(rank = index + 1, team = team)
+            }
+        }
+    }
+}
+
+@Composable
+private fun StandingsRow(rank: Int, team: Team) {
+    Card(Modifier.fillMaxWidth()) {
+        Row(
+            Modifier.padding(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                "$rank",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            TeamLogo(team.logoUrl, size = 36.dp)
+            Column(Modifier.weight(1f)) {
+                Text(
+                    team.name,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                )
+                Text(
+                    team.record.summary,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Column(horizontalAlignment = Alignment.End) {
+                Text(
+                    String.format(Locale.US, "%.1f", team.record.pointsFor),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                Text(
+                    "PF",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
     }
