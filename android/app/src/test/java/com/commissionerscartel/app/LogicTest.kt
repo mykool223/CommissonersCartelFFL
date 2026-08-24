@@ -155,8 +155,8 @@ class PollTest {
         closesAt = closesAt,
         myVoteOptionId = myVote,
         options = listOf(
-            PollOption("a", "A", 1, votes = 3),
-            PollOption("b", "B", 2, votes = 1),
+            PollOption("a", "A", votes = 3),
+            PollOption("b", "B", votes = 1),
         ),
     )
 
@@ -181,8 +181,63 @@ class PollTest {
     @Test
     fun `a poll with no votes does not divide by zero`() {
         val empty = poll(myVote = null).copy(
-            options = listOf(PollOption("a", "A", 1, votes = 0)),
+            options = listOf(PollOption("a", "A", votes = 0)),
         )
         assertEquals(0f, empty.share(empty.options[0]), 0.0001f)
+    }
+}
+
+/**
+ * Decoding tests against the exact JSON `polls_with_results` returns.
+ *
+ * The shape was wrong in the first Android build — the model expected `votes`
+ * and a required `position`, and the function returns `vote_count` and no
+ * position — which failed at runtime with a decode error where a poll should
+ * have been. A compile-time type is not a contract; this is.
+ */
+class PollDecodingTest {
+    private val json = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
+
+    @Test
+    fun `decodes the payload the function actually returns`() {
+        val payload = """
+            [{
+              "id": "53302675-0bd5-4134-a683-29031bb7f8bd",
+              "question": "Which WR finishes Week 1 with the most fantasy points?",
+              "season": 2026,
+              "week": 1,
+              "created_by_name": "The Commissioner",
+              "created_at": "2026-08-24T14:00:00+00:00",
+              "closes_at": "2026-09-10T00:00:00+00:00",
+              "my_vote_option_id": null,
+              "options": [
+                {"id": "a", "label": "Ja'Marr Chase (CIN)", "vote_count": 2},
+                {"id": "b", "label": "Puka Nacua (LAR)", "vote_count": 1}
+              ]
+            }]
+        """.trimIndent()
+
+        val polls = json.decodeFromString<List<Poll>>(payload)
+        val poll = polls.single()
+        assertEquals(2, poll.options.size)
+        assertEquals(3, poll.totalVotes)
+        assertEquals("Ja'Marr Chase (CIN)", poll.options[0].label)
+        assertNull(poll.myVoteOptionId)
+        assertFalse(poll.showsResults)
+    }
+
+    @Test
+    fun `a recorded vote is carried through and reveals results`() {
+        val payload = """
+            [{"id":"p","question":"Q","season":2026,"created_by_name":"C",
+              "my_vote_option_id":"b",
+              "options":[{"id":"a","label":"A","vote_count":0},
+                         {"id":"b","label":"B","vote_count":1}]}]
+        """.trimIndent()
+
+        val poll = json.decodeFromString<List<Poll>>(payload).single()
+        assertEquals("b", poll.myVoteOptionId)
+        assertTrue(poll.showsResults)
+        assertEquals(1f, poll.share(poll.options[1]), 0.0001f)
     }
 }

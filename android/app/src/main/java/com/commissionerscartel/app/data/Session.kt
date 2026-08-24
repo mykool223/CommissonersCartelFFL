@@ -5,6 +5,7 @@ import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.providers.builtin.OTP
 import io.github.jan.supabase.auth.status.SessionStatus
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
 
 /**
@@ -18,7 +19,17 @@ import kotlinx.coroutines.flow.map
 object Session {
     private val auth get() = Supabase.client.auth
 
-    val status: Flow<Boolean> = auth.sessionStatus.map { it is SessionStatus.Authenticated }
+    /**
+     * Emits whenever sign-in state changes, including the moment the stored
+     * session finishes loading at launch.
+     *
+     * Screens must observe this rather than reading [isSignedIn] once: the
+     * restore is asynchronous, so a one-shot check at startup sees "signed
+     * out" and then never looks again.
+     */
+    val status: Flow<Boolean> = auth.sessionStatus
+        .filter { it !is SessionStatus.Initializing }
+        .map { it is SessionStatus.Authenticated }
 
     val email: String? get() = auth.currentUserOrNull()?.email
     val userId: String? get() = auth.currentUserOrNull()?.id
@@ -37,6 +48,12 @@ object Session {
     }
 
     suspend fun signOut() = auth.signOut()
+
+    /** The ESPN member id this account has claimed, or null. */
+    suspend fun claimedTeamSwid(): String? = Supabase.claimedSwid(userId ?: return null)
+
+    /** Claims an ESPN team. The RPC rejects a swid that is not in the league. */
+    suspend fun claimTeam(swid: String) = Supabase.claimEspnTeam(swid)
 
     /**
      * True when this account has a profile row, which only an invited address

@@ -32,6 +32,16 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 @Composable
 fun SettingsScreen(modifier: Modifier = Modifier, model: SettingsViewModel = viewModel()) {
     val state by model.state.collectAsStateWithLifecycle()
+    var claiming by remember { mutableStateOf(false) }
+
+    if (claiming) {
+        ClaimTeamScreen(
+            claimedSwid = state.claimedSwid,
+            onClaim = { model.claimTeam(it); claiming = false },
+            onClose = { claiming = false },
+        )
+        return
+    }
 
     Column(
         modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
@@ -46,6 +56,9 @@ fun SettingsScreen(modifier: Modifier = Modifier, model: SettingsViewModel = vie
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error,
                     )
+                }
+                OutlinedButton(onClick = { claiming = true }) {
+                    Text(if (state.claimedSwid == null) "Which team is yours?" else "Change my team")
                 }
                 OutlinedButton(onClick = model::signOut) { Text("Sign out") }
             } else {

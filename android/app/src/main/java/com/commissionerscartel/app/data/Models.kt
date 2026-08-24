@@ -18,12 +18,18 @@ data class NewsPost(
     @SerialName("published_at") val publishedAt: String,
 )
 
+/**
+ * One choice on a poll.
+ *
+ * Shape comes from `polls_with_results`, which returns `vote_count` and no
+ * position — the function already orders options by position, so the list
+ * arrives in the right order and the field would be redundant.
+ */
 @Serializable
 data class PollOption(
     val id: String,
     val label: String,
-    val position: Int,
-    val votes: Int = 0,
+    @SerialName("vote_count") val votes: Int = 0,
 )
 
 @Serializable

@@ -124,7 +124,7 @@ private fun PollCard(poll: Poll, onVote: (String) -> Unit) {
                 fontWeight = FontWeight.Bold,
             )
 
-            poll.options.sortedBy { it.position }.forEach { option ->
+            poll.options.forEach { option ->
                 OptionRow(poll, option) { onVote(option.id) }
             }
 

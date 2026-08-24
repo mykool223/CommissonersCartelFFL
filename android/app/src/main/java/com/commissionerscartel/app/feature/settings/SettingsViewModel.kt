@@ -15,6 +15,8 @@ data class SettingsState(
     val signedIn: Boolean = false,
     val email: String? = null,
     val isMember: Boolean = false,
+    /** ESPN member id of the claimed team, or null if none claimed yet. */
+    val claimedSwid: String? = null,
     val codeSentTo: String? = null,
     val busy: Boolean = false,
     val message: String? = null,
@@ -25,7 +27,11 @@ class SettingsViewModel : ViewModel() {
     private val _state = MutableStateFlow(SettingsState())
     val state: StateFlow<SettingsState> = _state.asStateFlow()
 
-    init { refresh() }
+    init {
+        // Same reason as Polls: the stored session loads asynchronously, so a
+        // single read at startup reports signed out and never corrects itself.
+        viewModelScope.launch { Session.status.collect { refresh() } }
+    }
 
     fun refresh() {
         viewModelScope.launch {
@@ -34,6 +40,11 @@ class SettingsViewModel : ViewModel() {
                 signedIn = signedIn,
                 email = Session.email,
                 isMember = if (signedIn) Session.isLeagueMember() else false,
+                claimedSwid = if (signedIn) {
+                    runCatching { Session.claimedTeamSwid() }.getOrNull()
+                } else {
+                    null
+                },
                 preferences = if (signedIn) {
                     runCatching { Push.preferences() }.getOrDefault(NotificationPreferences())
                 } else {
@@ -97,6 +108,20 @@ class SettingsViewModel : ViewModel() {
     fun setPreferences(preferences: NotificationPreferences) {
         _state.value = _state.value.copy(preferences = preferences)
         viewModelScope.launch { runCatching { Push.setPreferences(preferences) } }
+    }
+
+    fun claimTeam(swid: String) {
+        viewModelScope.launch {
+            _state.value = _state.value.copy(busy = true)
+            runCatching { Session.claimTeam(swid) }
+                .onFailure {
+                    _state.value = _state.value.copy(
+                        message = it.message ?: "Couldn't claim that team.",
+                    )
+                }
+            _state.value = _state.value.copy(busy = false)
+            refresh()
+        }
     }
 
     val leagueId: String get() = Config.espnLeagueId

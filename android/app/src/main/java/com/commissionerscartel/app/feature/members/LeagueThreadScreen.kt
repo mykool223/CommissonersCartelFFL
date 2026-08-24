@@ -55,7 +55,13 @@ class LeagueThreadViewModel : ViewModel() {
     private val _state = MutableStateFlow<ThreadState>(ThreadState.Loading)
     val state: StateFlow<ThreadState> = _state.asStateFlow()
 
-    init { load() }
+    init {
+        // Reload whenever sign-in state settles or changes. Without this,
+        // signing in on the Settings tab leaves this screen showing "sign in"
+        // until the app is restarted — and at launch the stored session has
+        // usually not finished loading when this runs.
+        viewModelScope.launch { Session.status.collect { load() } }
+    }
 
     fun load() {
         viewModelScope.launch {

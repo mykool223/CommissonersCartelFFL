@@ -105,6 +105,18 @@ object Supabase {
         )
     }
 
+    /** Ties this account to an ESPN team, so posts carry the right name. */
+    suspend fun claimEspnTeam(swid: String) {
+        client.postgrest.rpc("claim_espn_team", buildJsonObject { put("p_swid", swid) })
+    }
+
+    suspend fun claimedSwid(userId: String): String? =
+        client.from("profiles").select { filter { eq("id", userId) } }
+            .decodeList<kotlinx.serialization.json.JsonObject>()
+            .firstOrNull()
+            ?.get("espn_swid")
+            ?.let { if (it is kotlinx.serialization.json.JsonNull) null else it.toString().trim('"') }
+
     suspend fun teamBios(season: Int): Map<Int, TeamBio> =
         client.from("team_bios").select {
             filter { eq("season", season) }
