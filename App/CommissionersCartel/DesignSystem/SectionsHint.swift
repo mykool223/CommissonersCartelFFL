@@ -13,7 +13,7 @@ struct SectionsHint: View {
     @AppStorage("hasSeenSectionsHint") private var hasSeenHint = false
 
     private static let sections: [(tab: String, image: String, screens: String)] = [
-        ("News", "newspaper", "League news · Player news"),
+        ("News", "newspaper", "League news · Activity · Player news"),
         ("Matchups", "sportscourt", "Scoreboard · Weekly recap · Standings · NFL scores"),
         ("Members", "person.3", "Members · League thread"),
     ]
