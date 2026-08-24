@@ -97,6 +97,9 @@ fun SettingsScreen(modifier: Modifier = Modifier, model: SettingsViewModel = vie
                 Toggle("New polls", state.preferences.polls) {
                     model.setPreferences(state.preferences.copy(polls = it))
                 }
+                Toggle("Adds, drops and trades", state.preferences.activity) {
+                    model.setPreferences(state.preferences.copy(activity = it))
+                }
                 Text(
                     "You won't be notified about your own posts.",
                     style = MaterialTheme.typography.bodySmall,

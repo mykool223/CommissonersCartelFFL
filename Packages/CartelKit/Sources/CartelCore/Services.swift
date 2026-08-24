@@ -34,6 +34,9 @@ public protocol ContentRepository: Sendable {
     /// Player news blurbs collected by the daily ingest job.
     func playerNews(limit: Int) async throws -> [PlayerNews]
 
+    /// Adds, drops, waivers and trades. Readable signed out, like league news.
+    func leagueActivity(season: Int, limit: Int) async throws -> [LeagueActivity]
+
     /// Flavour text for each team, keyed by ESPN team id. Readable signed
     /// out, so the members list can show it before anyone logs in.
     func teamBios(season: Int) async throws -> [Int: TeamBio]
@@ -49,6 +52,10 @@ public extension ContentRepository {
 
     func playerNews() async throws -> [PlayerNews] {
         try await playerNews(limit: 40)
+    }
+
+    func leagueActivity(season: Int) async throws -> [LeagueActivity] {
+        try await leagueActivity(season: season, limit: 100)
     }
 }
 
@@ -129,14 +136,23 @@ public struct NotificationPreferences: Equatable, Sendable {
     public var messages: Bool
     public var news: Bool
     public var polls: Bool
+    /// Adds, drops and trades. Separately mutable because roster churn is
+    /// noisier than the rest and some people will not want it.
+    public var activity: Bool
 
-    public static let all = NotificationPreferences(messages: true, news: true, polls: true)
+    public static let all = NotificationPreferences()
 
-    public init(messages: Bool = true, news: Bool = true, polls: Bool = true) {
+    public init(
+        messages: Bool = true,
+        news: Bool = true,
+        polls: Bool = true,
+        activity: Bool = true
+    ) {
         self.messages = messages
         self.news = news
         self.polls = polls
+        self.activity = activity
     }
 
-    public var isAnythingEnabled: Bool { messages || news || polls }
+    public var isAnythingEnabled: Bool { messages || news || polls || activity }
 }

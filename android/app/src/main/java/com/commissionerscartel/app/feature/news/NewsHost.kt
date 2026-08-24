@@ -14,6 +14,7 @@ import com.commissionerscartel.app.ui.SectionPicker
 
 enum class NewsSection(val label: String) {
     League("League news"),
+    Activity("Activity"),
     Players("Player news"),
 }
 
@@ -30,6 +31,7 @@ fun NewsHost(modifier: Modifier = Modifier) {
 
     Column(modifier.fillMaxSize()) {
         SectionPicker(
+            scrollable = true,
             sections = NewsSection.entries,
             selected = section,
             label = { it.label },
@@ -37,6 +39,7 @@ fun NewsHost(modifier: Modifier = Modifier) {
         )
         when (section) {
             NewsSection.League -> NewsScreen(onOpen = { reading = it })
+            NewsSection.Activity -> ActivityScreen()
             NewsSection.Players -> PlayerNewsScreen()
         }
     }

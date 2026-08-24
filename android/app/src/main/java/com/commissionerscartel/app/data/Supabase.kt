@@ -54,6 +54,14 @@ object Supabase {
             limit(limit)
         }.decodeList()
 
+    /** Adds, drops, waivers and trades, collected from ESPN hourly. */
+    suspend fun activity(season: Int, limit: Long = 100): List<LeagueActivity> =
+        client.from("league_activity").select {
+            filter { eq("season", season) }
+            order("occurred_at", Order.DESCENDING)
+            limit(limit)
+        }.decodeList()
+
     /** The league thread. Members only — RLS returns nothing to anyone else. */
     suspend fun messages(limit: Long = 200): List<LeagueMessage> =
         client.from("league_messages").select {

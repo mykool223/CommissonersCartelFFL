@@ -43,6 +43,7 @@ struct NotificationSettingsSection: View {
                 Toggle("League thread", isOn: binding(\.messages))
                 Toggle("League news", isOn: binding(\.news))
                 Toggle("New polls", isOn: binding(\.polls))
+                Toggle("Adds, drops and trades", isOn: binding(\.activity))
             }
         } header: {
             Text("Notifications")

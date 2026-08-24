@@ -1,0 +1,46 @@
+# Pulls adds, drops, waiver claims and completed trades from ESPN.
+#
+# Hourly rather than daily: a trade the league only hears about the next
+# morning is not news. Re-running is safe — rows are keyed on ESPN's own
+# transaction id and inserted with resolution=ignore-duplicates, so nobody is
+# notified twice about the same move.
+#
+# Draft picks and lineup changes are deliberately excluded: 192 draft rows say
+# nothing the draft post did not, and start/sit moves are invisible noise.
+name: Ingest league activity
+
+on:
+  schedule:
+    # Every hour on the half hour, offset from the news job so the two are not
+    # competing for the same runner minute.
+    - cron: "30 * * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Print what would be stored, without writing"
+        type: boolean
+        default: false
+
+jobs:
+  ingest:
+    name: Fetch and store
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Ingest
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          # league_activity has no insert policy, so only the service role can
+          # write here — the anon key shipped in the apps cannot.
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          ESPN_S2: ${{ secrets.ESPN_S2 }}
+          ESPN_SWID: ${{ secrets.ESPN_SWID }}
+          ESPN_LEAGUE_ID: ${{ secrets.ESPN_LEAGUE_ID }}
+          DRY_RUN: ${{ inputs.dry_run && '1' || '' }}
+        run: |
+          if [ -z "$ESPN_S2" ]; then
+            echo "ESPN secrets are not set; nothing to ingest."
+            exit 0
+          fi
+          ./Scripts/ingest_activity.py

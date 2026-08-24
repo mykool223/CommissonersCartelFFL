@@ -17,6 +17,7 @@ data class NotificationPreferences(
     val messages: Boolean = true,
     val news: Boolean = true,
     val polls: Boolean = true,
+    val activity: Boolean = true,
 )
 
 @Serializable
@@ -24,6 +25,7 @@ private data class PreferencesRow(
     val messages: Boolean = true,
     val news: Boolean = true,
     val polls: Boolean = true,
+    val activity: Boolean = true,
 )
 
 /**
@@ -129,7 +131,7 @@ object Push {
         // No row means the member has never opened Settings, which must not
         // read as "wants silence".
         val row = rows.firstOrNull() ?: return NotificationPreferences()
-        return NotificationPreferences(row.messages, row.news, row.polls)
+        return NotificationPreferences(row.messages, row.news, row.polls, row.activity)
     }
 
     suspend fun setPreferences(preferences: NotificationPreferences) {
@@ -141,6 +143,7 @@ object Push {
                     put("messages", preferences.messages)
                     put("news", preferences.news)
                     put("polls", preferences.polls)
+                    put("activity", preferences.activity)
                 }
             ) { onConflict = "user_id" }
     }

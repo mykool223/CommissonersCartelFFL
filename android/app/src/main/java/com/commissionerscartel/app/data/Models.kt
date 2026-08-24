@@ -107,3 +107,21 @@ data class LeagueMessage(
     val body: String,
     @SerialName("created_at") val createdAt: String,
 )
+
+@Serializable
+data class LeagueActivity(
+    val id: String,
+    val kind: String,
+    val headline: String,
+    val detail: String? = null,
+    @SerialName("occurred_at") val occurredAt: String,
+) {
+    /** The badge shown against each row. */
+    val label: String
+        get() = when (kind) {
+            "trade" -> "TRADE"
+            "drop" -> "DROP"
+            "waiver" -> "WAIVER"
+            else -> "ADD"
+        }
+}

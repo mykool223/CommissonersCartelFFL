@@ -389,11 +389,24 @@ struct PushRepositoryTests {
         #expect(preferences == .all)
     }
 
+    @Test("A response predating the activity column still decodes")
+    func olderPreferencesShape() async throws {
+        // The column was added after the first build shipped. A row without it
+        // must read as "wants everything" rather than failing to decode — a
+        // property default does not achieve that on its own.
+        let (repository, _) = makeRepository(
+            responding: #"[{"messages": false, "news": true, "polls": true}]"#
+        )
+        let preferences = try await repository.notificationPreferences()
+        #expect(preferences.messages == false)
+        #expect(preferences.activity == true)
+    }
+
     @Test("Stored preferences are read back")
     func storedPreferences() async throws {
         let (repository, _) = makeRepository(
             responding: """
-            [{"messages": false, "news": true, "polls": false}]
+            [{"messages": false, "news": true, "polls": false, "activity": true}]
             """
         )
         let preferences = try await repository.notificationPreferences()
@@ -405,8 +418,9 @@ struct PushRepositoryTests {
 
     @Test("Turning everything off is reported as such")
     func nothingEnabled() {
-        #expect(!NotificationPreferences(messages: false, news: false, polls: false)
-            .isAnythingEnabled)
+        #expect(!NotificationPreferences(
+            messages: false, news: false, polls: false, activity: false
+        ).isAnythingEnabled)
     }
 
     @Test("Unregistering deletes only this device's row")

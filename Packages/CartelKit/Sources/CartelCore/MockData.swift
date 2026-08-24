@@ -312,4 +312,23 @@ public enum MockData {
         )
     }
 
+
+    /// Sample activity for previews. Production reads the real thing.
+    static let leagueActivity: [LeagueActivity] = [
+        LeagueActivity(
+            id: UUID(uuidString: "aaaaaaaa-0000-0000-0000-00000000000a")!,
+            kind: .waiver,
+            headline: "boogeyman picked up Evan McPherson",
+            detail: "Dropped Tyler Bass",
+            occurredAt: referenceDate.addingTimeInterval(-3_600)
+        ),
+        LeagueActivity(
+            id: UUID(uuidString: "aaaaaaaa-0000-0000-0000-00000000000b")!,
+            kind: .trade,
+            headline: "The Fantasy Bean and Dry Bones Rattle made a trade",
+            detail: "George Kittle to The Fantasy Bean; Brock Purdy to Dry Bones Rattle",
+            occurredAt: referenceDate.addingTimeInterval(-86_400)
+        )
+    ]
+
 }

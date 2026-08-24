@@ -7,11 +7,13 @@ import CartelCore
 /// under forty injury blurbs. They are separate destinations now.
 enum NewsSection: String, TabSection {
     case league
+    case activity
     case players
 
     var title: String {
         switch self {
         case .league: "League news"
+        case .activity: "Activity"
         case .players: "Player news"
         }
     }
@@ -19,6 +21,7 @@ enum NewsSection: String, TabSection {
     var systemImage: String {
         switch self {
         case .league: "newspaper"
+        case .activity: "arrow.left.arrow.right"
         case .players: "figure.american.football"
         }
     }
@@ -34,6 +37,7 @@ struct NewsFeedView: View {
             Group {
                 switch section {
                 case .league: leagueNews
+                case .activity: activity
                 case .players: playerNews
                 }
             }
@@ -82,6 +86,24 @@ struct NewsFeedView: View {
         }
     }
 
+    private var activity: some View {
+        ScrollView {
+            LazyVStack(spacing: Theme.Spacing.small) {
+                if model.activity.isEmpty {
+                    EmptyStateView(
+                        message: "Nothing has moved yet. Adds, drops and trades turn up here.",
+                        systemImage: "arrow.left.arrow.right"
+                    )
+                } else {
+                    ForEach(model.activity) { item in
+                        ActivityCard(item: item)
+                    }
+                }
+            }
+            .padding(Theme.Spacing.large)
+        }
+    }
+
     private var playerNews: some View {
         ScrollView {
             LazyVStack(spacing: Theme.Spacing.medium) {
@@ -97,6 +119,33 @@ struct NewsFeedView: View {
                 }
             }
             .padding(Theme.Spacing.large)
+        }
+    }
+}
+
+private struct ActivityCard: View {
+    let item: LeagueActivity
+
+    var body: some View {
+        Card {
+            HStack {
+                Text(item.kind.label)
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(Color.brand)
+                Spacer(minLength: 0)
+                Text(item.occurredAt.shortDateText)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+            Text(item.headline)
+                .font(.callout)
+                .fixedSize(horizontal: false, vertical: true)
+            if let detail = item.detail, !detail.isEmpty {
+                Text(detail)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
     }
 }

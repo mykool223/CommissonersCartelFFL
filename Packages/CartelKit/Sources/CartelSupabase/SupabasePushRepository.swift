@@ -43,7 +43,9 @@ public struct SupabasePushRepository: PushRepository {
         // No row means the member has never changed anything, which means
         // everything is on.
         guard let row = rows.first else { return .all }
-        return NotificationPreferences(messages: row.messages, news: row.news, polls: row.polls)
+        return NotificationPreferences(
+            messages: row.messages, news: row.news, polls: row.polls, activity: row.activity
+        )
     }
 
     public func setNotificationPreferences(_ preferences: NotificationPreferences) async throws {
@@ -56,7 +58,8 @@ public struct SupabasePushRepository: PushRepository {
                 "user_id": AnyEncodable(userID.uuidString.lowercased()),
                 "messages": AnyEncodable(preferences.messages),
                 "news": AnyEncodable(preferences.news),
-                "polls": AnyEncodable(preferences.polls)
+                "polls": AnyEncodable(preferences.polls),
+                "activity": AnyEncodable(preferences.activity)
             ],
             onConflict: "user_id"
         )
@@ -67,4 +70,20 @@ private struct PreferencesRow: Decodable {
     let messages: Bool
     let news: Bool
     let polls: Bool
+    let activity: Bool
+
+    /// Hand-written because a property default does *not* make a key
+    /// optional: synthesised decoding still requires it, so a response
+    /// from before the column existed would fail outright.
+    init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        messages = try container.decodeIfPresent(Bool.self, forKey: .messages) ?? true
+        news = try container.decodeIfPresent(Bool.self, forKey: .news) ?? true
+        polls = try container.decodeIfPresent(Bool.self, forKey: .polls) ?? true
+        activity = try container.decodeIfPresent(Bool.self, forKey: .activity) ?? true
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case messages, news, polls, activity
+    }
 }

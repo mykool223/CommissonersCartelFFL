@@ -30,6 +30,7 @@ const PREFERENCE_COLUMN: Record<string, string> = {
     messages: "messages",
     news: "news",
     polls: "polls",
+    activity: "activity",
 };
 
 /** The tab to open when the notification is tapped. */
@@ -37,6 +38,8 @@ const DESTINATION: Record<string, string> = {
     messages: "members",
     news: "news",
     polls: "polls",
+    // Activity lives under News, alongside league and player news.
+    activity: "news",
 };
 
 function base64URL(bytes: Uint8Array): string {

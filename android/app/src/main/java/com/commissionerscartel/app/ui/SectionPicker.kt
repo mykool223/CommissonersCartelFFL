@@ -1,6 +1,8 @@
 package com.commissionerscartel.app.ui
 
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -22,9 +24,14 @@ fun <T> SectionPicker(
     label: (T) -> String,
     onSelect: (T) -> Unit,
     modifier: Modifier = Modifier,
+    /** Three or more chips will not fit across a phone. */
+    scrollable: Boolean = false,
 ) {
     Row(
-        modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+        modifier
+            .fillMaxWidth()
+            .then(if (scrollable) Modifier.horizontalScroll(rememberScrollState()) else Modifier)
+            .padding(horizontal = 16.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         sections.forEach { section ->

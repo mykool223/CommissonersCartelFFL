@@ -60,6 +60,19 @@ public struct SupabaseContentRepository: ContentRepository {
         return rows.compactMap(\.model)
     }
 
+    public func leagueActivity(season: Int, limit: Int) async throws -> [LeagueActivity] {
+        let rows: [ActivityRow] = try await client.select(
+            "league_activity",
+            query: [
+                "select": "*",
+                "season": "eq.\(season)",
+                "order": "occurred_at.desc",
+                "limit": String(limit)
+            ]
+        )
+        return rows.compactMap(\.model)
+    }
+
     public func teamBios(season: Int) async throws -> [Int: TeamBio] {
         let rows: [TeamBioRow] = try await client.select(
             "team_bios",
@@ -130,6 +143,24 @@ private struct RecapRow: Decodable {
             body: body,
             authorName: author_name ?? "The Commissioner",
             createdAt: created_at
+        )
+    }
+}
+
+private struct ActivityRow: Decodable {
+    let id: UUID
+    let kind: String
+    let headline: String
+    let detail: String?
+    let occurred_at: Date
+
+    /// An unrecognised kind is skipped rather than guessed at; the check
+    /// constraint means it can only appear if the schema gained a case the
+    /// app has not shipped support for yet.
+    var model: LeagueActivity? {
+        guard let kind = LeagueActivity.Kind(rawValue: kind) else { return nil }
+        return LeagueActivity(
+            id: id, kind: kind, headline: headline, detail: detail, occurredAt: occurred_at
         )
     }
 }
