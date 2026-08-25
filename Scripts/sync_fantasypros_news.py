@@ -82,6 +82,17 @@ def main() -> int:
     items = data.get("items") or []
     log(f"{len(items)} item(s) returned")
 
+    # Their news carries a player id, not a name. We already hold the mapping
+    # from the rankings sync, so resolve it rather than showing a number.
+    wanted = {sync.to_int(i.get("player_id")) for i in items}
+    wanted.discard(None)
+    names: dict[int, str] = {}
+    if wanted:
+        ids = ",".join(str(i) for i in wanted)
+        for row in sync.supabase(
+                "GET", f"fantasypros_players?select=fp_id,name&fp_id=in.({ids})") or []:
+            names[row["fp_id"]] = row["name"]
+
     rows = []
     for item in items:
         published = parse_when(item.get("created"))
@@ -95,7 +106,7 @@ def main() -> int:
             "description": (item.get("desc") or "").strip() or None,
             "impact": (item.get("impact") or "").strip() or None,
             "link": link,
-            "player_name": item.get("player_name") or None,
+            "player_name": names.get(sync.to_int(item.get("player_id"))),
             "team": item.get("team_id") or None,
             "author": item.get("author") or None,
             "categories": item.get("categories") or [],
