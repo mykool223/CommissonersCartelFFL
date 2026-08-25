@@ -233,6 +233,10 @@ def fetch_ros_projections(budget: Budget, season: int) -> list[dict]:
     for position in POSITIONS:
         data = fantasypros(
             budget, f"/nfl/{season}/projections", position=position, ros="true")
+        if os.environ.get("FP_DEBUG"):
+            sample = (data.get("players") or [{}])[0]
+            log(f"    ros {position}: keys={sorted(data)} count={data.get('count')} "
+                f"first={json.dumps(sample)[:300]}")
         for player in data.get("players") or []:
             fp_id = to_int(player.get("fpid"))
             stats = player.get("stats") or []

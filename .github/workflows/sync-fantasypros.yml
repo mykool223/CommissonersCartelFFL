@@ -16,6 +16,10 @@ on:
       week:
         description: "Force a week (defaults to the current one)"
         type: string
+      debug:
+        description: "Log the shape of what FantasyPros returns"
+        type: boolean
+        default: false
       dry_run:
         description: "Fetch and report, without writing"
         type: boolean
@@ -33,6 +37,7 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           FANTASYPROS_API_KEY: ${{ secrets.FANTASYPROS_API_KEY }}
           FP_WEEK: ${{ inputs.week }}
+          FP_DEBUG: ${{ inputs.debug && '1' || '' }}
           DRY_RUN: ${{ inputs.dry_run && '1' || '' }}
         run: |
           if [ -z "$FANTASYPROS_API_KEY" ]; then
