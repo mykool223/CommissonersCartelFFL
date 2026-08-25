@@ -248,6 +248,39 @@ def fetch_injuries(budget: Budget, season: int, week: int) -> list[dict]:
     return rows
 
 
+def resolve_duplicates(players: list[dict], ranked: set[int]) -> list[dict]:
+    """Keeps one FantasyPros player per ESPN id.
+
+    Their roster carries stale or duplicated entries — a retired player and an
+    active one can share an ESPN id — and an ambiguous join would quietly
+    attach one player's consensus to another. Ranked players win, since being
+    ranked this week is the strongest evidence of being the live entry; a tie
+    falls to the lower id, which is the older and more canonical record.
+    """
+    best: dict[int, dict] = {}
+    loose: list[dict] = []
+    for player in players:
+        espn_id = player["espn_id"]
+        if espn_id is None:
+            # Unmatched players are still worth storing; nothing joins to them.
+            loose.append(player)
+            continue
+        rival = best.get(espn_id)
+        if rival is None:
+            best[espn_id] = player
+            continue
+        mine, theirs = player["fp_id"] in ranked, rival["fp_id"] in ranked
+        if mine and not theirs:
+            best[espn_id] = player
+        elif mine == theirs and player["fp_id"] < rival["fp_id"]:
+            best[espn_id] = player
+
+    dropped = len(players) - len(best) - len(loose)
+    if dropped:
+        log(f"  {dropped} duplicate ESPN ids resolved")
+    return [*best.values(), *loose]
+
+
 def upsert(table: str, rows: list[dict], conflict: str) -> None:
     if not rows:
         log(f"  {table}: nothing to write")
@@ -285,14 +318,18 @@ def main() -> int:
         f"{' (dry run)' if dry_run else ''}")
 
     players = fetch_players(budget)
-    matched = sum(1 for p in players if p["espn_id"])
-    log(f"  players: {len(players)}, {matched} carrying an ESPN id")
-
     weekly = fetch_rankings(budget, season, week, "weekly")
     ros = fetch_rankings(budget, season, week, "ros")
     projections = fetch_projections(budget, season, week)
     injuries = fetch_injuries(budget, season, week)
     log(f"  spent {budget.spent} of {budget.limit} calls")
+
+    # Ranked players decide which entry wins a contested ESPN id, so this can
+    # only happen once the rankings are in hand.
+    players = resolve_duplicates(
+        players, {r["fp_id"] for r in weekly} | {r["fp_id"] for r in ros})
+    matched = sum(1 for p in players if p["espn_id"])
+    log(f"  players: {len(players)}, {matched} carrying an ESPN id")
 
     if dry_run:
         log(f"  would write {len(players)} players, {len(weekly)} weekly and "

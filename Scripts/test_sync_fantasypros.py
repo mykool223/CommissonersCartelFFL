@@ -74,6 +74,47 @@ class CallBudget(unittest.TestCase):
         self.assertLessEqual(sync.DAILY_BUDGET * 2, 100)
 
 
+class DuplicateEspnIds(unittest.TestCase):
+    """An ambiguous join would attach one player's consensus to another, so
+    which entry wins is worth pinning down."""
+
+    @staticmethod
+    def player(fp_id: int, espn_id: int | None):
+        return {"fp_id": fp_id, "espn_id": espn_id, "name": f"P{fp_id}",
+                "team": "SF", "position": "WR"}
+
+    def test_the_ranked_entry_wins(self):
+        rows = [self.player(1, 500), self.player(2, 500)]
+        kept = sync.resolve_duplicates(rows, ranked={2})
+        self.assertEqual([p["fp_id"] for p in kept], [2])
+
+    def test_ranked_wins_regardless_of_order(self):
+        rows = [self.player(2, 500), self.player(1, 500)]
+        kept = sync.resolve_duplicates(rows, ranked={2})
+        self.assertEqual([p["fp_id"] for p in kept], [2])
+
+    def test_a_tie_falls_to_the_older_record(self):
+        rows = [self.player(9, 500), self.player(4, 500)]
+        kept = sync.resolve_duplicates(rows, ranked=set())
+        self.assertEqual([p["fp_id"] for p in kept], [4])
+
+    def test_unmatched_players_are_all_kept(self):
+        rows = [self.player(1, None), self.player(2, None)]
+        kept = sync.resolve_duplicates(rows, ranked=set())
+        self.assertEqual(len(kept), 2)
+
+    def test_distinct_players_are_untouched(self):
+        rows = [self.player(1, 500), self.player(2, 501)]
+        kept = sync.resolve_duplicates(rows, ranked=set())
+        self.assertEqual(len(kept), 2)
+
+    def test_every_espn_id_is_unique_afterwards(self):
+        rows = [self.player(i, 500 + (i % 3)) for i in range(1, 10)]
+        kept = sync.resolve_duplicates(rows, ranked={4})
+        ids = [p["espn_id"] for p in kept]
+        self.assertEqual(len(ids), len(set(ids)))
+
+
 class Coercion(unittest.TestCase):
     def test_it_reads_numbers_that_arrive_as_strings(self):
         self.assertEqual(sync.to_int(" 42 "), 42)
