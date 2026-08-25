@@ -58,6 +58,13 @@ plausible-sounding one is just invented.
 You can see every roster, so compare teams, judge a matchup, say where an
 opponent is strong or thin, and talk about trades.
 
+When somebody asks about a specific pickup or trade, call evaluate_move
+before answering and give them the numbers it returns: what the lineup becomes
+and where it leaves them in the power ranking. For a trade it also returns what
+the move does to the other team, which is how you tell a fair deal from a good
+one. Never estimate those numbers yourself — a swap is not the difference
+between two projections, and a plausible wrong figure is worse than none.
+
 On trades. Price them on rest-of-season consensus rank, not this week's
 points: a player worth fourteen points against a soft defence on Sunday can be
 worth far less over the rest of the year. A trade is only good if it improves
@@ -620,34 +627,181 @@ Deno.serve(async (request) => {
           "question is about the lineup.",
     ].join("\n");
 
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "x-api-key": ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        // Thinking is on by default and spends the same budget the answer
-        // does. With every roster in the context it swallowed all 400 tokens
-        // and left nothing to say. These questions do not need it, and a
-        // manager waiting on a phone would rather have the answer.
-        thinking: { type: "disabled" },
-        // Room for a real answer plus the odd longer one, still short enough
-        // that a runaway reply cannot cost much.
-        max_tokens: 700,
-        system: SYSTEM,
-        messages: [{ role: "user", content: `${context}\n\nQuestion: ${trimmed}` }],
-      }),
-    });
+    // Names arrive from a manager's typing and from the model, so matching
+    // has to survive punctuation, suffixes and defence naming.
+    const normalise = (name: string) =>
+      name.toLowerCase().replace(/[.'']/g, "").replace(/-/g, " ")
+        .replace(/\b(jr|sr|ii|iii|iv|v|d\/st|dst|defense|defence)\b/g, "")
+        .split(/\s+/).filter(Boolean).join(" ");
 
-    if (!response.ok) {
-      console.error(`Anthropic ${response.status}: ${await response.text()}`);
-      return Response.json({ error: "The coach is unavailable right now." }, { status: 502 });
+    // Everybody a move could involve: this roster, every rival's, and the
+    // free agent pool.
+    const findable: Array<{ player: Player; team?: string }> = [
+      ...players.map((p) => ({ player: p, team: undefined })),
+      ...rivals.flatMap((r) =>
+        (r.squad as Player[]).map((p) => ({ player: p, team: r.name }))),
+      ...pool.map((p) => ({ player: p, team: "free agency" })),
+    ];
+
+    const find = (name: string) => {
+      const wanted = normalise(name);
+      return findable.find((c) => normalise(c.player.name) === wanted)
+        ?? findable.find((c) => normalise(c.player.name).includes(wanted))
+        ?? findable.find((c) => wanted.includes(normalise(c.player.name)));
+    };
+
+    /**
+     * What a move would actually do, solved rather than estimated.
+     *
+     * A one-for-one swap is not the difference between two projections: a
+     * fourth running back may add nothing because there is no slot for him,
+     * and losing a starter may cost less than his projection because somebody
+     * on the bench slides up. Only re-solving the lineup gets that right, and
+     * getting it wrong by a plausible-looking amount is worse than not
+     * answering.
+     */
+    const evaluateMove = (addNames: string[], dropNames: string[]) => {
+      const unmatched: string[] = [];
+      const resolve = (names: string[]) => names.flatMap((n) => {
+        const hit = find(n);
+        if (!hit) { unmatched.push(n); return []; }
+        return [hit];
+      });
+
+      const adding = resolve(addNames);
+      const dropping = resolve(dropNames);
+      if (unmatched.length && !adding.length && !dropping.length) {
+        return { unmatched, error: "Nobody by that name is in this league." };
+      }
+
+      const consensusPoints = (p: Player) => {
+        const seen = view.get(p.espnId ?? NaN)?.points;
+        return seen === undefined ? p : { ...p, points: seen };
+      };
+      const strength = (squad: Player[]) =>
+        bestLineup(squad.map(consensusPoints), slots).total;
+
+      const dropped = new Set(dropping.map((d) => d.player.name));
+      const mine = players.filter((p) => !dropped.has(p.name));
+      const after = [...mine, ...adding.map((a) => a.player)];
+
+      const beforeTotal = strength(players);
+      const afterTotal = strength(after);
+
+      // Where the move leaves them, measured against everybody else exactly
+      // as the standing ranking is.
+      const rankOf = (total: number) =>
+        power.filter((t) => !t.own && t.total > total).length + 1;
+
+      // The other side of a trade moves too, which is how you tell whether a
+      // deal is fair rather than merely good for you.
+      const partners = [...new Set(
+        [...adding, ...dropping].map((c) => c.team).filter(
+          (t): t is string => !!t && t !== "free agency"))];
+      const partner = partners.length === 1 ? partners[0] : undefined;
+      let partnerBefore, partnerAfter;
+      if (partner) {
+        const rival = rivals.find((r) => r.name === partner)!;
+        const theirs = (rival.squad as Player[]).filter(
+          (p) => !adding.some((a) => a.player.name === p.name));
+        partnerBefore = strength(rival.squad as Player[]);
+        partnerAfter = strength([...theirs, ...dropping.map((d) => d.player)]);
+      }
+
+      return {
+        added: adding.map((a) => a.player.name),
+        dropped: dropping.map((d) => d.player.name),
+        unmatched,
+        before: { lineup: Number(beforeTotal.toFixed(1)), power_rank: rankOf(beforeTotal) },
+        after: { lineup: Number(afterTotal.toFixed(1)), power_rank: rankOf(afterTotal) },
+        change: Number((afterTotal - beforeTotal).toFixed(1)),
+        ...(partner
+          ? {
+            partner,
+            partner_before: Number(partnerBefore!.toFixed(1)),
+            partner_after: Number(partnerAfter!.toFixed(1)),
+            partner_change: Number((partnerAfter! - partnerBefore!).toFixed(1)),
+          }
+          : {}),
+      };
+    };
+
+    const TOOLS = [{
+      name: "evaluate_move",
+      description:
+        "Work out exactly what signing, dropping or trading players would do " +
+        "to this manager's lineup and their place in the power ranking, and " +
+        "to the other team's if it is a trade. Use it for any question about " +
+        "a specific pickup or trade before answering — the answer is solved, " +
+        "not estimated, and guessing at it produces plausible wrong numbers.",
+      input_schema: {
+        type: "object",
+        properties: {
+          add: {
+            type: "array", items: { type: "string" },
+            description: "Players joining this manager's roster.",
+          },
+          drop: {
+            type: "array", items: { type: "string" },
+            description: "Players leaving it.",
+          },
+        },
+        required: [],
+      },
+    }];
+
+    const messages: Array<Record<string, unknown>> = [
+      { role: "user", content: `${context}\n\nQuestion: ${trimmed}` },
+    ];
+
+    let body: any = null;
+    // Two rounds of tool use is enough for "what would this trade do" and
+    // stops a loop costing a fortune.
+    for (let round = 0; round < 3; round++) {
+      const response = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "x-api-key": ANTHROPIC_API_KEY,
+          "anthropic-version": "2023-06-01",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: MODEL,
+          // Thinking is on by default and spends the same budget the answer
+          // does. With every roster in the context it swallowed all 400
+          // tokens and left nothing to say. These questions do not need it,
+          // and a manager waiting on a phone would rather have the answer.
+          thinking: { type: "disabled" },
+          // Room for a real answer plus the odd longer one, still short
+          // enough that a runaway reply cannot cost much.
+          max_tokens: 700,
+          system: SYSTEM,
+          tools: TOOLS,
+          messages,
+        }),
+      });
+
+      if (!response.ok) {
+        console.error(`Anthropic ${response.status}: ${await response.text()}`);
+        return Response.json({ error: "The coach is unavailable right now." }, { status: 502 });
+      }
+
+      body = await response.json();
+      const calls = (body.content ?? []).filter((b: any) => b.type === "tool_use");
+      if (!calls.length) break;
+
+      messages.push({ role: "assistant", content: body.content });
+      messages.push({
+        role: "user",
+        content: calls.map((call: any) => ({
+          type: "tool_result",
+          tool_use_id: call.id,
+          content: JSON.stringify(
+            evaluateMove(call.input?.add ?? [], call.input?.drop ?? [])),
+        })),
+      });
     }
 
-    const body = await response.json();
     const answer = (body.content ?? [])
       .filter((block: any) => block.type === "text")
       .map((block: any) => block.text)
