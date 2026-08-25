@@ -40,8 +40,8 @@ android {
         targetSdk = 37
         // Bump on every build handed out: Android refuses an install whose
         // versionCode is not higher than what is already on the phone.
-        versionCode = 21
-        versionName = "0.21.0"
+        versionCode = 22
+        versionName = "0.21.1"
 
         buildConfigField("String", "SUPABASE_HOST", "\"${secret("SUPABASE_HOST")}\"")
         buildConfigField("String", "SUPABASE_ANON_KEY", "\"${secret("SUPABASE_ANON_KEY")}\"")

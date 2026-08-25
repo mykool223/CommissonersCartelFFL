@@ -110,17 +110,27 @@ class SettingsViewModel : ViewModel() {
         viewModelScope.launch { runCatching { Push.setPreferences(preferences) } }
     }
 
-    fun claimTeam(swid: String) {
+    /**
+     * Claims a team, reporting whether it worked.
+     *
+     * The caller needs the answer: the picker used to close itself the instant
+     * this was called, while the request was still in flight, so a refusal —
+     * a team somebody else already holds, a dropped connection — left the
+     * member looking at a settings screen that had simply ignored them.
+     */
+    fun claimTeam(swid: String, onResult: (Boolean) -> Unit = {}) {
         viewModelScope.launch {
-            _state.value = _state.value.copy(busy = true)
-            runCatching { Session.claimTeam(swid) }
+            _state.value = _state.value.copy(busy = true, message = null)
+            val claimed = runCatching { Session.claimTeam(swid) }
                 .onFailure {
                     _state.value = _state.value.copy(
                         message = it.message ?: "Couldn't claim that team.",
                     )
                 }
+                .isSuccess
             _state.value = _state.value.copy(busy = false)
             refresh()
+            onResult(claimed)
         }
     }
 

@@ -46,7 +46,7 @@ fun SettingsScreen(modifier: Modifier = Modifier, model: SettingsViewModel = vie
     if (claiming) {
         ClaimTeamScreen(
             claimedSwid = state.claimedSwid,
-            onClaim = { model.claimTeam(it); claiming = false },
+            onClaim = { swid -> model.claimTeam(swid) { worked -> if (worked) claiming = false } },
             onClose = { claiming = false },
         )
         return
@@ -68,6 +68,15 @@ fun SettingsScreen(modifier: Modifier = Modifier, model: SettingsViewModel = vie
                 }
                 OutlinedButton(onClick = { claiming = true }) {
                     Text(if (state.claimedSwid == null) "Which team is yours?" else "Change my team")
+                }
+                // Anything that goes wrong here used to be reported only in
+                // the signed-out block, which a signed-in member never sees.
+                state.message?.let {
+                    Text(
+                        it,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                    )
                 }
                 OutlinedButton(onClick = model::signOut) { Text("Sign out") }
             } else {
