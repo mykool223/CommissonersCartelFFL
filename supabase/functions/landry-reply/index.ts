@@ -46,7 +46,9 @@ async function rest(path: string, init?: RequestInit): Promise<unknown> {
  * them into a total. Empty on any failure: a thread reply is not worth
  * failing over, and he says he does not know rather than guessing.
  */
-async function leagueProjections(): Promise<string> {
+async function leagueProjections(
+  consensus: Map<number, { posRank?: string; rank?: number }>,
+): Promise<string> {
   if (!ESPN_LEAGUE_ID || !ESPN_S2 || !ESPN_SWID) return "";
   try {
     const season = new Date().getUTCMonth() >= 5
@@ -77,6 +79,17 @@ async function leagueProjections(): Promise<string> {
       for (let i = 0; i < Number(count); i++) slots.push(id);
     }
 
+    // Who owns whom, by ESPN player id, so a positional table can say which
+    // manager a player belongs to.
+    const owners = new Map<number, string>();
+    for (const team of league.teams ?? []) {
+      const name = (team.name ?? `Team ${team.id}`).trim();
+      for (const entry of team.roster?.entries ?? []) {
+        const id = entry.playerPoolEntry?.player?.id;
+        if (id != null) owners.set(id, name);
+      }
+    }
+
     const rows = (league.teams ?? []).map((team: any) => {
       const players: Player[] = (team.roster?.entries ?? []).map((entry: any) => {
         const raw = entry.playerPoolEntry?.player ?? {};
@@ -104,11 +117,53 @@ async function leagueProjections(): Promise<string> {
     }).sort((a: any, b: any) => b.total - a.total);
 
     if (!rows.length) return "";
+
+    // A positional table, so "who is the best quarterback in this league" has
+    // an answer rather than an improvisation. Asked that before this existed
+    // he named a quarterback and attributed him to a running back's manager,
+    // which is what happens when the question has no data behind it.
+    const positions: Record<number, string> = {
+      1: "QB", 2: "RB", 3: "WR", 4: "TE", 5: "K", 16: "DST",
+    };
+    const byPosition = new Map<string, Array<{ line: string; rank: number }>>();
+    for (const team of league.teams ?? []) {
+      for (const entry of team.roster?.entries ?? []) {
+        const raw = entry.playerPoolEntry?.player ?? {};
+        const position = positions[raw.defaultPositionId];
+        if (!position || raw.id == null) continue;
+        const seen = consensus.get(raw.id);
+        // Ordered by the experts where we have them, by projection where we
+        // do not — and the source is stated either way.
+        const rank = seen?.rank ?? 900 + (200 - projection(raw, week));
+        const detail = [
+          seen?.posRank ? `${seen.posRank} on the consensus` : null,
+          `${projection(raw, week).toFixed(1)} projected`,
+        ].filter(Boolean).join(", ");
+        const list = byPosition.get(position) ?? [];
+        list.push({
+          rank,
+          line: `${raw.fullName} (${owners.get(raw.id) ?? "unowned"}) — ${detail}`,
+        });
+        byPosition.set(position, list);
+      }
+    }
+
+    const positional = [...byPosition.entries()].map(([position, list]) => {
+      const top = list.sort((a, b) => a.rank - b.rank).slice(0, 5);
+      return `${position}, best first:\n` +
+        top.map((p, i) => `  ${i + 1}. ${p.line}`).join("\n");
+    }).join("\n");
+
     return [
       `Week ${week} projections, ESPN's own numbers, for the best legal lineup`,
       "each team could field. Highest first:",
       ...rows.map((r: any, i: number) =>
         `${i + 1}. ${r.name}: ${r.total.toFixed(1)} (${r.top})`),
+      "",
+      "Every rostered player by position, ranked on the FantasyPros expert",
+      "consensus where there is one and on projection where there is not.",
+      "The manager who owns them is in brackets:",
+      positional,
     ].join("\n");
   } catch (error) {
     console.error(`projections unavailable: ${error}`);
@@ -161,7 +216,30 @@ Deno.serve(async (request) => {
       "&source=eq.fantasypros&order=week.desc,rank.asc&limit=12",
     ) as Array<{ team_name: string; rank: number; score: number }>;
 
-    const projections = await leagueProjections();
+    // The expert consensus for this week, from the nightly cache. Positional
+    // rank is what "who is the best quarterback" actually means.
+    const consensus = new Map<number, { posRank?: string; rank?: number }>();
+    try {
+      const ranked = await rest(
+        "fantasypros_rankings?select=pos_rank,rank_ecr,fantasypros_players!inner(espn_id)" +
+        `&season=eq.${season}&kind=eq.weekly&limit=2000`,
+      ) as Array<{ pos_rank?: string; rank_ecr?: number;
+                   fantasypros_players: { espn_id: number } }>;
+      for (const row of ranked ?? []) {
+        const espnId = row.fantasypros_players?.espn_id;
+        if (espnId == null) continue;
+        // "RB7" → 7, which is what orders a position.
+        const digits = (row.pos_rank ?? "").replace(/\D/g, "");
+        consensus.set(espnId, {
+          posRank: row.pos_rank ?? undefined,
+          rank: digits ? Number(digits) : undefined,
+        });
+      }
+    } catch (error) {
+      console.error(`consensus unavailable: ${error}`);
+    }
+
+    const projections = await leagueProjections(consensus);
 
     const brief = [
       "You are in the league's group thread. The most recent messages, oldest",
@@ -182,10 +260,14 @@ Deno.serve(async (request) => {
       `${asked.author_name} has just addressed you. Reply to the thread in ` +
       "one short paragraph — three sentences at most. You are talking to the " +
       "whole league, not one manager, so no greeting and no sign-off. Use the " +
-      "numbers above when they answer the question — you have this week's " +
-      "projections for every team. What you do not have here is anybody's " +
-      "bench in detail or the free agent pool, so for a start-sit or a waiver " +
-      "question send them to Matchups, where you do. Never invent a number.",
+      "numbers above when they answer the question. You have this week's " +
+      "projections for every team and every rostered player ranked by " +
+      "position on the expert consensus, with their manager in brackets — so " +
+      "\"who is the best quarterback in the league\" is answerable, and the " +
+      "answer is the top of the QB list, not somebody you remember. Attribute " +
+      "a player to the manager the table gives, never another one. What you " +
+      "do not have here is the free agent pool, so send waiver questions to " +
+      "Matchups. Never invent a number.",
       300,
     );
     if (!text) return Response.json({ error: "nothing came back" }, { status: 502 });

@@ -27,6 +27,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -55,6 +56,8 @@ import com.commissionerscartel.app.ui.CartelGold
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 sealed interface ThreadState {
@@ -74,12 +77,49 @@ class LeagueThreadViewModel : ViewModel() {
     private val _state = MutableStateFlow<ThreadState>(ThreadState.Loading)
     val state: StateFlow<ThreadState> = _state.asStateFlow()
 
+    private var watching: Job? = null
+
     init {
         // Reload whenever sign-in state settles or changes. Without this,
         // signing in on the Settings tab leaves this screen showing "sign in"
         // until the app is restarted — and at launch the stored session has
         // usually not finished loading when this runs.
         viewModelScope.launch { Session.status.collect { load() } }
+    }
+
+    /**
+     * Re-reads the thread while it is on screen.
+     *
+     * A conversation that only updates when you leave and come back is not a
+     * conversation. Landry made it obvious: you ask him something, the
+     * notification arrives, and the thread you are staring at shows nothing.
+     *
+     * Polling rather than a live subscription — for twelve people the honest
+     * cost is one small request every few seconds while somebody is actually
+     * reading, and a websocket is the right answer for a thousand leagues.
+     * Cancelled with the screen, so it runs only while it is being watched.
+     */
+    fun watch() {
+        if (watching?.isActive == true) return
+        watching = viewModelScope.launch {
+            while (true) {
+                delay(5_000)
+                val current = _state.value as? ThreadState.Loaded ?: continue
+                // Quiet: keep what is on screen if the request fails, so a
+                // tunnel does not empty the thread.
+                val fresh = runCatching { Supabase.messages() }.getOrNull() ?: continue
+                if (fresh != current.messages) {
+                    val reactions = runCatching { Supabase.reactions() }
+                        .getOrDefault(current.reactions)
+                    _state.value = current.copy(messages = fresh, reactions = reactions)
+                }
+            }
+        }
+    }
+
+    fun stopWatching() {
+        watching?.cancel()
+        watching = null
     }
 
     fun load() {
@@ -134,6 +174,13 @@ fun LeagueThreadScreen(modifier: Modifier = Modifier, model: LeagueThreadViewMod
     var draft by remember { mutableStateOf("") }
     var mentioning by remember { mutableStateOf(false) }
     val listState = rememberLazyListState()
+
+    // Watch only while this screen is composed; DisposableEffect stops it the
+    // moment somebody navigates away.
+    DisposableEffect(Unit) {
+        model.watch()
+        onDispose { model.stopWatching() }
+    }
 
     when (val current = state) {
         is ThreadState.Loading -> Box(modifier.fillMaxSize(), Alignment.Center) {
