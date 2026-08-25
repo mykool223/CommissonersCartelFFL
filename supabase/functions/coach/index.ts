@@ -615,9 +615,13 @@ Deno.serve(async (request) => {
         "Do not describe any player as rising, falling, sliding, trending or " +
         "climbing — there is no such data here, and it would be invented.",
       "",
-      "Power ranking — the best legal lineup each team could field this week,",
-      "on the expert consensus. This is calculated here, not published by",
-      "FantasyPros, so call it our own ranking rather than theirs:",
+      "This week's lineup strength — the best legal lineup each team could",
+      "field, on the expert consensus. Call it that, not a power ranking: it",
+      "measures one Sunday, not how good a roster is. FantasyPros' own league",
+      "analyzer scores whole rosters against draft rankings and will often",
+      "disagree, sometimes by a lot; if somebody says their site puts them",
+      "higher, they are probably right and it is a different measure, not a",
+      "mistake. This is calculated here, not published by FantasyPros:",
       ...power.map((t, i) =>
         `${i + 1}. ${t.name}${t.own ? " (this manager)" : ""}: ${t.total.toFixed(1)}`),
       "",

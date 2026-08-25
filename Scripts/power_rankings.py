@@ -156,6 +156,11 @@ def compose(week: int, rows: list[dict], previous: dict[int, int]) -> str:
         "on the expert consensus. Not record — records in September say very "
         "little, and a bad team can win a good week.",
         "",
+        "This measures one Sunday, not how good a roster is. FantasyPros' own "
+        "league analyzer scores whole rosters against draft rankings and will "
+        "often say something different. Both are true; they are answering "
+        "different questions.",
+        "",
     ]
     for row in rows:
         lines.append(
@@ -227,7 +232,7 @@ def main() -> int:
     ) or []
     previous = {r["espn_team_id"]: r["rank"] for r in prior}
 
-    title = f"Week {week} Power Rankings"
+    title = f"Week {week} Lineup Strength"
     body = compose(week, rows, previous)
 
     if dry_run:
