@@ -64,10 +64,10 @@ class CallBudget(unittest.TestCase):
             budget.take()
 
     def test_a_full_run_fits_inside_the_daily_allowance(self):
-        # One players call, two ranking sets and one projection set across
+        # One players call, two ranking sets and two projection sets across
         # every position, and one injuries call. If this grows past the
         # budget, the run would fail in production rather than here.
-        expected = 1 + len(sync.POSITIONS) * 3 + 1
+        expected = 1 + len(sync.POSITIONS) * 4 + 1
         self.assertLessEqual(expected, sync.DAILY_BUDGET)
         # And the budget itself must stay well under their published ceiling,
         # since a re-run after a failure spends it twice.

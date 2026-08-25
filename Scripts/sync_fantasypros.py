@@ -227,6 +227,25 @@ def fetch_projections(budget: Budget, season: int, week: int) -> list[dict]:
     return rows
 
 
+def fetch_ros_projections(budget: Budget, season: int) -> list[dict]:
+    """Rest-of-season projections — what a player is worth in a trade."""
+    rows = []
+    for position in POSITIONS:
+        data = fantasypros(
+            budget, f"/nfl/{season}/projections", position=position, ros="true")
+        for player in data.get("players") or []:
+            fp_id = to_int(player.get("fpid"))
+            stats = player.get("stats") or []
+            if fp_id is None or not stats:
+                continue
+            entry = stats[0] if isinstance(stats, list) else stats
+            points = to_float(entry.get("points_ppr"))
+            if points is None:
+                points = to_float(entry.get("points"))
+            rows.append({"season": season, "fp_id": fp_id, "points_ppr": points})
+    return rows
+
+
 def fetch_injuries(budget: Budget, season: int, week: int) -> list[dict]:
     """Injuries, including practice-report players without a status yet."""
     data = fantasypros(budget, "/nfl/injuries", year=season, week=week,
@@ -321,6 +340,7 @@ def main() -> int:
     weekly = fetch_rankings(budget, season, week, "weekly")
     ros = fetch_rankings(budget, season, week, "ros")
     projections = fetch_projections(budget, season, week)
+    ros_projections = fetch_ros_projections(budget, season)
     injuries = fetch_injuries(budget, season, week)
     log(f"  spent {budget.spent} of {budget.limit} calls")
 
@@ -333,7 +353,8 @@ def main() -> int:
 
     if dry_run:
         log(f"  would write {len(players)} players, {len(weekly)} weekly and "
-            f"{len(ros)} rest-of-season ranks, {len(projections)} projections, "
+            f"{len(ros)} rest-of-season ranks, {len(projections)} weekly and "
+            f"{len(ros_projections)} rest-of-season projections, "
             f"{len(injuries)} injuries")
         return 0
 
@@ -346,6 +367,7 @@ def main() -> int:
     upsert("fantasypros_rankings", keep(weekly), "season,week,kind,fp_id")
     upsert("fantasypros_rankings", keep(ros), "season,week,kind,fp_id")
     upsert("fantasypros_projections", keep(projections), "season,week,fp_id")
+    upsert("fantasypros_ros_projections", keep(ros_projections), "season,fp_id")
     upsert("fantasypros_injuries", keep(injuries), "season,week,fp_id")
 
     # Weeks that have been played are of no use to a coach and their licence
