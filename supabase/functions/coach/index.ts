@@ -21,12 +21,18 @@ const MODEL = Deno.env.get("COACH_MODEL") ?? "claude-sonnet-5";
 const BENCH = 20;
 const IR = 21;
 
+/** ESPN's defaultPositionId, for labelling other teams' players. */
+const positionName: Record<number, string> = {
+  1: "QB", 2: "RB", 3: "WR", 4: "TE", 5: "K", 16: "DST",
+};
+
 const SYSTEM = `You are Coach Landry, who runs football operations for the
 Commissioner's Cartel.
 
 You are given a manager's actual roster with this week's projections, the best
-legal lineup already solved for them, and the free agents worth considering
-with what each would add. Use those numbers. Do not invent players,
+legal lineup already solved for them, the free agents worth considering with
+what each would add, and every other team in the league with their rosters and
+this week's opponent marked. Use those numbers. Do not invent players,
 projections or matchups; if something is not in the data, say you do not know
 rather than guessing. When asked about pickups, only name players from the free
 agent list you are given — anyone else is already on a roster and cannot be
@@ -48,6 +54,12 @@ from that bracket, credit FantasyPros for it. Say only what the bracket says:
 if it does not report a player's rank rising or falling, do not describe them
 as rising or falling — early in the season there is no trend to report, and a
 plausible-sounding one is just invented.
+
+You can see every roster, so compare teams, judge a matchup, and say where an
+opponent is strong or thin. Do not propose or evaluate trades yet — that is
+not switched on, and the commissioner wants to talk it through first. If
+somebody asks about a trade, say it is coming but not yet, and answer whatever
+part of their question is not about trading.
 
 Be direct and brief: three or four sentences unless asked for more. Give a
 recommendation rather than a survey of options. Never dress up a close call as
@@ -424,9 +436,42 @@ Deno.serve(async (request) => {
       .sort((a, b) => b.gain - a.gain)
       .slice(0, 5);
 
+    // The rest of the league. ESPN returns every roster in the same response
+    // the manager's own team came from, so this costs nothing extra — it was
+    // simply being thrown away. Rosters are public to the league anyway;
+    // anybody can read them in ESPN's app.
+    const rivals = (league.teams ?? [])
+      .filter((t: any) => t.id !== team.id)
+      .map((t: any) => ({
+        id: t.id,
+        name: (t.name ?? `Team ${t.id}`).trim(),
+        squad: (t.roster?.entries ?? []).map((entry: any) => {
+          const raw = entry.playerPoolEntry?.player ?? {};
+          return {
+            espnId: raw.id as number | undefined,
+            name: raw.fullName ?? "A player",
+            position: positionName[raw.defaultPositionId] ?? "",
+            points: projection(raw, week),
+            status: String(raw.injuryStatus ?? "").toUpperCase(),
+            starting: entry.lineupSlotId !== BENCH && entry.lineupSlotId !== IR,
+          };
+        }),
+      }));
+
+    // Who the manager actually plays this week, so "my matchup" means
+    // something without them having to name the opponent.
+    const fixture = (league.schedule ?? []).find((game: any) =>
+      game.matchupPeriodId === week &&
+      (game.home?.teamId === team.id || game.away?.teamId === team.id));
+    const opponentId = fixture
+      ? (fixture.home?.teamId === team.id ? fixture.away?.teamId : fixture.home?.teamId)
+      : undefined;
+
     // The experts' view of everybody in play, from the nightly cache.
     const view = await consensusFor(
-      [...players, ...shortlist].map((p) => p.espnId ?? NaN), season, week);
+      [...players, ...shortlist].map((p) => p.espnId ?? NaN)
+        .concat(rivals.flatMap((r) => r.squad.map((p) => p.espnId ?? NaN))),
+      season, week);
 
     // The genuinely useful signal is disagreement. ESPN's projection is one
     // number from one source; the consensus is dozens of analysts. Where they
@@ -447,6 +492,13 @@ Deno.serve(async (request) => {
     // read as the experts agreeing. They have not been asked. Claiming
     // corroboration that does not exist is worse than having no data at all,
     // so the coach is told there is none.
+    // A general rule against inventing momentum was not enough — told only
+    // that a bracket might mention movement, he twice described a rank as
+    // "rising" or "sliding" when no movement was reported. Stating the
+    // absence as a fact about this week's data is harder to talk past.
+    const anyMovement = [...view.values()].some(
+      (v) => v.ecrDelta !== undefined && Math.abs(v.ecrDelta) >= 3);
+
     const covered = players.filter(
       (p) => view.get(p.espnId ?? NaN)?.points !== undefined).length;
     const haveConsensus = covered >= Math.ceil(players.length / 2);
@@ -485,6 +537,28 @@ Deno.serve(async (request) => {
         : `${pool.length} free agents were checked and none would improve this ` +
           "lineup. Say so plainly rather than suggesting somebody anyway.",
       "",
+      "Every other team in the league, with this week's projections. A star",
+      "marks a current starter. Rosters are public — anybody in the league can",
+      "read them in ESPN's app.",
+      ...rivals.map((rival) => {
+        const roster = [...rival.squad]
+          .sort((a, b) => b.points - a.points)
+          .map((p) => {
+            const rank = view.get(p.espnId ?? NaN)?.posRank;
+            return `${p.starting ? "*" : ""}${p.name} (${p.position}, ` +
+              `${p.points.toFixed(1)}${rank ? `, ${rank}` : ""}` +
+              `${p.status && p.status !== "ACTIVE" ? `, ${p.status}` : ""})`;
+          })
+          .join("; ");
+        return `- ${rival.name}` +
+          `${rival.id === opponentId ? " — THIS WEEK'S OPPONENT" : ""}: ${roster}`;
+      }),
+      "",
+      anyMovement ? "" :
+        "No week-on-week rank movement is reported this week, for anybody. " +
+        "Do not describe any player as rising, falling, sliding, trending or " +
+        "climbing — there is no such data here, and it would be invented.",
+      "",
       !haveConsensus
         ? "No FantasyPros consensus is available for this roster right now, " +
           "so every number above is ESPN's. Work from those and do not " +
@@ -510,7 +584,14 @@ Deno.serve(async (request) => {
       },
       body: JSON.stringify({
         model: MODEL,
-        max_tokens: 400,
+        // Thinking is on by default and spends the same budget the answer
+        // does. With every roster in the context it swallowed all 400 tokens
+        // and left nothing to say. These questions do not need it, and a
+        // manager waiting on a phone would rather have the answer.
+        thinking: { type: "disabled" },
+        // Room for a real answer plus the odd longer one, still short enough
+        // that a runaway reply cannot cost much.
+        max_tokens: 700,
         system: SYSTEM,
         messages: [{ role: "user", content: `${context}\n\nQuestion: ${trimmed}` }],
       }),
@@ -527,6 +608,19 @@ Deno.serve(async (request) => {
       .map((block: any) => block.text)
       .join("\n")
       .trim();
+
+    // An empty reply used to reach the app as a blank bubble, which reads as
+    // the coach ignoring you. Say something instead, and carry the reason.
+    if (!answer) {
+      const detail = `stop_reason=${body.stop_reason} ` +
+        `blocks=${JSON.stringify((body.content ?? []).map((b: any) => b.type))} ` +
+        `usage=${JSON.stringify(body.usage)}`;
+      console.error(`Empty answer. ${detail}`);
+      return Response.json(
+        { error: "The coach had nothing to say. Try asking again.", detail },
+        { status: 502 },
+      );
+    }
 
     await rest("coach_usage?on_conflict=user_id,day", {
       method: "POST",
