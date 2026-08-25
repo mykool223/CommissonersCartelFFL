@@ -78,6 +78,11 @@ data class PowerRanking(
     val rank: Int,
     /** "out of 100" — their scale, so it is stated rather than assumed. */
     val unit: String? = null,
+    /** 'fantasypros' or 'computed'. Declared because the decoder is strict:
+     *  a column the model does not name fails the whole read, which is how
+     *  this silently returned nothing and the list kept ESPN's seeds. */
+    val source: String = "fantasypros",
+    @SerialName("computed_at") val computedAt: String? = null,
 )
 
 @Serializable

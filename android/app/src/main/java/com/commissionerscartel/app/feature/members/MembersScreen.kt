@@ -97,7 +97,9 @@ private fun MemberRow(entry: MemberEntry, onClick: () -> Unit) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            entry.team?.playoffSeed?.let {
+            // The power ranking where the league has published one, and ESPN's
+            // seed only once games have actually been played.
+            (entry.powerRank ?: entry.team?.playoffSeed)?.let {
                 Text("#$it", style = MaterialTheme.typography.labelLarge)
             }
         }

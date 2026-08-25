@@ -12,6 +12,11 @@ final class MembersViewModel {
         let team: Team?
         /// Nil when Supabase has no bio for this team, or is unreachable.
         var bio: TeamBio?
+        /// Where the league's published power ranking puts them. Preferred
+        /// over ESPN's playoff seed, which before a ball is kicked is not a
+        /// ranking at all — it had the commissioner twelfth while the power
+        /// ranking had him fourth, which reads as one of them being broken.
+        var powerRank: Int?
 
         var id: String { manager.id }
     }
@@ -48,6 +53,7 @@ final class MembersViewModel {
             // Flavour text is a nice-to-have. A Supabase outage should cost us
             // the bios, not the whole members list.
             async let bios = try? await content.teamBios(season: Season.current())
+            async let rankings = try? await content.powerRankings(season: Season.current())
 
             let allTeams = try await teams
             // One lookup per owner id, since a team can be co-owned.
@@ -59,6 +65,8 @@ final class MembersViewModel {
             }
 
             let bioByTeam = await bios ?? [:]
+            let rankByTeam = Dictionary(
+                uniqueKeysWithValues: (await rankings ?? []).map { ($0.teamID, $0.rank) })
             // Hand the widget the one thing it cannot work out for itself.
             // Done here rather than at claim time so it self-heals: any launch
             // that loads the roster refreshes it.
@@ -69,13 +77,19 @@ final class MembersViewModel {
                     return Entry(
                         manager: manager,
                         team: team,
-                        bio: team.flatMap { bioByTeam[$0.id] }
+                        bio: team.flatMap { bioByTeam[$0.id] },
+                        powerRank: team.flatMap { rankByTeam[$0.id] }
                     )
                 }
                 // Standings order where ESPN gives us one. Before the season
                 // starts every seed is absent, so fall back to record and then
                 // to name — otherwise the list order is whatever ESPN felt like.
                 .sorted { lhs, rhs in
+                    // The published ranking first, so the number shown and the
+                    // order agree with each other.
+                    if let left = lhs.powerRank, let right = rhs.powerRank {
+                        return left < right
+                    }
                     switch (lhs.team?.playoffSeed, rhs.team?.playoffSeed) {
                     case let (l?, r?):
                         return l < r

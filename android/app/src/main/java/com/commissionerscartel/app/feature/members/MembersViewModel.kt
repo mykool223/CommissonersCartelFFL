@@ -22,6 +22,13 @@ data class MemberEntry(
     val manager: Manager,
     val team: Team?,
     val bio: TeamBio?,
+    /**
+     * Where the league's published power ranking puts them. Preferred over
+     * ESPN's playoff seed, which before a ball is kicked is not a ranking at
+     * all — it had the commissioner twelfth while the power ranking had him
+     * fourth, which reads as one of them being broken.
+     */
+    val powerRank: Int? = null,
 )
 
 data class MemberGroup(val division: Division?, val entries: List<MemberEntry>)
@@ -51,6 +58,9 @@ class MembersViewModel(application: Application) : AndroidViewModel(application)
                 // Flavour text is a nice-to-have; a Supabase outage should cost
                 // the bios, not the roster.
                 val bios = runCatching { Supabase.teamBios(league.season) }.getOrDefault(emptyMap())
+                val ranks = runCatching { Supabase.powerRankings(league.season) }
+                    .getOrDefault(emptyList())
+                    .associate { it.teamId to it.rank }
 
                 // One lookup per owner, since a team can be co-owned.
                 val teamByOwner = buildMap {
@@ -65,7 +75,10 @@ class MembersViewModel(application: Application) : AndroidViewModel(application)
                 val entries = managers
                     .map { manager ->
                         val team = teamByOwner[manager.id]
-                        MemberEntry(manager, team, team?.let { bios[it.id] })
+                        MemberEntry(
+                            manager, team, team?.let { bios[it.id] },
+                            powerRank = team?.let { ranks[it.id] },
+                        )
                     }
                     .sortedWith(entryOrder)
 
@@ -98,6 +111,10 @@ class MembersViewModel(application: Application) : AndroidViewModel(application)
      * order is whatever ESPN felt like that request.
      */
     private val entryOrder = Comparator<MemberEntry> { a, b ->
+        // The published ranking first, so the number shown and the order agree.
+        val rankA = a.powerRank
+        val rankB = b.powerRank
+        if (rankA != null && rankB != null) return@Comparator rankA.compareTo(rankB)
         val seedA = a.team?.playoffSeed
         val seedB = b.team?.playoffSeed
         when {

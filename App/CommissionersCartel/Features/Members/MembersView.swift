@@ -129,8 +129,10 @@ private struct MemberRow: View {
     var body: some View {
         Card {
             HStack(spacing: Theme.Spacing.medium) {
-                if let seed = entry.team?.playoffSeed {
-                    Text("\(seed)")
+                // The power ranking where the league has published one, and
+                // ESPN's seed only once games have actually been played.
+                if let position = entry.powerRank ?? entry.team?.playoffSeed {
+                    Text("\(position)")
                         .font(.caption.monospacedDigit().weight(.semibold))
                         .foregroundStyle(.secondary)
                         .frame(width: 20)
