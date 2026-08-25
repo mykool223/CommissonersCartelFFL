@@ -35,6 +35,11 @@ const PREFERENCE_COLUMN: Record<string, string> = {
     matchup: "matchups",
     direct: "direct",
     mention: "mentions",
+    // A suggested trade rides on the adds-drops-and-trades preference:
+    // somebody who muted roster moves does not want proposals about them
+    // either. It was missing entirely, so every suggestion the Wednesday job
+    // produced was rejected with "Unknown kind: trade" and dropped.
+    trade: "activity",
 };
 
 /** The tab to open when the notification is tapped. */
@@ -52,6 +57,9 @@ const DESTINATION: Record<string, string> = {
     direct: "members",
     // A mention is in the league thread, also under Members.
     mention: "members",
+    // A trade suggestion opens Matchups, where the coach can be asked what it
+    // would actually do to the lineup.
+    trade: "matchups",
 };
 
 function base64URL(bytes: Uint8Array): string {

@@ -84,10 +84,15 @@ struct RootView: View {
             Task { await refreshUnread() }
         }
         // A tapped notification names the tab it came from.
-        .onChange(of: registrar.pendingDestination) { _, destination in
-            guard let destination, let tab = TabIdentifier(rawValue: destination) else { return }
-            selection = tab
-            registrar.clearPendingDestination()
+        //
+        // Both hooks are needed. A tap on a *running* app changes the value
+        // while this view is on screen, which onChange sees. A tap that
+        // launches the app sets it before this view exists — onChange never
+        // fires for a value that was already there, so the app opens on News
+        // as though the notification had not been tapped at all.
+        .onAppear { openPendingDestination() }
+        .onChange(of: registrar.pendingDestination) { _, _ in
+            openPendingDestination()
         }
         // Asked the first time someone signs in rather than at first launch:
         // the prompt makes sense once you know there are eleven other people
@@ -99,6 +104,15 @@ struct RootView: View {
                 await registrar.requestAuthorization()
             }
         }
+    }
+
+    /// Follows a tapped notification to the tab it names, if one is waiting.
+    private func openPendingDestination() {
+        guard let destination = registrar.pendingDestination,
+              let tab = TabIdentifier(rawValue: destination)
+        else { return }
+        selection = tab
+        registrar.clearPendingDestination()
     }
 
     /// Counts what is waiting. Quietly: a failure here should cost a badge,
