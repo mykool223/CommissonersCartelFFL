@@ -185,10 +185,10 @@ def fetch_rankings(budget: Budget, season: int, week: int,
             f"/nfl/{season}/consensus-rankings",
             position=position,
             scoring=SCORING,
-            # Their weekly set is keyed on the week; rest-of-season is its own
-            # ranking type and ignores it.
-            type="ROS" if kind == "ros" else None,
-            week=0 if kind == "ros" else week,
+            # Their weekly set is keyed on the week; rest-of-season and draft
+            # are their own ranking types and ignore it.
+            type={"ros": "ROS", "draft": "DRAFT"}.get(kind),
+            week=0 if kind in ("ros", "draft") else week,
         )
         for player in data.get("players") or []:
             fp_id = to_int(player.get("player_id"))
@@ -377,6 +377,8 @@ def main() -> int:
     players = fetch_players(budget)
     weekly = fetch_rankings(budget, season, week, "weekly")
     ros = fetch_rankings(budget, season, week, "ros")
+    # How a whole roster gets valued, which is what a power ranking wants.
+    draft = fetch_rankings(budget, season, week, "draft")
     projections = fetch_projections(budget, season, week)
     ros_projections = fetch_ros_projections(budget, season)
     injuries = fetch_injuries(budget, season, week)
@@ -385,13 +387,16 @@ def main() -> int:
     # Ranked players decide which entry wins a contested ESPN id, so this can
     # only happen once the rankings are in hand.
     players = resolve_duplicates(
-        players, {r["fp_id"] for r in weekly} | {r["fp_id"] for r in ros})
+        players,
+        {r["fp_id"] for r in weekly} | {r["fp_id"] for r in ros}
+        | {r["fp_id"] for r in draft})
     matched = sum(1 for p in players if p["espn_id"])
     log(f"  players: {len(players)}, {matched} carrying an ESPN id")
 
     if dry_run:
         log(f"  would write {len(players)} players, {len(weekly)} weekly and "
-            f"{len(ros)} rest-of-season ranks, {len(projections)} weekly and "
+            f"{len(ros)} rest-of-season and {len(draft)} draft ranks, "
+            f"{len(projections)} weekly and "
             f"{len(ros_projections)} rest-of-season projections, "
             f"{len(injuries)} injuries")
         return 0
@@ -404,6 +409,7 @@ def main() -> int:
 
     upsert("fantasypros_rankings", keep(weekly), "season,week,kind,fp_id")
     upsert("fantasypros_rankings", keep(ros), "season,week,kind,fp_id")
+    upsert("fantasypros_rankings", keep(draft), "season,week,kind,fp_id")
     upsert("fantasypros_projections", keep(projections), "season,week,fp_id")
     upsert("fantasypros_ros_projections", keep(ros_projections), "season,fp_id")
     upsert("fantasypros_injuries", keep(injuries), "season,week,fp_id")

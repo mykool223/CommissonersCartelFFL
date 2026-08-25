@@ -64,10 +64,10 @@ class CallBudget(unittest.TestCase):
             budget.take()
 
     def test_a_full_run_fits_inside_the_daily_allowance(self):
-        # One players call, two ranking sets and one projection set across
+        # One players call, three ranking sets and one projection set across
         # every position, and one injuries call. Rest-of-season projections
         # are not served on this tier and are not requested.
-        expected = 1 + len(sync.POSITIONS) * 3 + 1
+        expected = 1 + len(sync.POSITIONS) * 4 + 1
         self.assertLessEqual(expected, sync.DAILY_BUDGET)
         # And a run must fit twice inside the day, since a failure is retried.
         self.assertLessEqual(
