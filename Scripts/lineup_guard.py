@@ -36,9 +36,16 @@ USER_AGENT = "curl/8.7.1"
 BENCH_SLOTS = {20, 21}
 
 # Statuses worth interrupting somebody's Sunday for. QUESTIONABLE is
-# deliberately absent: half the league is questionable on any given week, and a
-# warning that fires constantly gets muted.
+# deliberately absent from this set: half the league is questionable on any
+# given week, and a warning that fires constantly gets muted. It is handled
+# separately below, on evidence rather than on the label.
 BLOCKING = {"OUT", "DOUBTFUL", "INJURY_RESERVE", "SUSPENSION", "NOT_ACTIVE"}
+
+# FantasyPros reads the practice reports and puts a number on whether somebody
+# will actually play. Below this, a "questionable" starter is worth a warning
+# even though ESPN says nothing is wrong — this is the case that quietly costs
+# people games.
+UNLIKELY_TO_PLAY = 0.5
 
 REASON_TEXT = {
     "OUT": "is out",
@@ -48,6 +55,51 @@ REASON_TEXT = {
     "NOT_ACTIVE": "is not active",
     "BYE": "is on a bye",
 }
+
+
+def projection(player: dict, week: int) -> float:
+    """ESPN's projection for the week. statSourceId 1 is the projected line."""
+    for row in player.get("stats") or []:
+        if row.get("statSourceId") == 1 and row.get("scoringPeriodId") == week:
+            return float(row.get("appliedTotal") or 0)
+    return 0.0
+
+
+def best_replacement(team: dict, slot: int, week: int) -> tuple[str, float] | None:
+    """The strongest bench player eligible for a slot, so a warning can say
+    what to do about it rather than only that something is wrong."""
+    best = None
+    for entry in (team.get("roster") or {}).get("entries") or []:
+        if entry.get("lineupSlotId") not in BENCH_SLOTS:
+            continue
+        player = (entry.get("playerPoolEntry") or {}).get("player") or {}
+        if slot not in (player.get("eligibleSlots") or []):
+            continue
+        if (player.get("injuryStatus") or "").upper() in BLOCKING:
+            continue
+        points = projection(player, week)
+        if best is None or points > best[1]:
+            best = (player.get("fullName") or "somebody", points)
+    return best
+
+
+def play_probabilities(season: int, week: int) -> dict[int, float]:
+    """Chance of playing, per ESPN player id, from the FantasyPros cache.
+
+    Empty if the nightly sync has never run, in which case the guard behaves
+    exactly as it did before.
+    """
+    rows = supabase(
+        "GET",
+        "fantasypros_injuries?select=probability,fantasypros_players!inner(espn_id)"
+        f"&season=eq.{season}&week=eq.{week}&probability=not.is.null",
+    ) or []
+    out: dict[int, float] = {}
+    for row in rows:
+        espn_id = (row.get("fantasypros_players") or {}).get("espn_id")
+        if espn_id is not None and row.get("probability") is not None:
+            out[int(espn_id)] = float(row["probability"])
+    return out
 
 
 def log(message: str) -> None:
@@ -122,6 +174,9 @@ def main() -> int:
     data = espn(league_path, "view=mRoster&view=mTeam&view=mSettings")
     week = int(os.environ.get("LINEUP_WEEK") or (data.get("status") or {}).get("currentMatchupPeriod") or 1)
 
+    chances = play_probabilities(season, week)
+    log(f"  {len(chances)} player(s) carry a practice-report probability")
+
     pro = espn(f"/apis/v3/games/ffl/seasons/{season}", "view=proTeamSchedules_wl")
     pro_teams = (pro.get("settings") or {}).get("proTeams") or pro.get("proTeams") or []
     bye = {t["id"]: t.get("byeWeek") for t in pro_teams if t.get("id") is not None}
@@ -150,10 +205,21 @@ def main() -> int:
             status = (player.get("injuryStatus") or "").upper()
 
             reason = None
+            detail = None
             if status in BLOCKING:
                 reason = status
             elif bye.get(player.get("proTeamId")) == week:
                 reason = "BYE"
+            else:
+                chance = chances.get(player.get("id"))
+                if chance is not None and chance < UNLIKELY_TO_PLAY:
+                    reason = "UNLIKELY"
+                    detail = f"is only {round(chance * 100)}% likely to play"
+                    stand_in = best_replacement(
+                        team, entry.get("lineupSlotId"), week)
+                    if stand_in and stand_in[1] > 0:
+                        detail += (f", and {stand_in[0]} projects "
+                                   f"{stand_in[1]:.1f} on your bench")
             if not reason:
                 continue
 
@@ -164,6 +230,7 @@ def main() -> int:
                 "espn_team_id": team["id"],
                 "player_id": player.get("id") or entry.get("playerId"),
                 "reason": reason,
+                "detail": detail,
                 "name": name,
                 "team_name": (team.get("name") or "your team").strip(),
             })
@@ -184,11 +251,14 @@ def main() -> int:
 
     if dry_run:
         for p in fresh:
-            log(f"  {p['team_name']}: {p['name']} {REASON_TEXT[p['reason']]}")
+            log(f"  {p['team_name']}: {p['name']} "
+                f"{p['detail'] or REASON_TEXT[p['reason']]}")
         return 0
 
     for problem in fresh:
-        body = f"{problem['name']} {REASON_TEXT[problem['reason']]} and is in your starting lineup."
+        body = (f"{problem['name']} "
+                f"{problem['detail'] or REASON_TEXT[problem['reason']]}"
+                " and is in your starting lineup.")
         try:
             push("lineup", "Check your lineup", body, problem["user_id"])
         except urllib.error.HTTPError as error:
