@@ -63,6 +63,40 @@ def completed(data: dict, week: int) -> list[dict]:
     return out
 
 
+def in_landrys_words(brief: str, fallback: str) -> str:
+    """Asks the coach to write the recap from the week's facts.
+
+    Every number in the brief was worked out here. He is asked to write it up,
+    not to work anything out, which is the only arrangement in which he cannot
+    be wrong about the score.
+    """
+    secret = os.environ.get("PUSH_SECRET")
+    if not secret:
+        return fallback
+    request = urllib.request.Request(
+        f"{os.environ['SUPABASE_URL'].rstrip('/')}/functions/v1/landry",
+        data=json.dumps({
+            "brief": brief,
+            "instruction": (
+                "Write this week's recap for the league news feed. Three or "
+                "four short paragraphs. Name the highest and lowest scores and "
+                "the biggest beating, and say something worth reading about "
+                "each. No greeting, no sign-off, no headings, and do not "
+                "invent a number you were not given."),
+            "max_tokens": 700,
+        }).encode(),
+        method="POST",
+        headers={"Content-Type": "application/json", "x-cartel-secret": secret},
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=60) as response:
+            said = (json.load(response).get("text") or "").strip()
+    except (urllib.error.HTTPError, urllib.error.URLError, ValueError) as error:
+        log(f"  coach unavailable ({error}); posting the plain recap")
+        return fallback
+    return said or fallback
+
+
 def compose(week: int, games: list[dict], names: dict[int, str], teams: list[dict]) -> str:
     sides: list[tuple[int, float, bool]] = []
     for game in games:
@@ -157,7 +191,14 @@ def main() -> int:
     teams = data.get("teams") or []
     names = {t["id"]: (t.get("name") or f"Team {t['id']}").strip() for t in teams}
     title = f"Week {week} Recap"
-    body = compose(week, games, names, teams)
+    plain = compose(week, games, names, teams)
+    # The facts, worked out here; the writing, his. If he is unreachable the
+    # plain recap still goes out — a templated recap beats no recap.
+    body = in_landrys_words(
+        f"Week {week} of the Commissioner's Cartel is finished. The results:\n\n"
+        + plain,
+        plain,
+    )
 
     if dry_run:
         log(f"DRY_RUN — would publish '{title}':")

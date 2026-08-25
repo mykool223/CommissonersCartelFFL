@@ -106,6 +106,40 @@ def log(message: str) -> None:
     print(message, file=sys.stderr)
 
 
+def in_landrys_words(brief: str, fallback: str) -> str:
+    """Asks the coach to say it, and settles for the plain version if he cannot.
+
+    The arithmetic is already done here — who is starting, how likely they are
+    to play, who is behind them. He is given those facts and asked only to
+    phrase them, which is the one thing he is better at than a format string.
+    """
+    secret = os.environ.get("PUSH_SECRET")
+    if not secret:
+        return fallback
+    request = urllib.request.Request(
+        f"{os.environ['SUPABASE_URL'].rstrip('/')}/functions/v1/landry",
+        data=json.dumps({
+            "brief": brief,
+            "instruction": (
+                "Write the body of a push notification telling this manager to "
+                "fix it. Two sentences at most. No greeting, no sign-off, and "
+                "do not invent any number you were not given."),
+        }).encode(),
+        method="POST",
+        headers={"Content-Type": "application/json", "x-cartel-secret": secret},
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=30) as response:
+            said = (json.load(response).get("text") or "").strip()
+    except (urllib.error.HTTPError, urllib.error.URLError, ValueError) as error:
+        log(f"  coach unavailable ({error}); sending the plain version")
+        return fallback
+    # A notification body has a practical ceiling; anything longer is a sign
+    # he ignored the instruction, and the plain version is better than a
+    # truncated paragraph.
+    return said if said and len(said) <= 220 else fallback
+
+
 def current_season(today: dt.date | None = None) -> int:
     today = today or dt.date.today()
     return today.year if today.month >= 6 else today.year - 1
@@ -249,16 +283,23 @@ def main() -> int:
 
     log(f"{len(problems)} problem(s), {len(fresh)} not yet reported")
 
+    for problem in fresh:
+        problem["body"] = in_landrys_words(
+            f"{problem['team_name']} is starting {problem['name']}, who "
+            f"{problem['detail'] or REASON_TEXT[problem['reason']]}.",
+            f"{problem['name']} "
+            f"{problem['detail'] or REASON_TEXT[problem['reason']]}"
+            " and is in your starting lineup.",
+        )
+
     if dry_run:
         for p in fresh:
-            log(f"  {p['team_name']}: {p['name']} "
-                f"{p['detail'] or REASON_TEXT[p['reason']]}")
+            log(f"  to {p['team_name']}:")
+            log(f"    {p['body']}")
         return 0
 
     for problem in fresh:
-        body = (f"{problem['name']} "
-                f"{problem['detail'] or REASON_TEXT[problem['reason']]}"
-                " and is in your starting lineup.")
+        body = problem["body"]
         try:
             push("lineup", "Check your lineup", body, problem["user_id"])
         except urllib.error.HTTPError as error:
