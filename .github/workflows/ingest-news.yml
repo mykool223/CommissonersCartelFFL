@@ -20,14 +20,16 @@ name: Ingest news
 
 on:
   schedule:
-    # Every half hour from 10:00 to 04:00 UTC — 5am to 11pm Central, which
-    # covers waking hours either side of a game. One request each, so this is
-    # ~38 a day against a page that is served from a cache.
+    # Every half hour through waking hours — 10:00-04:00 UTC is 5am to 11pm
+    # Central — and hourly overnight, so nothing that breaks at 2am waits
+    # until morning. About 43 requests a day against a page served from a
+    # cache.
     #
     # GitHub's scheduler is best-effort and runs late under load; nothing here
     # depends on the exact minute.
     - cron: "0,30 10-23 * * *"
     - cron: "0,30 0-4 * * *"
+    - cron: "0 5-9 * * *"
   workflow_dispatch:
     inputs:
       dry_run:
