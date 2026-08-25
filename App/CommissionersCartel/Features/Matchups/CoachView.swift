@@ -76,6 +76,16 @@ struct CoachView: View {
                 .padding(.horizontal, Theme.Spacing.medium)
             }
 
+            // Always visible, not only on the empty state: the warning is
+            // least useful once somebody is deep in a conversation and most
+            // likely to be acted on there.
+            Text("Coach Landry can be wrong. Projections are estimates and he can misread them — check before you act on it.")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: .infinity)
+                .padding(.horizontal, Theme.Spacing.large)
+
             HStack(spacing: Theme.Spacing.small) {
                 TextField("Ask Coach Landry", text: $draft, axis: .vertical)
                     .lineLimit(1...3)

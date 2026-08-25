@@ -119,6 +119,17 @@ fun CoachScreen(modifier: Modifier = Modifier, model: CoachViewModel = viewModel
             }
         }
 
+        // Always visible, not only on the empty state: the warning is least
+        // useful once somebody is deep in a conversation and most likely to be
+        // acted on there.
+        Text(
+            "Coach Landry can be wrong. Projections are estimates and he can misread them — check before you act on it.",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+        )
+
         Row(
             Modifier.fillMaxWidth().padding(12.dp),
             verticalAlignment = Alignment.CenterVertically,
