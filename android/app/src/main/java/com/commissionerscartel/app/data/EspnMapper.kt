@@ -25,7 +25,8 @@ object EspnMapper {
                 id = team.id,
                 name = team.name?.takeIf(String::isNotBlank) ?: "Team ${team.id}",
                 abbreviation = team.abbrev.orEmpty(),
-                logoUrl = client.logoUrl(team.logo),
+                // ESPN's own logo wins; the league's fills the gap.
+                logoUrl = client.logoUrl(team.logo) ?: TeamLogos.forTeam(team.id),
                 divisionId = team.divisionId,
                 // ESPN reports 0 before the season starts, meaning "no seed
                 // yet". Treating that as first place would be wrong.

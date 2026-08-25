@@ -33,6 +33,16 @@ public struct Team: Identifiable, Hashable, Sendable, Codable {
         self.playoffSeed = playoffSeed
         self.divisionID = divisionID
     }
+
+    /// The same team with a different logo. Used when the league supplies one
+    /// for a manager who never uploaded their own.
+    public func withLogo(_ url: URL?) -> Team {
+        Team(
+            id: id, name: name, abbreviation: abbreviation, logoURL: url,
+            ownerIDs: ownerIDs, record: record, playoffSeed: playoffSeed,
+            divisionID: divisionID
+        )
+    }
 }
 
 public struct TeamRecord: Hashable, Sendable, Codable {

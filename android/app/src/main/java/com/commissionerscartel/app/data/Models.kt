@@ -66,6 +66,8 @@ data class TeamBio(
     @SerialName("espn_team_id") val teamId: Int,
     val title: String,
     val bio: String,
+    /** A logo the league supplied, for a team still on ESPN's stock art. */
+    @SerialName("logo_url") val logoUrl: String? = null,
 )
 
 @Serializable

@@ -11,6 +11,7 @@ import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import com.commissionerscartel.app.data.Config
 import com.commissionerscartel.app.data.Push
 import com.commissionerscartel.app.data.Session
+import com.commissionerscartel.app.data.TeamLogos
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -44,6 +45,9 @@ class CartelApp : Application(), SingletonImageLoader.Factory {
         // the Settings screen only runs for members who happen to visit it —
         // which is how this silently failed to register at all.
         CoroutineScope(Dispatchers.IO).launch {
+            // Before anything draws a team, so the first members list already
+            // has the right faces rather than filling in a moment later.
+            TeamLogos.refresh()
             runCatching { Push.ensureToken() }
             Session.status.collect { signedIn ->
                 if (signedIn) runCatching { Push.register() }

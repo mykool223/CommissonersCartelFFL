@@ -106,6 +106,15 @@ final class AppEnvironment {
             self.content = MockContentRepository()
             self.isUsingMockContent = true
         }
+
+        // Wrapped last, once both halves exist: teams come from ESPN, the
+        // logos for the ones that never uploaded come from Supabase, and
+        // every screen that draws a logo reads the same Team.
+        self.leagueData = LeagueLogos(
+            wrapping: self.leagueData,
+            content: self.content,
+            season: Season.current()
+        )
     }
 
     // MARK: - Sign-in

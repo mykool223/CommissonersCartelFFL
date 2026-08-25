@@ -262,9 +262,13 @@ private struct TeamBioRow: Decodable {
     let espn_team_id: Int
     let title: String
     let bio: String
+    let logo_url: String?
 
     var model: TeamBio {
-        TeamBio(season: season, teamID: espn_team_id, title: title, bio: bio)
+        TeamBio(
+            season: season, teamID: espn_team_id, title: title, bio: bio,
+            logoURL: logo_url
+        )
     }
 }
 

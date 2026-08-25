@@ -10,13 +10,19 @@ public struct TeamBio: Identifiable, Hashable, Sendable {
     /// The role, as in "The Boss".
     public let title: String
     public let bio: String
+    /// A logo the league supplied, for a team still on ESPN's stock art.
+    public let logoURL: String?
 
     public var id: Int { teamID }
 
-    public init(season: Int, teamID: Int, title: String, bio: String) {
+    public init(
+        season: Int, teamID: Int, title: String, bio: String,
+        logoURL: String? = nil
+    ) {
         self.season = season
         self.teamID = teamID
         self.title = title
+        self.logoURL = logoURL
         self.bio = bio
     }
 }
