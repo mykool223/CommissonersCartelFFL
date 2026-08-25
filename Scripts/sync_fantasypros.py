@@ -206,6 +206,12 @@ def fetch_rankings(budget: Budget, season: int, week: int,
                 "rank_max": to_int(player.get("rank_max")),
                 "rank_std": to_float(player.get("rank_std")),
                 "ecr_delta": to_float(player.get("player_ecr_delta")),
+                # Free, in the sense that it rides along in a response we
+                # already pay a call for.
+                "owned_avg": to_float(player.get("player_owned_avg")),
+                "owned_espn": to_float(player.get("player_owned_espn")),
+                "owned_yahoo": to_float(player.get("player_owned_yahoo")),
+                "bye_week": to_int(player.get("player_bye_week")),
             })
     return rows
 

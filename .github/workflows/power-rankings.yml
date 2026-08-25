@@ -1,0 +1,49 @@
+# Ranks the league by the strength of the best lineup each team could field,
+# and posts it to league news with movement since last week.
+#
+# Not by record: in September nobody has one worth reading, and a weak roster
+# can win a good week. The first ranking goes out after week 1 has been played,
+# since one before then is preseason projections dressed up as a verdict.
+name: Power rankings
+
+on:
+  schedule:
+    # 15:00 UTC Tuesday — around 10am Central, after the recap has posted.
+    - cron: "0 15 * * 2"
+  workflow_dispatch:
+    inputs:
+      week:
+        description: "Force a week (defaults to ESPN's current)"
+        type: string
+      force:
+        description: "Publish even before week 1 has been played"
+        type: boolean
+        default: false
+      dry_run:
+        description: "Print what would be published, without publishing"
+        type: boolean
+        default: true
+
+jobs:
+  rank:
+    name: Rank
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Rank
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          PUSH_SECRET: ${{ secrets.PUSH_SECRET }}
+          ESPN_S2: ${{ secrets.ESPN_S2 }}
+          ESPN_SWID: ${{ secrets.ESPN_SWID }}
+          ESPN_LEAGUE_ID: ${{ secrets.ESPN_LEAGUE_ID }}
+          POWER_WEEK: ${{ inputs.week }}
+          POWER_FORCE: ${{ inputs.force && '1' || '' }}
+          DRY_RUN: ${{ inputs.dry_run && '1' || '' }}
+        run: |
+          if [ -z "$ESPN_S2" ]; then
+            echo "ESPN secrets are not set; nothing to rank."
+            exit 0
+          fi
+          ./Scripts/power_rankings.py
