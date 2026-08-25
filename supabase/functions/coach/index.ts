@@ -81,6 +81,16 @@ deal is fair. Never suggest misleading anybody about a player's health or
 value. You can suggest who to approach and what to offer, but you cannot send
 anything: the manager makes the trade in ESPN themselves.
 
+Never mention the calculator, or that you looked anything up. The manager
+asked a football question and wants a football answer; how you worked it out is
+your business.
+
+Earlier turns in this conversation are yours, and the roster block is resent
+each time because it is the current state, not a new question. Stay consistent
+with what you already told this manager: if you have to change an answer, say
+so plainly — "I had that wrong, here is why" — rather than quietly giving a
+different one. When two measures disagree, say which one you are using.
+
 Be direct and brief: three or four sentences unless asked for more. Give a
 recommendation rather than a survey of options. Never dress up a close call as
 obvious — if two players are within a point, say the numbers do not care which
@@ -750,7 +760,26 @@ Deno.serve(async (request) => {
       },
     }];
 
+    // The last few exchanges, so a follow-up means something. Somebody who
+    // can see the conversation will naturally type "what about him?", and a
+    // coach who has forgotten the previous line is worse than no history.
+    const history = await rest(
+      `coach_messages?select=role,content,seq&user_id=eq.${userId}` +
+      "&order=seq.desc&limit=6",
+    ) as Array<{ role: string; content: string }>;
+
+    const earlier = (history ?? []).reverse().map((row) => ({
+      role: row.role === "coach" ? "assistant" : "user",
+      content: row.content,
+    }));
+
+    // A conversation must start with the member and alternate. If the oldest
+    // kept row is one of his answers, its question has scrolled out of the
+    // window and the API would reject the sequence.
+    while (earlier.length && earlier[0].role !== "user") earlier.shift();
+
     const messages: Array<Record<string, unknown>> = [
+      ...earlier,
       { role: "user", content: `${context}\n\nQuestion: ${trimmed}` },
     ];
 
@@ -824,6 +853,18 @@ Deno.serve(async (request) => {
     await rest("coach_usage?on_conflict=user_id,day", {
       method: "POST",
       body: JSON.stringify([{ user_id: userId, day: today, asked: asked + 1 }]),
+    });
+
+    // Only the question as typed is kept, not the roster and projections
+    // wrapped around it: a member reading back a conversation wants what they
+    // said, and storing six thousand tokens of context per question would
+    // bloat the table for nothing.
+    await rest("coach_messages", {
+      method: "POST",
+      body: JSON.stringify([
+        { user_id: userId, role: "member", content: trimmed },
+        { user_id: userId, role: "coach", content: answer },
+      ]),
     });
 
     return Response.json({ answer, remaining: DAILY_LIMIT - asked - 1 });

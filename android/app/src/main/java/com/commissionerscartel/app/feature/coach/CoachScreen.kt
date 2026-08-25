@@ -49,6 +49,9 @@ private val PROMPTS = listOf(
 
 @Composable
 fun CoachScreen(modifier: Modifier = Modifier, model: CoachViewModel = viewModel()) {
+    // Bring back the conversation from previous sessions, once.
+    LaunchedEffect(Unit) { model.loadHistory() }
+
     val state by model.state.collectAsStateWithLifecycle()
     var draft by remember { mutableStateOf("") }
     val listState = rememberLazyListState()

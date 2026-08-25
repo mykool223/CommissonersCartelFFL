@@ -34,6 +34,10 @@ public protocol ContentRepository: Sendable {
     /// Player news blurbs collected by the daily ingest job.
     func playerNews(limit: Int) async throws -> [PlayerNews]
 
+    /// The signed-in member's own conversation with the coach, oldest first.
+    /// Their own only: row level security sees to that, and so does the coach.
+    func coachHistory(limit: Int) async throws -> [CoachMessage]
+
     /// The league's trophy case, newest first.
     func trophies(season: Int) async throws -> [Trophy]
 

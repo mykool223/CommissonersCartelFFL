@@ -106,5 +106,9 @@ struct CoachView: View {
             }
             .padding(Theme.Spacing.medium)
         }
+        .task {
+            // Bring back the conversation from previous sessions, once.
+            await model.loadHistory(using: environment)
+        }
     }
 }

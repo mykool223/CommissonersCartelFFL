@@ -60,6 +60,20 @@ public struct SupabaseContentRepository: ContentRepository {
         return rows.compactMap(\.model)
     }
 
+    public func coachHistory(limit: Int) async throws -> [CoachMessage] {
+        // Newest first from the server so the limit keeps the recent end of a
+        // long conversation, then reversed for reading.
+        let rows: [CoachMessageRow] = try await client.select(
+            "coach_messages",
+            query: [
+                "select": "id,role,content,created_at,seq",
+                "order": "seq.desc",
+                "limit": "\(limit)",
+            ]
+        )
+        return rows.reversed().map(\.model)
+    }
+
     public func trophies(season: Int) async throws -> [Trophy] {
         let rows: [TrophyRow] = try await client.select(
             "trophies",
@@ -188,6 +202,21 @@ private struct ReactionRow: Decodable {
 
     var model: MessageReaction {
         MessageReaction(messageID: message_id, userID: user_id, emoji: emoji)
+    }
+}
+
+private struct CoachMessageRow: Decodable {
+    let id: UUID
+    let role: String
+    let content: String
+    let created_at: Date
+    let seq: Int
+
+    var model: CoachMessage {
+        CoachMessage(
+            id: id, sequence: seq, isCoach: role == "coach",
+            text: content, createdAt: created_at
+        )
     }
 }
 

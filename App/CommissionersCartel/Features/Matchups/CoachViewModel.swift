@@ -12,6 +12,18 @@ final class CoachViewModel {
 
     private(set) var turns: [Turn] = []
     private(set) var isBusy = false
+    private var hasLoadedHistory = false
+
+    /// Brings back what was said before. The conversation lives on the server,
+    /// so it survives closing the app and follows a member between devices.
+    func loadHistory(using environment: AppEnvironment) async {
+        guard !hasLoadedHistory, environment.auth != nil else { return }
+        hasLoadedHistory = true
+        guard let history = try? await environment.content.coachHistory(limit: 100),
+              !history.isEmpty else { return }
+        // Anything already typed this session stays at the end, where it was.
+        turns = history.map { Turn(text: $0.text, isCoach: $0.isCoach) } + turns
+    }
 
     func ask(_ question: String, using environment: AppEnvironment) async {
         let trimmed = question.trimmingCharacters(in: .whitespacesAndNewlines)
