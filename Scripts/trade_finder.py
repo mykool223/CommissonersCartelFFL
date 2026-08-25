@@ -317,21 +317,33 @@ def main() -> int:
         if owner:
             owner_of[team["id"]] = by_swid[owner]
 
+    # One notification each, however many ideas involve their roster. A team
+    # with a surplus at one position turns up in several pairs, and three
+    # notifications on a Wednesday morning is nagging rather than help.
+    for_manager: dict[str, tuple[float, str, str]] = {}
     for idea in ideas:
-        for side, other, sends, gets in (
-            ("team_a", "team_b_name", "a_sends", "b_sends"),
-            ("team_b", "team_a_name", "b_sends", "a_sends"),
+        for side, other, sends, gets, gain in (
+            ("team_a", "team_b_name", "a_sends", "b_sends", "a_gain"),
+            ("team_b", "team_a_name", "b_sends", "a_sends", "b_gain"),
         ):
             user = owner_of.get(idea[side])
             if not user:
                 continue
-            try:
-                push("trade", "A trade worth asking about",
-                     f"{idea[other]} might take {idea[sends]} for "
-                     f"{idea[gets]}. It would improve both lineups this "
-                     "week.", user)
-            except urllib.error.HTTPError as error:
-                log(f"  push failed: {error.code}")
+            # Who sends what, spelled out. "X might take A for B" reads as a
+            # riddle at a glance, which is all a notification gets.
+            body = (f"Offer {idea[sends]} to {idea[other]} for {idea[gets]}. "
+                    f"It would add {idea[gain]} to your lineup this week, and "
+                    "improve theirs too.")
+            best = for_manager.get(user)
+            if best is None or idea[gain] > best[0]:
+                for_manager[user] = (idea[gain], "A trade worth asking about", body)
+
+    for user, (_, title, body) in for_manager.items():
+        try:
+            push("trade", title, body, user)
+        except urllib.error.HTTPError as error:
+            log(f"  push failed: {error.code}")
+    log(f"  notified {len(for_manager)} manager(s)")
 
     log(f"Stored {len(ideas)} trade idea(s).")
     return 0
