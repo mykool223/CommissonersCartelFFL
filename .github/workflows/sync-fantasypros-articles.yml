@@ -1,0 +1,32 @@
+# Pulls FantasyPros articles from their public RSS feed.
+#
+# Their API has no articles endpoint — only single-player news, which is the
+# same material the Fantasy Footballers feed already provides. The pieces worth
+# reading are published as RSS, which exists to be read this way and costs
+# nothing against the API allowance.
+name: Sync FantasyPros articles
+
+on:
+  schedule:
+    # Every two hours. The feed holds only the most recent ten, so polling
+    # rarely would silently miss articles rather than merely delay them.
+    - cron: "25 */2 * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Fetch and print, without writing"
+        type: boolean
+        default: true
+
+jobs:
+  sync:
+    name: Sync
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Sync
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          DRY_RUN: ${{ inputs.dry_run && '1' || '' }}
+        run: ./Scripts/sync_fantasypros_articles.py

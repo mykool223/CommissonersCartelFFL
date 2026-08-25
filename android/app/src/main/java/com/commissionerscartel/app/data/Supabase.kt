@@ -139,9 +139,9 @@ object Supabase {
     )
 
     /** The trophy case. Empty until the first week is in the books. */
-    /** Player news and analysis from FantasyPros, newest first. */
+    /** Articles from FantasyPros, newest first. */
     suspend fun analysis(limit: Long = 60): List<AnalysisItem> =
-        client.from("fantasypros_news").select {
+        client.from("fantasypros_articles").select {
             order("published_at", Order.DESCENDING)
             limit(limit)
         }.decodeList()

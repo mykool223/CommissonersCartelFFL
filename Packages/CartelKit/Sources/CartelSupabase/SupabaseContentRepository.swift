@@ -76,7 +76,7 @@ public struct SupabaseContentRepository: ContentRepository {
 
     public func analysis(limit: Int) async throws -> [AnalysisItem] {
         let rows: [AnalysisRow] = try await client.select(
-            "fantasypros_news",
+            "fantasypros_articles",
             query: [
                 "select": "*",
                 "order": "published_at.desc",
@@ -252,21 +252,19 @@ private struct CoachMessageRow: Decodable {
 private struct AnalysisRow: Decodable {
     let id: UUID
     let title: String
-    let description: String?
-    let impact: String?
+    let excerpt: String?
     let link: String
-    let player_name: String?
-    let team: String?
+    let author: String?
+    let categories: [String]
     let published_at: Date
 
-    /// Nil rather than a broken row if the link will not parse: an item you
+    /// Nil rather than a broken row if the link will not parse: an article you
     /// cannot open is worse than one that is not there.
     var model: AnalysisItem? {
         guard let url = URL(string: link) else { return nil }
         return AnalysisItem(
-            id: id, title: title, summary: description, impact: impact,
-            link: url, playerName: player_name, team: team,
-            publishedAt: published_at
+            id: id, title: title, excerpt: excerpt, link: url,
+            author: author, categories: categories, publishedAt: published_at
         )
     }
 }

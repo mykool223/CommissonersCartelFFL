@@ -35,7 +35,7 @@ import com.commissionerscartel.app.data.Supabase
 import com.commissionerscartel.app.ui.CartelGold
 
 /**
- * Player news and analysis from FantasyPros.
+ * Articles from FantasyPros.
  *
  * Their headline and a short extract of their read; the full piece opens on
  * their site. Their writing is theirs, and a link is the honest way to pass
@@ -58,7 +58,7 @@ fun AnalysisScreen(modifier: Modifier = Modifier) {
 
         current.isEmpty() -> Box(modifier.fillMaxSize().padding(24.dp), Alignment.Center) {
             Text(
-                "No analysis yet. This updates through the day.",
+                "No articles yet. FantasyPros articles appear here through the day.",
                 style = MaterialTheme.typography.bodyMedium,
                 textAlign = TextAlign.Center,
             )
@@ -79,7 +79,7 @@ fun AnalysisScreen(modifier: Modifier = Modifier) {
                         Modifier.padding(14.dp),
                         verticalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
-                        item.playerName?.let {
+                        item.author?.let {
                             Text(
                                 it.uppercase(),
                                 style = MaterialTheme.typography.labelSmall,
@@ -92,18 +92,12 @@ fun AnalysisScreen(modifier: Modifier = Modifier) {
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold,
                         )
-                        item.description?.let {
-                            Text(
-                                it,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                        item.impact?.let {
+                        item.excerpt?.let {
                             // An extract, not the whole piece.
                             Text(
                                 it,
                                 style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 maxLines = 3,
                                 overflow = TextOverflow.Ellipsis,
                             )

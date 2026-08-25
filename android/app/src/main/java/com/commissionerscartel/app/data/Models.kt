@@ -78,14 +78,12 @@ data class Poll(
 @Serializable
 data class AnalysisItem(
     val id: String,
-    @SerialName("source_id") val sourceId: Long,
+    val guid: String,
     val title: String,
-    val description: String? = null,
-    val impact: String? = null,
+    val excerpt: String? = null,
     val link: String,
-    @SerialName("player_name") val playerName: String? = null,
-    val team: String? = null,
     val author: String? = null,
+    /** Players and topics the article is filed under, site furniture removed. */
     val categories: List<String> = emptyList(),
     @SerialName("published_at") val publishedAt: String,
     @SerialName("created_at") val createdAt: String? = null,

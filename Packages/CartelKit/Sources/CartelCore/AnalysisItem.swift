@@ -1,32 +1,33 @@
 import Foundation
 
-/// A player news item from FantasyPros, with their read on what it means.
+/// An article from FantasyPros.
 ///
-/// The headline and a short extract of their analysis are shown; the full
-/// piece is a tap away on their site. Their writing is theirs, and a link is
-/// the honest way to pass somebody else's work along.
+/// Their API has no articles endpoint — only single-player news, which is the
+/// same material the Fantasy Footballers feed already carries — so these come
+/// from the RSS feed they publish for the purpose.
+///
+/// The title, author and excerpt are shown; the piece itself opens on their
+/// site. Somebody else's writing belongs where they published it.
 public struct AnalysisItem: Identifiable, Hashable, Sendable {
     public let id: UUID
     public let title: String
-    public let summary: String?
-    /// What it means for fantasy, in their words.
-    public let impact: String?
+    public let excerpt: String?
     public let link: URL
-    public let playerName: String?
-    public let team: String?
+    public let author: String?
+    /// Players and topics the article is filed under, site furniture removed.
+    public let categories: [String]
     public let publishedAt: Date
 
     public init(
-        id: UUID, title: String, summary: String?, impact: String?,
-        link: URL, playerName: String?, team: String?, publishedAt: Date
+        id: UUID, title: String, excerpt: String?, link: URL,
+        author: String?, categories: [String], publishedAt: Date
     ) {
         self.id = id
         self.title = title
-        self.summary = summary
-        self.impact = impact
+        self.excerpt = excerpt
         self.link = link
-        self.playerName = playerName
-        self.team = team
+        self.author = author
+        self.categories = categories
         self.publishedAt = publishedAt
     }
 }

@@ -17,9 +17,9 @@ struct AnalysisView: View {
             if items.isEmpty {
                 if hasLoaded {
                     ContentUnavailableView(
-                        "No analysis yet",
+                        "No articles yet",
                         systemImage: "text.book.closed",
-                        description: Text("This updates through the day.")
+                        description: Text("FantasyPros articles appear here through the day.")
                     )
                 } else {
                     ProgressView().frame(maxWidth: .infinity, minHeight: 120)
@@ -33,10 +33,11 @@ struct AnalysisView: View {
                             Card {
                                 VStack(alignment: .leading, spacing: 6) {
                                     HStack(spacing: Theme.Spacing.small) {
-                                        if let player = item.playerName {
-                                            Text(player.uppercased())
+                                        if let author = item.author {
+                                            Text(author.uppercased())
                                                 .font(.caption2.weight(.bold))
                                                 .foregroundStyle(Color.brand)
+                                                .lineLimit(1)
                                         }
                                         Spacer(minLength: 0)
                                         Text(item.publishedAt, style: .relative)
@@ -48,17 +49,11 @@ struct AnalysisView: View {
                                         .font(.subheadline.weight(.semibold))
                                         .multilineTextAlignment(.leading)
 
-                                    if let summary = item.summary {
-                                        Text(summary)
+                                    if let excerpt = item.excerpt {
+                                        // An extract, not the whole piece.
+                                        Text(excerpt)
                                             .font(.footnote)
                                             .foregroundStyle(.secondary)
-                                            .multilineTextAlignment(.leading)
-                                    }
-
-                                    if let impact = item.impact {
-                                        // An extract, not the whole piece.
-                                        Text(impact)
-                                            .font(.footnote)
                                             .lineLimit(3)
                                             .multilineTextAlignment(.leading)
                                     }
