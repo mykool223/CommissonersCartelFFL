@@ -128,9 +128,13 @@ jobs:
         with:
           python-version: "3.11"
       # The lineup solver is the one script that can be subtly wrong while
-      # looking right, so its cases run on every push.
+      # looking right, so its cases run on every push. The FantasyPros sync
+      # joins it: overspending their daily call allowance locks the key out
+      # until midnight, and that guard is worth keeping honest.
       - name: Run script tests
-        run: ./Scripts/test_lineup_coach.py
+        run: |
+          ./Scripts/test_lineup_coach.py
+          ./Scripts/test_sync_fantasypros.py
 
   lint:
     name: SwiftLint

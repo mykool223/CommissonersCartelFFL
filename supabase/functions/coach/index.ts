@@ -39,12 +39,21 @@ Starting somebody is putting them on the job; benching them is sitting them
 down. Calm, understated, faintly menacing — the numbers make the case and you
 merely read them out. Never shout, never pad, never threaten anybody for real.
 
+Some players carry a bracket with FantasyPros' expert consensus: their
+position rank, tier, projection, whether their rank is rising or falling, and
+how likely they are to play. That is dozens of analysts rather than one
+projection, so weigh it seriously — but say which source you are using when
+they disagree, and never present one as the other. When you pass on anything
+from that bracket, credit FantasyPros for it.
+
 Be direct and brief: three or four sentences unless asked for more. Give a
 recommendation rather than a survey of options. Never dress up a close call as
 obvious — if two players are within a point, say the numbers do not care which
 one you pick.`;
 
 interface Player {
+  /** ESPN's player id, which joins to the FantasyPros cache. */
+  espnId?: number;
   name: string;
   slot: number;
   points: number;
@@ -98,6 +107,7 @@ async function freeAgents(season: number, week: number): Promise<Player[]> {
     .map((entry: any) => {
       const raw = entry.player ?? {};
       return {
+        espnId: raw.id,
         name: raw.fullName ?? "A player",
         slot: BENCH,
         points: projection(raw, week),
@@ -107,6 +117,105 @@ async function freeAgents(season: number, week: number): Promise<Player[]> {
       };
     })
     .filter((p: Player & { owned: number }) => p.points > 0);
+}
+
+/** What the experts collectively think of one player. */
+interface Consensus {
+  posRank?: string;
+  tier?: number;
+  ecrDelta?: number;
+  spread?: number;
+  points?: number;
+  rosRank?: string;
+  status?: string;
+  probability?: number;
+  injuryType?: string;
+}
+
+/**
+ * Reads the FantasyPros cache for a set of ESPN players.
+ *
+ * Nothing here calls FantasyPros. Their licence allows a hundred calls a day
+ * in total, so a nightly job fills these tables and this reads them; if the
+ * job has never run the map comes back empty and the coach works from ESPN
+ * alone, which is how it behaved before.
+ */
+async function consensusFor(
+  espnIds: number[],
+  season: number,
+  week: number,
+): Promise<Map<number, Consensus>> {
+  const out = new Map<number, Consensus>();
+  const ids = espnIds.filter((id) => Number.isFinite(id));
+  if (!ids.length) return out;
+
+  try {
+    const players = await rest(
+      `fantasypros_players?select=fp_id,espn_id&espn_id=in.(${ids.join(",")})`,
+    ) as Array<{ fp_id: number; espn_id: number }>;
+    if (!players?.length) return out;
+
+    const byFp = new Map(players.map((p) => [p.fp_id, p.espn_id]));
+    const fpIds = players.map((p) => p.fp_id).join(",");
+    const scope = `season=eq.${season}&week=eq.${week}&fp_id=in.(${fpIds})`;
+
+    const [ranks, projections, injuries] = await Promise.all([
+      rest(`fantasypros_rankings?select=fp_id,kind,pos_rank,tier,rank_std,ecr_delta&${scope}`),
+      rest(`fantasypros_projections?select=fp_id,points_ppr&${scope}`),
+      rest(`fantasypros_injuries?select=fp_id,status,probability,injury_type&${scope}`),
+    ]) as [any[], any[], any[]];
+
+    const entry = (fpId: number): Consensus => {
+      const espnId = byFp.get(fpId)!;
+      if (!out.has(espnId)) out.set(espnId, {});
+      return out.get(espnId)!;
+    };
+
+    for (const row of ranks ?? []) {
+      const it = entry(row.fp_id);
+      if (row.kind === "ros") {
+        it.rosRank = row.pos_rank ?? undefined;
+      } else {
+        it.posRank = row.pos_rank ?? undefined;
+        it.tier = row.tier ?? undefined;
+        it.ecrDelta = row.ecr_delta ?? undefined;
+        it.spread = row.rank_std ?? undefined;
+      }
+    }
+    for (const row of projections ?? []) {
+      entry(row.fp_id).points = row.points_ppr ?? undefined;
+    }
+    for (const row of injuries ?? []) {
+      const it = entry(row.fp_id);
+      it.status = row.status ?? undefined;
+      it.probability = row.probability ?? undefined;
+      it.injuryType = row.injury_type ?? undefined;
+    }
+  } catch {
+    // A cache miss is not worth failing a question over.
+    return out;
+  }
+  return out;
+}
+
+/** How a player reads in the context line, when the experts have a view. */
+function describeConsensus(view: Consensus | undefined): string {
+  if (!view) return "";
+  const parts: string[] = [];
+  if (view.posRank) parts.push(`consensus ${view.posRank}`);
+  if (view.tier !== undefined) parts.push(`tier ${view.tier}`);
+  if (view.points !== undefined) parts.push(`FP projects ${view.points.toFixed(1)}`);
+  // A rank that has moved several places in a week usually means news.
+  if (view.ecrDelta !== undefined && Math.abs(view.ecrDelta) >= 3) {
+    parts.push(`${view.ecrDelta > 0 ? "falling" : "rising"} ` +
+      `${Math.abs(view.ecrDelta).toFixed(0)} places this week`);
+  }
+  if (view.probability !== undefined) {
+    parts.push(`${Math.round(view.probability * 100)}% likely to play`);
+  } else if (view.status) {
+    parts.push(`listed ${view.status}`);
+  }
+  return parts.length ? ` [${parts.join(", ")}]` : "";
 }
 
 async function rest(path: string, init?: RequestInit): Promise<unknown> {
@@ -260,6 +369,7 @@ Deno.serve(async (request) => {
       const raw = entry.playerPoolEntry?.player ?? {};
       const status = String(raw.injuryStatus ?? "").toUpperCase();
       return {
+        espnId: raw.id,
         name: raw.fullName ?? "A player",
         slot: entry.lineupSlotId,
         // Somebody who cannot play is worth zero whatever ESPN projects.
@@ -311,15 +421,44 @@ Deno.serve(async (request) => {
       .sort((a, b) => b.gain - a.gain)
       .slice(0, 5);
 
+    // The experts' view of everybody in play, from the nightly cache.
+    const view = await consensusFor(
+      [...players, ...shortlist].map((p) => p.espnId ?? NaN), season, week);
+
+    // The genuinely useful signal is disagreement. ESPN's projection is one
+    // number from one source; the consensus is dozens of analysts. Where they
+    // would start different players, that is worth saying out loud — and it is
+    // the sort of thing a manager cannot see from inside ESPN's app.
+    const withConsensus = players.map((p) => {
+      const points = view.get(p.espnId ?? NaN)?.points;
+      return points === undefined ? p : { ...p, points };
+    });
+    const consensusBest = bestLineup(withConsensus, slots);
+    const espnStarters = new Set(
+      optimal.picks.filter((i) => i >= 0).map((i) => players[i].name));
+    const consensusStarters = new Set(
+      consensusBest.picks.filter((i) => i >= 0).map((i) => players[i].name));
+    const disagreements = [...consensusStarters].filter((n) => !espnStarters.has(n));
+
+    // An empty cache makes the two lineups identical, which would otherwise
+    // read as the experts agreeing. They have not been asked. Claiming
+    // corroboration that does not exist is worse than having no data at all,
+    // so the coach is told there is none.
+    const covered = players.filter(
+      (p) => view.get(p.espnId ?? NaN)?.points !== undefined).length;
+    const haveConsensus = covered >= Math.ceil(players.length / 2);
+
     const context = [
       `Manager: ${profile.display_name ?? "a member"}`,
       `Team: ${team.name?.trim() ?? "their team"}`,
       `Week ${week}.`,
       "",
-      "Roster (slot, player, projected points this week, injury status):",
+      "Roster (slot, player, ESPN's projection, injury status), then in",
+      "brackets what FantasyPros' expert consensus says about them:",
       ...players.map((p) =>
         `- ${slotName[p.slot] ?? p.slot}: ${p.name}, ${p.points.toFixed(1)}` +
-        (p.status && p.status !== "ACTIVE" ? ` (${p.status})` : "")
+        (p.status && p.status !== "ACTIVE" ? ` (${p.status})` : "") +
+        describeConsensus(view.get(p.espnId ?? NaN))
       ),
       "",
       `Current starting lineup projects ${currentTotal.toFixed(1)} points.`,
@@ -334,13 +473,29 @@ Deno.serve(async (request) => {
           ...upgrades.map((row) =>
             `- ${row.candidate.name}, projected ${row.candidate.points.toFixed(1)}, ` +
             `owned in ${(row.candidate as any).owned}% of leagues, ` +
-            `would add ${row.gain.toFixed(1)} points`
+            `would add ${row.gain.toFixed(1)} points` +
+            describeConsensus(view.get(row.candidate.espnId ?? NaN))
           ),
           "Anyone signed has to replace somebody, so say who to drop — the " +
           "lowest-projected bench player is usually the answer.",
         ].join("\n")
         : `${pool.length} free agents were checked and none would improve this ` +
           "lineup. Say so plainly rather than suggesting somebody anyway.",
+      "",
+      !haveConsensus
+        ? "No FantasyPros consensus is available for this roster right now, " +
+          "so every number above is ESPN's. Work from those and do not " +
+          "mention any consensus, agreement or expert ranking — you have not " +
+          "been shown one."
+        : disagreements.length
+        ? "ESPN's projections and the expert consensus disagree about this " +
+          `lineup. On the consensus numbers, ${disagreements.join(" and ")} ` +
+          "would start instead. Say so and give your own view — a manager " +
+          "cannot see this from inside ESPN's app, and it is often the most " +
+          "useful thing you can tell them."
+        : "ESPN's projections and the expert consensus would start the same " +
+          "players, which is worth mentioning as confirmation when the " +
+          "question is about the lineup.",
     ].join("\n");
 
     const response = await fetch("https://api.anthropic.com/v1/messages", {

@@ -79,7 +79,7 @@ struct CoachView: View {
             // Always visible, not only on the empty state: the warning is
             // least useful once somebody is deep in a conversation and most
             // likely to be acted on there.
-            Text("Coach Landry can be wrong. Projections are estimates and he can misread them — check before you act on it.")
+            Text("Coach Landry can be wrong. Projections are estimates and he can misread them — check before you act on it. Expert consensus data from FantasyPros.")
                 .font(.caption2)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)

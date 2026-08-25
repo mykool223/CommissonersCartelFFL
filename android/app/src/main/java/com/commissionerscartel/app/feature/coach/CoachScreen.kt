@@ -123,7 +123,7 @@ fun CoachScreen(modifier: Modifier = Modifier, model: CoachViewModel = viewModel
         // useful once somebody is deep in a conversation and most likely to be
         // acted on there.
         Text(
-            "Coach Landry can be wrong. Projections are estimates and he can misread them — check before you act on it.",
+            "Coach Landry can be wrong. Projections are estimates and he can misread them — check before you act on it. Expert consensus data from FantasyPros.",
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
