@@ -40,8 +40,8 @@ android {
         targetSdk = 37
         // Bump on every build handed out: Android refuses an install whose
         // versionCode is not higher than what is already on the phone.
-        versionCode = 30
-        versionName = "0.29.0"
+        versionCode = 31
+        versionName = "0.30.0"
 
         buildConfigField("String", "SUPABASE_HOST", "\"${secret("SUPABASE_HOST")}\"")
         buildConfigField("String", "SUPABASE_ANON_KEY", "\"${secret("SUPABASE_ANON_KEY")}\"")
@@ -91,6 +91,8 @@ dependencies {
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.security.crypto)
+    // Custom Tabs, so an article opens inside the app.
+    implementation(libs.androidx.browser)
     implementation(libs.glance.appwidget)
     implementation(libs.glance.material3)
 

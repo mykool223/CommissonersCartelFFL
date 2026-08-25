@@ -18,6 +18,7 @@
 		2B08802C61FFA4EDBAC0B1D8 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAA13BA485C41B4F90F30286 /* SettingsView.swift */; };
 		2D06F93A1EA160D9EF648840 /* CartelESPN in Frameworks */ = {isa = PBXBuildFile; productRef = 6E0714EA86BA5918D9AB8AE2 /* CartelESPN */; };
 		31A809E0CA27524EC2EAA406 /* AppConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6400996C8909B068E1496C1C /* AppConfiguration.swift */; };
+		35A982A193DEBB2933BDF970 /* ArticleReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9367159C2DA5A20F26AA530E /* ArticleReader.swift */; };
 		38B95E0B54C1885AC2758A7F /* SignInView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 722EC606D4D20DB5CACCE5E1 /* SignInView.swift */; };
 		3DADAD921D879A9F728BD8B6 /* SharedStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 186614AFCC75669D6703C2BE /* SharedStore.swift */; };
 		4417DB5BC76A27D7892D3EB8 /* NewsPostDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C073D09C67256CF6F6B1711 /* NewsPostDetailView.swift */; };
@@ -122,6 +123,7 @@
 		8D39D479E5AFA1FCB607E5ED /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		8FE33B6365427F981FD356BE /* SectionsHint.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SectionsHint.swift; sourceTree = "<group>"; };
 		92F9DFF754F1EE3C1BB8A50F /* LeagueChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LeagueChatView.swift; sourceTree = "<group>"; };
+		9367159C2DA5A20F26AA530E /* ArticleReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArticleReader.swift; sourceTree = "<group>"; };
 		950BDC3CA78FDE8BFA07A82D /* MatchupWidgetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MatchupWidgetView.swift; sourceTree = "<group>"; };
 		98A79C4D20F246ADB024E300 /* CartelWidgetBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartelWidgetBundle.swift; sourceTree = "<group>"; };
 		9C85CA1B92922F1FA6F453CA /* CartelWidget.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = CartelWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -346,6 +348,7 @@
 		FA083DDC43FA086D70677083 /* DesignSystem */ = {
 			isa = PBXGroup;
 			children = (
+				9367159C2DA5A20F26AA530E /* ArticleReader.swift */,
 				D15561B9A02063BAAA0B9131 /* Formatters.swift */,
 				76013A84901DC11BF8157CAA /* NotOnTheRosterView.swift */,
 				6685FC13C6BDCFF3928269DF /* SectionPicker.swift */,
@@ -485,6 +488,7 @@
 				8671FB7600231727BA336E2D /* AnalysisView.swift in Sources */,
 				31A809E0CA27524EC2EAA406 /* AppConfiguration.swift in Sources */,
 				12A315BCEF72BF1BAEA5D515 /* AppEnvironment.swift in Sources */,
+				35A982A193DEBB2933BDF970 /* ArticleReader.swift in Sources */,
 				9B31A35278D954D5A2CDB369 /* ClaimTeamView.swift in Sources */,
 				60081A5FD62FE42A48F43F4E /* CoachView.swift in Sources */,
 				55D721F9EC288243EF3D0CA8 /* CoachViewModel.swift in Sources */,

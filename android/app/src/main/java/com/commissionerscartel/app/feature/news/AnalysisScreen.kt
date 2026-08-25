@@ -1,6 +1,6 @@
 package com.commissionerscartel.app.feature.news
 
-import android.content.Intent
+import androidx.browser.customtabs.CustomTabsIntent
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -72,7 +72,15 @@ fun AnalysisScreen(modifier: Modifier = Modifier) {
             items(current, key = { it.id }) { item ->
                 Card(
                     Modifier.fillMaxWidth().clickable {
-                        context.startActivity(Intent(Intent.ACTION_VIEW, item.link.toUri()))
+                        // Custom Tabs rather than handing off to a browser:
+                        // the reader stays in the app, but the page is the
+                        // publisher's own — their layout, their advertising,
+                        // their byline. Extracting the text and re-rendering
+                        // it here would be republishing somebody else's work.
+                        CustomTabsIntent.Builder()
+                            .setShowTitle(true)
+                            .build()
+                            .launchUrl(context, item.link.toUri())
                     },
                 ) {
                     Column(
@@ -113,7 +121,7 @@ fun AnalysisScreen(modifier: Modifier = Modifier) {
             }
             item {
                 Text(
-                    "From FantasyPros.",
+                    "From FantasyPros. Articles open here in the app.",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,

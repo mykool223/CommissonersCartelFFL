@@ -8,9 +8,9 @@ import CartelCore
 /// somebody else's work along — as well as the one our licence supports.
 struct AnalysisView: View {
     @Environment(AppEnvironment.self) private var environment
-    @Environment(\.openURL) private var openURL
     @State private var items: [AnalysisItem] = []
     @State private var hasLoaded = false
+    @State private var reading: AnalysisItem?
 
     var body: some View {
         Group {
@@ -25,10 +25,11 @@ struct AnalysisView: View {
                     ProgressView().frame(maxWidth: .infinity, minHeight: 120)
                 }
             } else {
+                ScrollView {
                 LazyVStack(spacing: Theme.Spacing.medium) {
                     ForEach(items) { item in
                         Button {
-                            openURL(item.link)
+                            reading = item
                         } label: {
                             Card {
                                 VStack(alignment: .leading, spacing: 6) {
@@ -69,13 +70,18 @@ struct AnalysisView: View {
                         .buttonStyle(.plain)
                     }
 
-                    Text("From FantasyPros.")
+                    Text("From FantasyPros. Articles open here in the app.")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity)
                         .padding(.top, Theme.Spacing.small)
                 }
+                .padding(Theme.Spacing.large)
+                }
             }
+        }
+        .sheet(item: $reading) { item in
+            ArticleReader(url: item.link).ignoresSafeArea()
         }
         .task { await load() }
     }
