@@ -33,9 +33,16 @@ import urllib.request
 
 FP_HOST = "https://api.fantasypros.com/public/v2/json"
 
-# Their published ceiling is 100 calls a day. Stopping well short leaves room
-# for a re-run after a failure without locking us out until midnight.
+# Their published ceiling, which every run of every job shares.
+HARD_DAILY_CAP = 100
+
+# What one run may spend. Stopping well short leaves room for a re-run after a
+# failure without locking us out until midnight.
 DAILY_BUDGET = 40
+
+# Never spend the last of the day's allowance: something else may need it, and
+# a key locked out until midnight takes the coach's second opinion with it.
+DAILY_RESERVE = 15
 
 # One call per second, so wait slightly longer than that.
 CALL_SPACING = 1.2
@@ -228,7 +235,17 @@ def fetch_projections(budget: Budget, season: int, week: int) -> list[dict]:
 
 
 def fetch_ros_projections(budget: Budget, season: int) -> list[dict]:
-    """Rest-of-season projections — what a player is worth in a trade."""
+    """Rest-of-season projections, if the key's tier serves them.
+
+    On a public-tier key these return count=0 with a `public_api_limited`
+    flag, so asking costs six calls a night for nothing. Rest-of-season
+    *rankings* are served and carry the same information ordinally — RB7
+    against WR12 prices a trade perfectly well — so they are what the coach
+    uses. Set FP_PREMIUM=1 if the key is ever upgraded.
+    """
+    if not os.environ.get("FP_PREMIUM"):
+        log("  rest-of-season projections: not served on this tier, skipping")
+        return []
     rows = []
     for position in POSITIONS:
         data = fantasypros(
@@ -335,7 +352,18 @@ def main() -> int:
     season = int(os.environ.get("FP_SEASON") or current_season())
     week = int(os.environ.get("FP_WEEK") or current_week())
     dry_run = bool(os.environ.get("DRY_RUN"))
-    budget = Budget(DAILY_BUDGET)
+
+    today = dt.date.today().isoformat()
+    prior = supabase("GET", f"fantasypros_usage?select=calls&day=eq.{today}")
+    spent_today = (prior or [{}])[0].get("calls", 0) if prior else 0
+    allowance = min(DAILY_BUDGET, HARD_DAILY_CAP - DAILY_RESERVE - spent_today)
+    if allowance < 10:
+        log(f"{spent_today} calls already spent today; leaving the rest of the "
+            "allowance alone. Nothing to do.")
+        return 0
+    if spent_today:
+        log(f"  {spent_today} calls already spent today, {allowance} available")
+    budget = Budget(allowance)
 
     log(f"FantasyPros sync: season {season}, week {week}"
         f"{' (dry run)' if dry_run else ''}")
@@ -383,7 +411,7 @@ def main() -> int:
     supabase(
         "POST",
         "fantasypros_usage?on_conflict=day",
-        [{"day": dt.date.today().isoformat(), "calls": budget.spent,
+        [{"day": today, "calls": spent_today + budget.spent,
           "updated_at": dt.datetime.now(dt.timezone.utc).isoformat()}],
         prefer="resolution=merge-duplicates,return=minimal",
     )
