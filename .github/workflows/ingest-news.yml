@@ -1,9 +1,14 @@
-# Pulls the day's player news from The Fantasy Footballers into Supabase.
+# Pulls player news from The Fantasy Footballers into Supabase.
 #
 # Their news page renders server-side and carries everything in one document —
-# player, position, team, headshot, timestamp, headline and blurb — so this is a
-# single request a day, not a crawl. The bot identifies itself honestly and
+# player, position, team, headshot, timestamp, headline and blurb — so each run
+# is a single request, not a crawl. The bot identifies itself honestly and
 # their robots.txt permits it.
+#
+# Runs through the day rather than once each morning. Pull-to-refresh in the
+# app re-reads this table, so a daily job meant pulling produced the same list
+# every time after breakfast — injury news does not keep office hours, and
+# Sunday morning is exactly when somebody wants it.
 #
 # Stores the short factual blurb only; their longer analysis paragraph on each
 # item is deliberately skipped, and every row keeps its source URL.
@@ -15,9 +20,14 @@ name: Ingest news
 
 on:
   schedule:
-    # 12:00 UTC — around 7am Central. GitHub's scheduler is best-effort and can
-    # run late under load, which is fine for a once-a-day job.
-    - cron: "0 12 * * *"
+    # Every half hour from 10:00 to 04:00 UTC — 5am to 11pm Central, which
+    # covers waking hours either side of a game. One request each, so this is
+    # ~38 a day against a page that is served from a cache.
+    #
+    # GitHub's scheduler is best-effort and runs late under load; nothing here
+    # depends on the exact minute.
+    - cron: "0,30 10-23 * * *"
+    - cron: "0,30 0-4 * * *"
   workflow_dispatch:
     inputs:
       dry_run:

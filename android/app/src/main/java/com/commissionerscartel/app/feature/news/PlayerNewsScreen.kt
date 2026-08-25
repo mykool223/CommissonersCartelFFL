@@ -19,6 +19,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -110,7 +112,14 @@ class PlayerNewsViewModel : ViewModel() {
     private val _state = MutableStateFlow<PlayerNewsState>(PlayerNewsState.Loading)
     val state: StateFlow<PlayerNewsState> = _state.asStateFlow()
 
+    private val _refreshing = MutableStateFlow(false)
+    val refreshing: StateFlow<Boolean> = _refreshing.asStateFlow()
+
     init {
+        load()
+    }
+
+    private fun load() {
         viewModelScope.launch {
             _state.value = runCatching { Supabase.playerNews() }.fold(
                 onSuccess = { PlayerNewsState.Loaded(it) },
@@ -118,12 +127,36 @@ class PlayerNewsViewModel : ViewModel() {
             )
         }
     }
+
+    /**
+     * Pull to refresh.
+     *
+     * Keeps what is on screen while it works, and keeps it on a failure too:
+     * losing a list you were reading because the train went into a tunnel is
+     * worse than showing news a minute out of date.
+     */
+    fun refresh() {
+        if (_refreshing.value) return
+        viewModelScope.launch {
+            _refreshing.value = true
+            runCatching { Supabase.playerNews() }
+                .onSuccess { _state.value = PlayerNewsState.Loaded(it) }
+            _refreshing.value = false
+        }
+    }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlayerNewsScreen(model: PlayerNewsViewModel = viewModel()) {
     val state by model.state.collectAsStateWithLifecycle()
+    val refreshing by model.refreshing.collectAsStateWithLifecycle()
 
+    PullToRefreshBox(
+        isRefreshing = refreshing,
+        onRefresh = model::refresh,
+        modifier = Modifier.fillMaxSize(),
+    ) {
     when (val current = state) {
         is PlayerNewsState.Loading -> Box(Modifier.fillMaxSize(), Alignment.Center) {
             CircularProgressIndicator()
@@ -136,7 +169,7 @@ fun PlayerNewsScreen(model: PlayerNewsViewModel = viewModel()) {
         is PlayerNewsState.Loaded -> if (current.items.isEmpty()) {
             Box(Modifier.fillMaxSize().padding(24.dp), Alignment.Center) {
                 Text(
-                    "No player news yet. The feed refreshes every morning.",
+                    "No player news yet. Pull down to check again.",
                     style = MaterialTheme.typography.bodyMedium,
                 )
             }
@@ -149,5 +182,6 @@ fun PlayerNewsScreen(model: PlayerNewsViewModel = viewModel()) {
                 items(current.items, key = { it.id }) { item -> PlayerCard(item) }
             }
         }
+    }
     }
 }
