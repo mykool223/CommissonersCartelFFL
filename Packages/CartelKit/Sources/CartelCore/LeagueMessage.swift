@@ -134,6 +134,9 @@ public protocol LeagueChatRepository: Sendable {
     /// Every message you are party to. Row level security returns only those.
     func directMessages() async throws -> [DirectMessage]
     func sendDirectMessage(to recipientID: UUID, body: String) async throws
+    /// Marks everything received from one member as read, which is what
+    /// clears the unread mark on their conversation.
+    func markConversationRead(with senderID: UUID) async throws
     /// Display names, for conversation titles.
     func memberNames() async throws -> [UUID: String]
 

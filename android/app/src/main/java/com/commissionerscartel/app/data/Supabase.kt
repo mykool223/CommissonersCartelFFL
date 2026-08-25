@@ -64,6 +64,23 @@ object Supabase {
             order("created_at", Order.ASCENDING)
         }.decodeList()
 
+    /**
+     * Marks everything received from one member as read.
+     *
+     * Row level security limits this to messages addressed to whoever is
+     * asking, so a client cannot mark somebody else's mail as read.
+     */
+    suspend fun markConversationRead(senderId: String) {
+        client.from("direct_messages").update(
+            buildJsonObject { put("read_at", java.time.Instant.now().toString()) }
+        ) {
+            filter {
+                eq("sender_id", senderId)
+                exact("read_at", null)
+            }
+        }
+    }
+
     suspend fun sendDirectMessage(recipientId: String, body: String) {
         client.from("direct_messages").insert(
             buildJsonObject {

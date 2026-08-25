@@ -6,6 +6,7 @@ import com.commissionerscartel.app.data.Conversation
 import com.commissionerscartel.app.data.DirectMessage
 import com.commissionerscartel.app.data.Session
 import com.commissionerscartel.app.data.Supabase
+import com.commissionerscartel.app.data.UnreadDirect
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -60,6 +61,23 @@ class DirectMessagesViewModel : ViewModel() {
         viewModelScope.launch {
             runCatching { Supabase.sendDirectMessage(recipientId, body) }
             load()
+            UnreadDirect.refresh()
+        }
+    }
+
+    /**
+     * Opening a conversation is what marks it read.
+     *
+     * Deliberately quiet: failing to clear a mark is a nuisance, not something
+     * to interrupt somebody reading with.
+     */
+    fun markRead(userId: String) {
+        val current = state.value as? DirectState.Loaded ?: return
+        if (current.conversations.none { it.userId == userId && it.unread > 0 }) return
+        viewModelScope.launch {
+            runCatching { Supabase.markConversationRead(userId) }
+            load()
+            UnreadDirect.refresh()
         }
     }
 
@@ -84,6 +102,7 @@ class DirectMessagesViewModel : ViewModel() {
                     displayName = names[userId] ?: "Someone",
                     lastMessage = last?.body.orEmpty(),
                     lastAt = last?.createdAt.orEmpty(),
+                    unread = thread.count { it.isUnread(me) },
                 )
             }
             // Most recently active first, which is the only order an inbox

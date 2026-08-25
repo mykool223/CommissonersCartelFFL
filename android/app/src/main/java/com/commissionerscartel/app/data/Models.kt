@@ -172,10 +172,21 @@ data class DirectMessage(
     @SerialName("recipient_id") val recipientId: String,
     val body: String,
     @SerialName("created_at") val createdAt: String,
+    /**
+     * When the recipient opened the conversation containing it. Null until
+     * they have, which is what the unread marks count.
+     */
+    @SerialName("read_at") val readAt: String? = null,
 ) {
     /** The other party, whichever end of it you are. */
     fun counterpart(me: String?): String =
         if (senderId == me) recipientId else senderId
+
+    /**
+     * Unread, from the point of view of whoever is asking. A message you sent
+     * is never unread to you, however long the other person leaves it.
+     */
+    fun isUnread(me: String?): Boolean = readAt == null && recipientId == me
 }
 
 /** One conversation, folded down to what an inbox row needs. */
@@ -184,6 +195,8 @@ data class Conversation(
     val displayName: String,
     val lastMessage: String,
     val lastAt: String,
+    /** How many of theirs you have not opened. */
+    val unread: Int = 0,
 )
 
 object Mentions {

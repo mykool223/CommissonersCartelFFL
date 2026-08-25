@@ -8,6 +8,11 @@ import androidx.compose.material.icons.filled.Newspaper
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SportsFootball
 import androidx.compose.material3.Icon
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import com.commissionerscartel.app.data.UnreadDirect
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
@@ -40,6 +45,10 @@ private enum class Tab(val label: String, val icon: ImageVector) {
 @Composable
 fun RootScreen() {
     var selected by remember { mutableStateOf(Tab.News) }
+    val unreadDirect by UnreadDirect.count.collectAsState()
+    // Recount when the tab changes, so opening a conversation elsewhere in the
+    // app is reflected on the way back.
+    LaunchedEffect(selected) { UnreadDirect.refresh() }
     // A single detail destination rather than a nav graph: there is one, and
     // wiring navigation-compose for it would be more machinery than screen.
     var openMember by remember { mutableStateOf<MemberEntry?>(null) }
@@ -69,7 +78,19 @@ fun RootScreen() {
                     NavigationBarItem(
                         selected = selected == tab,
                         onClick = { selected = tab },
-                        icon = { Icon(tab.icon, contentDescription = tab.label) },
+                        icon = {
+                            // Private messages live under Members, so that is
+                            // where somebody looks after a notification — and
+                            // where the mark has to be for anyone who never
+                            // saw the notification at all.
+                            if (tab == Tab.Members && unreadDirect > 0) {
+                                BadgedBox(badge = { Badge { Text("$unreadDirect") } }) {
+                                    Icon(tab.icon, contentDescription = tab.label)
+                                }
+                            } else {
+                                Icon(tab.icon, contentDescription = tab.label)
+                            }
+                        },
                         label = { Text(tab.label) },
                     )
                 }

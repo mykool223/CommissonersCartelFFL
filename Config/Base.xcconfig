@@ -5,7 +5,7 @@
 // file the app still builds and runs — it just uses sample data.
 
 PRODUCT_BUNDLE_IDENTIFIER = com.commissionerscartel.app
-MARKETING_VERSION = 0.21.0
+MARKETING_VERSION = 0.22.0
 CURRENT_PROJECT_VERSION = 1
 
 // Placeholders. AppConfiguration treats REPLACE_ME as "not configured" and

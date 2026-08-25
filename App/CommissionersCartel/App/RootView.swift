@@ -30,11 +30,24 @@ enum TabIdentifier: String, Hashable, CaseIterable {
     }
 }
 
+/// What the unread count depends on. Either changing is a reason to recount.
+private struct TabRefreshKey: Equatable {
+    let tab: TabIdentifier
+    let user: UUID?
+}
+
+extension Notification.Name {
+    /// Posted when messages are sent or read, so the tab mark can catch up
+    /// without polling.
+    static let directMessagesChanged = Notification.Name("directMessagesChanged")
+}
+
 struct RootView: View {
     @Environment(AppEnvironment.self) private var environment
     @Environment(PushRegistrar.self) private var registrar
 
     @State private var selection: TabIdentifier = .initial
+    @State private var unreadDirect = 0
 
     var body: some View {
         TabView(selection: $selection) {
@@ -50,9 +63,25 @@ struct RootView: View {
             Tab("Members", systemImage: "person.3", value: TabIdentifier.members) {
                 MembersView()
             }
+            // Private messages live under Members, so that is where somebody
+            // looks after a notification — and where the mark has to be for
+            // anyone who never saw the notification at all.
+            .badge(unreadDirect)
             Tab("Settings", systemImage: "gearshape", value: TabIdentifier.settings) {
                 SettingsView()
             }
+        }
+        // Keyed on the session as well as the tab: the first run happens
+        // before sign-in has settled, and a tab that is already selected never
+        // changes, so keying on the tab alone means it never runs again.
+        .task(id: TabRefreshKey(tab: selection, user: environment.session?.userID)) {
+            await refreshUnread()
+        }
+        // A message can arrive while the app is open and on another tab.
+        .onReceive(
+            NotificationCenter.default.publisher(for: .directMessagesChanged)
+        ) { _ in
+            Task { await refreshUnread() }
         }
         // A tapped notification names the tab it came from.
         .onChange(of: registrar.pendingDestination) { _, destination in
@@ -70,6 +99,18 @@ struct RootView: View {
                 await registrar.requestAuthorization()
             }
         }
+    }
+
+    /// Counts what is waiting. Quietly: a failure here should cost a badge,
+    /// never a working tab bar.
+    private func refreshUnread() async {
+        guard environment.isSignedIn, let chat = environment.chat else {
+            unreadDirect = 0
+            return
+        }
+        guard let messages = try? await chat.directMessages() else { return }
+        let me = environment.session?.userID
+        unreadDirect = messages.count { $0.isUnread(for: me) }
     }
 }
 

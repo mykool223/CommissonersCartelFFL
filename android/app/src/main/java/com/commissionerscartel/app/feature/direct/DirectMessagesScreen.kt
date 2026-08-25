@@ -16,6 +16,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material3.Badge
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -53,6 +54,8 @@ fun DirectMessagesScreen(
     var openWith by remember { mutableStateOf<Conversation?>(null) }
 
     openWith?.let { conversation ->
+        // Opening it is what counts as reading it.
+        LaunchedEffect(conversation.userId) { model.markRead(conversation.userId) }
         ConversationScreen(
             conversation = conversation,
             model = model,
@@ -91,21 +94,35 @@ fun DirectMessagesScreen(
                     Card(
                         Modifier.fillMaxWidth().clickable { openWith = conversation },
                     ) {
-                        Column(
-                            Modifier.padding(14.dp),
-                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                        Row(
+                            Modifier.fillMaxWidth().padding(14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Text(
-                                conversation.displayName,
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Bold,
-                            )
-                            Text(
-                                conversation.lastMessage,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
-                            )
+                            Column(
+                                Modifier.weight(1f),
+                                verticalArrangement = Arrangement.spacedBy(4.dp),
+                            ) {
+                                Text(
+                                    conversation.displayName,
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold,
+                                )
+                                Text(
+                                    conversation.lastMessage,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = if (conversation.unread > 0) {
+                                        MaterialTheme.colorScheme.onSurface
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                    },
+                                    maxLines = 1,
+                                )
+                            }
+                            // A count rather than a plain dot: "one waiting"
+                            // and "nine waiting" are different situations.
+                            if (conversation.unread > 0) {
+                                Badge { Text("${conversation.unread}") }
+                            }
                         }
                     }
                 }

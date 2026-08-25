@@ -87,6 +87,29 @@ public struct SupabaseClient: Sendable {
         _ = try await raw(request)
     }
 
+    /// `PATCH /rest/v1/{table}` with PostgREST filters — updates the rows
+    /// that match, and only those the caller is allowed to touch.
+    public func patchRows(
+        _ table: String,
+        query: [String: String],
+        values: [String: AnyEncodable]
+    ) async throws {
+        var components = URLComponents(
+            url: configuration.url.appending(path: "/rest/v1/\(table)"),
+            resolvingAgainstBaseURL: false
+        )
+        components?.queryItems = query
+            .sorted { $0.key < $1.key }
+            .map { URLQueryItem(name: $0.key, value: $0.value) }
+        guard let url = components?.url else {
+            throw CartelError.notConfigured("Could not build a Supabase URL for \(table).")
+        }
+        var request = request(url: url, method: "PATCH")
+        request.setValue("return=minimal", forHTTPHeaderField: "Prefer")
+        request.httpBody = try JSONEncoder().encode(values)
+        _ = try await raw(request)
+    }
+
     /// `POST /rest/v1/{table}` with `Prefer: resolution=merge-duplicates` —
     /// inserts, or updates the existing row when `onConflict` collides.
     ///

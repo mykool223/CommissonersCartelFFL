@@ -175,11 +175,12 @@ private struct DirectMessageRow: Decodable {
     let recipient_id: UUID
     let body: String
     let created_at: Date
+    let read_at: Date?
 
     var model: DirectMessage {
         DirectMessage(
             id: id, senderID: sender_id, recipientID: recipient_id,
-            body: body, createdAt: created_at
+            body: body, createdAt: created_at, readAt: read_at
         )
     }
 }
@@ -407,6 +408,21 @@ extension SupabaseContentRepository: LeagueChatRepository {
                 "body": AnyEncodable(body)
             ],
             onConflict: "id"
+        )
+    }
+
+    /// Marks everything received from one member as read.
+    ///
+    /// Row level security limits this to messages addressed to whoever is
+    /// asking, so a client cannot mark somebody else's mail as read.
+    public func markConversationRead(with senderID: UUID) async throws {
+        try await client.patchRows(
+            "direct_messages",
+            query: [
+                "sender_id": "eq.\(senderID.uuidString.lowercased())",
+                "read_at": "is.null",
+            ],
+            values: ["read_at": AnyEncodable(ISO8601DateFormatter().string(from: Date()))]
         )
     }
 

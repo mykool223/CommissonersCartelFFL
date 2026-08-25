@@ -32,15 +32,36 @@ struct DirectMessagesView: View {
                                 open = conversation
                             } label: {
                                 Card {
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text(conversation.displayName)
-                                            .font(.subheadline.weight(.semibold))
-                                        Text(conversation.lastMessage)
-                                            .font(.footnote)
-                                            .foregroundStyle(.secondary)
-                                            .lineLimit(1)
+                                    HStack(spacing: Theme.Spacing.small) {
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text(conversation.displayName)
+                                                .font(.subheadline.weight(
+                                                    conversation.unread > 0 ? .bold : .semibold
+                                                ))
+                                            Text(conversation.lastMessage)
+                                                .font(.footnote)
+                                                .foregroundStyle(
+                                                    conversation.unread > 0 ? .primary : .secondary
+                                                )
+                                                .lineLimit(1)
+                                        }
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+
+                                        if conversation.unread > 0 {
+                                            // A count rather than a plain dot:
+                                            // "one waiting" and "nine waiting"
+                                            // are different situations.
+                                            Text("\(conversation.unread)")
+                                                .font(.caption2.weight(.bold))
+                                                .foregroundStyle(.white)
+                                                .padding(.horizontal, 6)
+                                                .padding(.vertical, 2)
+                                                .background(Color.red, in: Capsule())
+                                                .accessibilityLabel(
+                                                    "\(conversation.unread) unread"
+                                                )
+                                        }
                                     }
-                                    .frame(maxWidth: .infinity, alignment: .leading)
                                 }
                             }
                             .buttonStyle(.plain)
@@ -115,5 +136,7 @@ struct ConversationView: View {
         }
         .navigationTitle(conversation.displayName)
         .navigationBarTitleDisplayMode(.inline)
+        // Opening it is what counts as reading it.
+        .task { await model.markRead(with: conversation.userID, using: environment) }
     }
 }
