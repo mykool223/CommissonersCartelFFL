@@ -1,5 +1,5 @@
 {
-  "build": "202608251517",
-  "uploadedAt": "2026-08-25T20:19:42Z",
+  "build": "202608251541",
+  "uploadedAt": "2026-08-25T20:43:20Z",
   "note": "Written by Scripts/archive.sh. Read by .github/workflows/testflight-expiry.yml to warn before the 90-day expiry."
 }
