@@ -7,6 +7,7 @@ enum MatchupsSection: String, TabSection {
     case scoreboard
     case recap
     case standings
+    case power
     case nfl
     case coach
 
@@ -15,6 +16,7 @@ enum MatchupsSection: String, TabSection {
         case .scoreboard: "Scoreboard"
         case .recap: "Weekly recap"
         case .standings: "Standings"
+        case .power: "Power rankings"
         case .nfl: "NFL scores"
         case .coach: "Coach Landry"
         }
@@ -25,6 +27,7 @@ enum MatchupsSection: String, TabSection {
         case .scoreboard: "sportscourt"
         case .recap: "trophy"
         case .standings: "list.number"
+        case .power: "chart.line.uptrend.xyaxis"
         case .nfl: "football"
         case .coach: "eyeglasses"
         }
@@ -77,6 +80,7 @@ struct MatchupsView: View {
                         case .scoreboard: scoreboard(board: board)
                         case .recap: WeeklyRecapView(board: board, awards: board.awards)
                         case .standings: StandingsView(board: board)
+                        case .power: PowerRankingsView()
                         case .nfl: EmptyView()
                         case .coach: EmptyView()
                         }

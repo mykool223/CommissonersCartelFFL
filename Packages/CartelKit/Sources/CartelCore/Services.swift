@@ -38,6 +38,9 @@ public protocol ContentRepository: Sendable {
     /// Their own only: row level security sees to that, and so does the coach.
     func coachHistory(limit: Int) async throws -> [CoachMessage]
 
+    /// The league's power ranking, best first. Empty until one is published.
+    func powerRankings(season: Int) async throws -> [PowerRanking]
+
     /// The league's trophy case, newest first.
     func trophies(season: Int) async throws -> [Trophy]
 

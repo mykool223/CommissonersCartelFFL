@@ -74,6 +74,22 @@ public struct SupabaseContentRepository: ContentRepository {
         return rows.reversed().map(\.model)
     }
 
+    public func powerRankings(season: Int) async throws -> [PowerRanking] {
+        // The newest published week, whichever that is: the preseason one is
+        // week 0 and each in-season update supersedes it.
+        let rows: [PowerRankingRow] = try await client.select(
+            "power_rankings",
+            query: [
+                "select": "*",
+                "season": "eq.\(season)",
+                "source": "eq.fantasypros",
+                "order": "week.desc,rank.asc",
+            ]
+        )
+        guard let latest = rows.first?.week else { return [] }
+        return rows.filter { $0.week == latest }.map(\.model)
+    }
+
     public func trophies(season: Int) async throws -> [Trophy] {
         let rows: [TrophyRow] = try await client.select(
             "trophies",
@@ -217,6 +233,25 @@ private struct CoachMessageRow: Decodable {
         CoachMessage(
             id: id, sequence: seq, isCoach: role == "coach",
             text: content, createdAt: created_at
+        )
+    }
+}
+
+private struct PowerRankingRow: Decodable {
+    let season: Int
+    let week: Int
+    let espn_team_id: Int
+    let team_name: String
+    let score: Double
+    let rank: Int
+    let unit: String?
+    let computed_at: Date
+
+    var model: PowerRanking {
+        PowerRanking(
+            season: season, week: week, teamID: espn_team_id,
+            teamName: team_name, score: score, rank: rank, unit: unit,
+            computedAt: computed_at
         )
     }
 }

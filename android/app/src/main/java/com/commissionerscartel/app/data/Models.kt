@@ -60,6 +60,26 @@ data class Poll(
         } ?: false
 }
 
+/**
+ * Where a team sits in the league's power ranking.
+ *
+ * Read off FantasyPros' league analyzer and stored, rather than computed:
+ * their score grades a whole roster with a value model their public API does
+ * not expose, and attempts to reproduce its ordering came out barely better
+ * than shuffling.
+ */
+@Serializable
+data class PowerRanking(
+    val season: Int,
+    val week: Int,
+    @SerialName("espn_team_id") val teamId: Int,
+    @SerialName("team_name") val teamName: String,
+    val score: Double,
+    val rank: Int,
+    /** "out of 100" — their scale, so it is stated rather than assumed. */
+    val unit: String? = null,
+)
+
 @Serializable
 data class TeamBio(
     val season: Int,

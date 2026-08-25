@@ -502,6 +502,16 @@ Deno.serve(async (request) => {
       ? (fixture.home?.teamId === team.id ? fixture.away?.teamId : fixture.home?.teamId)
       : undefined;
 
+    // The league's published power ranking, as FantasyPros scores it. Read
+    // rather than derived: their model is not in the public API, and the coach
+    // quoting a number the app does not show would be worse than useless.
+    const published = await rest(
+      `power_rankings?select=team_name,rank,score,week&season=eq.${season}` +
+      "&source=eq.fantasypros&order=week.desc,rank.asc",
+    ) as Array<{ team_name: string; rank: number; score: number; week: number }>;
+    const latestWeek = published?.[0]?.week;
+    const standing = (published ?? []).filter((r) => r.week === latestWeek);
+
     // The experts' view of everybody in play, from the nightly cache.
     const view = await consensusFor(
       [...players, ...shortlist].map((p) => p.espnId ?? NaN)
@@ -615,6 +625,15 @@ Deno.serve(async (request) => {
         "Do not describe any player as rising, falling, sliding, trending or " +
         "climbing — there is no such data here, and it would be invented.",
       "",
+      standing.length
+        ? [
+          "The league power ranking, from FantasyPros' league analyzer, which",
+          "grades whole rosters. This is the one the app shows and the one to",
+          "quote when somebody asks where they stand:",
+          ...standing.map((r) => `${r.rank}. ${r.team_name}: ${r.score}`),
+          "",
+        ].join("\n")
+        : "",
       "This week's lineup strength — the best legal lineup each team could",
       "field, on the expert consensus. Call it that, not a power ranking: it",
       "measures one Sunday, not how good a roster is. FantasyPros' own league",

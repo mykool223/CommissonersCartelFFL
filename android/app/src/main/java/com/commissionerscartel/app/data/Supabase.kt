@@ -139,6 +139,20 @@ object Supabase {
     )
 
     /** The trophy case. Empty until the first week is in the books. */
+    /** The newest published ranking, best first. Empty until one exists. */
+    suspend fun powerRankings(season: Int): List<PowerRanking> {
+        val rows: List<PowerRanking> = client.from("power_rankings").select {
+            filter {
+                eq("season", season)
+                eq("source", "fantasypros")
+            }
+            order("week", Order.DESCENDING)
+            order("rank", Order.ASCENDING)
+        }.decodeList()
+        val latest = rows.firstOrNull()?.week ?: return emptyList()
+        return rows.filter { it.week == latest }
+    }
+
     suspend fun trophies(season: Int): List<Trophy> =
         client.from("trophies").select {
             filter { eq("season", season) }

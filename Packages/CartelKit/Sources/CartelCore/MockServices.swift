@@ -113,6 +113,11 @@ public actor MockContentRepository: ContentRepository {
         return []
     }
 
+    public func powerRankings(season: Int) async throws -> [PowerRanking] {
+        try await simulate()
+        return []
+    }
+
     public func trophies(season: Int) async throws -> [Trophy] {
         try await simulate()
         return MockData.trophies

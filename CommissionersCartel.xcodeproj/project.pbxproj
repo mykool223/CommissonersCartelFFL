@@ -13,6 +13,7 @@
 		0C61D6DF21AE4AB781D9FEDD /* SectionsHint.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FE33B6365427F981FD356BE /* SectionsHint.swift */; };
 		10A8A5C4E98243ADAF5F91E5 /* MembersViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7DB9556C510CA5B9958FBD1 /* MembersViewModel.swift */; };
 		12A315BCEF72BF1BAEA5D515 /* AppEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = B49C2F69739A05DA6E30EFDB /* AppEnvironment.swift */; };
+		133477141CC0721D1EA27ED9 /* PowerRankingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D29E349B2E3C7A531D90466 /* PowerRankingsView.swift */; };
 		281FAB71009E2D455670D2A2 /* NFLScoresView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2ECC67CFE4ACEAA8E570FA7 /* NFLScoresView.swift */; };
 		2B08802C61FFA4EDBAC0B1D8 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAA13BA485C41B4F90F30286 /* SettingsView.swift */; };
 		2D06F93A1EA160D9EF648840 /* CartelESPN in Frameworks */ = {isa = PBXBuildFile; productRef = 6E0714EA86BA5918D9AB8AE2 /* CartelESPN */; };
@@ -103,6 +104,7 @@
 		3C073D09C67256CF6F6B1711 /* NewsPostDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewsPostDetailView.swift; sourceTree = "<group>"; };
 		3C45E44EFEFD22E3FAF3CF11 /* NewsFeedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewsFeedView.swift; sourceTree = "<group>"; };
 		3D256F9DE3A680438DD5AE32 /* CommissionersCartelApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommissionersCartelApp.swift; sourceTree = "<group>"; };
+		3D29E349B2E3C7A531D90466 /* PowerRankingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PowerRankingsView.swift; sourceTree = "<group>"; };
 		44B7FC9C5A8AC74182709966 /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Release.xcconfig; sourceTree = "<group>"; };
 		457FE48CBCFD9A680A7A0B00 /* KeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainStore.swift; sourceTree = "<group>"; };
 		4FCB96C6D0B45F65D335B2F0 /* SplashView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashView.swift; sourceTree = "<group>"; };
@@ -184,6 +186,7 @@
 				BF7395A6303E9F6392B366FC /* MatchupsView.swift */,
 				19CAF352C89479A5D8415900 /* MatchupsViewModel.swift */,
 				E2ECC67CFE4ACEAA8E570FA7 /* NFLScoresView.swift */,
+				3D29E349B2E3C7A531D90466 /* PowerRankingsView.swift */,
 				AB9171C63B6603835C7B65EE /* StandingsView.swift */,
 				5EB1DB5778A90FE77F80CEA1 /* WeeklyRecapView.swift */,
 			);
@@ -503,6 +506,7 @@
 				0AFD7D7C50451F96DA202CE4 /* NotificationSettingsSection.swift in Sources */,
 				7B7D9ADD54F336A6C9F41111 /* PollsView.swift in Sources */,
 				9B30FC45D6A0E6FA51305F58 /* PollsViewModel.swift in Sources */,
+				133477141CC0721D1EA27ED9 /* PowerRankingsView.swift in Sources */,
 				8D5798726C62FF83F29DBFE0 /* PushRegistrar.swift in Sources */,
 				0173B3B98B368FCABE7418E5 /* RootView.swift in Sources */,
 				BD2DBD997CF0F39A2D7FE030 /* SectionPicker.swift in Sources */,

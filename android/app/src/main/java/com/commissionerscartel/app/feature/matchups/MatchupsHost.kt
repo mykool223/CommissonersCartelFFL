@@ -4,6 +4,8 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -29,6 +31,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.commissionerscartel.app.data.PowerRanking
+import com.commissionerscartel.app.data.Supabase
+import com.commissionerscartel.app.data.Config
+import androidx.compose.runtime.LaunchedEffect
 import com.commissionerscartel.app.data.Team
 import com.commissionerscartel.app.data.WeeklyAward
 import com.commissionerscartel.app.feature.coach.CoachScreen
@@ -40,6 +46,7 @@ enum class MatchupsSection(val label: String) {
     Scoreboard("Scoreboard"),
     Recap("Weekly recap"),
     Standings("Standings"),
+    Power("Power rankings"),
     Nfl("NFL scores"),
     Coach("Coach Landry"),
 }
@@ -80,6 +87,7 @@ fun MatchupsHost(modifier: Modifier = Modifier, model: MatchupsViewModel = viewM
                 MatchupsSection.Scoreboard -> ScoreboardSection(current.data)
                 MatchupsSection.Recap -> RecapSection(current.data)
                 MatchupsSection.Standings -> StandingsSection(current.data.standings)
+                MatchupsSection.Power -> PowerRankingsSection(current.data.teams)
                 MatchupsSection.Nfl -> NflSection(current.data)
                 MatchupsSection.Coach -> CoachScreen()
             }
@@ -220,6 +228,90 @@ private fun StandingsRow(rank: Int, team: Team) {
                     "PF",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+    }
+}
+
+/**
+ * The league power ranking, as FantasyPros' league analyzer scores it.
+ *
+ * Not computed here — see PowerRanking. Saying where it comes from matters:
+ * it disagrees with the lineup strength the coach quotes, and somebody is
+ * entitled to know why rather than assuming one of them is broken.
+ */
+@Composable
+private fun PowerRankingsSection(teams: Map<Int, Team>) {
+    var rankings by remember { mutableStateOf<List<PowerRanking>?>(null) }
+    LaunchedEffect(Unit) {
+        rankings = runCatching { Supabase.powerRankings(Config.currentSeason()) }
+            .getOrDefault(emptyList())
+    }
+
+    val current = rankings
+
+    when {
+        current == null -> Box(Modifier.fillMaxSize(), Alignment.Center) {
+            CircularProgressIndicator()
+        }
+
+        current.isEmpty() -> Box(Modifier.fillMaxSize().padding(24.dp), Alignment.Center) {
+            Text(
+                "No ranking yet. The commissioner posts these from " +
+                    "FantasyPros' league analyzer once a week.",
+                style = MaterialTheme.typography.bodyMedium,
+                textAlign = TextAlign.Center,
+            )
+        }
+
+        else -> LazyColumn(
+            Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            items(current, key = { it.teamId }) { entry ->
+                Card(Modifier.fillMaxWidth()) {
+                    Row(
+                        Modifier.fillMaxWidth().padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        Text(
+                            "${entry.rank}",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        TeamLogo(teams[entry.teamId]?.logoUrl, size = 34.dp)
+                        Text(
+                            entry.teamName,
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            modifier = Modifier.weight(1f),
+                        )
+                        Text(
+                            entry.score.toInt().toString(),
+                            style = MaterialTheme.typography.titleMedium,
+                        )
+                    }
+                }
+            }
+            item {
+                val when_ = if (current.first().week == 0) {
+                    "Preseason"
+                } else {
+                    "After week ${current.first().week}"
+                }
+                val unit = current.first().unit?.let { " ($it)" } ?: ""
+                Text(
+                    "$when_. From FantasyPros' league analyzer$unit, which " +
+                        "grades whole rosters. Coach Landry's number is this " +
+                        "week's lineup strength and measures something different.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                 )
             }
         }
