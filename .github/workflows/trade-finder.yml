@@ -1,0 +1,51 @@
+# Finds trades that would improve both teams, across the whole league.
+#
+# Nobody proposes these because spotting one means holding two rosters in your
+# head at once. Value is what a player adds to a best legal lineup, not what he
+# projects, which is why a lopsided-looking swap can help both sides.
+#
+# Managers are told only about ideas involving their own roster.
+name: Trade finder
+
+on:
+  schedule:
+    # 13:00 UTC Wednesday — around 8am Central, after waivers have run.
+    # Weekly rather than nightly: the same idea arriving every morning is
+    # nagging, not help.
+    - cron: "0 13 * * 3"
+  workflow_dispatch:
+    inputs:
+      week:
+        description: "Force a week (defaults to ESPN's current)"
+        type: string
+      min_gain:
+        description: "Points each side must gain (default 1.5)"
+        type: string
+      dry_run:
+        description: "Print what would be suggested, without notifying anybody"
+        type: boolean
+        default: true
+
+jobs:
+  find:
+    name: Find
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Find
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          PUSH_SECRET: ${{ secrets.PUSH_SECRET }}
+          ESPN_S2: ${{ secrets.ESPN_S2 }}
+          ESPN_SWID: ${{ secrets.ESPN_SWID }}
+          ESPN_LEAGUE_ID: ${{ secrets.ESPN_LEAGUE_ID }}
+          TRADE_WEEK: ${{ inputs.week }}
+          TRADE_MIN_GAIN: ${{ inputs.min_gain }}
+          DRY_RUN: ${{ inputs.dry_run && '1' || '' }}
+        run: |
+          if [ -z "$ESPN_S2" ]; then
+            echo "ESPN secrets are not set; nothing to find."
+            exit 0
+          fi
+          ./Scripts/trade_finder.py

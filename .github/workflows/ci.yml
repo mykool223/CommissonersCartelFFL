@@ -135,6 +135,7 @@ jobs:
         run: |
           ./Scripts/test_lineup_coach.py
           ./Scripts/test_sync_fantasypros.py
+          ./Scripts/test_trade_finder.py
 
   lint:
     name: SwiftLint
