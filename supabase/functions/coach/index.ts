@@ -55,11 +55,24 @@ if it does not report a player's rank rising or falling, do not describe them
 as rising or falling — early in the season there is no trend to report, and a
 plausible-sounding one is just invented.
 
-You can see every roster, so compare teams, judge a matchup, and say where an
-opponent is strong or thin. Do not propose or evaluate trades yet — that is
-not switched on, and the commissioner wants to talk it through first. If
-somebody asks about a trade, say it is coming but not yet, and answer whatever
-part of their question is not about trading.
+You can see every roster, so compare teams, judge a matchup, say where an
+opponent is strong or thin, and talk about trades.
+
+On trades. Price them on rest-of-season consensus rank, not this week's
+points: a player worth fourteen points against a soft defence on Sunday can be
+worth far less over the rest of the year. A trade is only good if it improves
+the starting lineup — depth at a position already covered is worth little, and
+two good players at the same position are worth less together than apart.
+Positional scarcity is real: the tenth-best running back is harder to replace
+than the tenth-best receiver.
+
+Judge a trade from the asker's side, and be straight about it. Say plainly
+when a deal is bad for them. Say plainly when a deal is lopsided in their
+favour too — this is a twelve-person league of people who know each other, and
+a coach who helps somebody fleece a friend is worth less than one who says a
+deal is fair. Never suggest misleading anybody about a player's health or
+value. You can suggest who to approach and what to offer, but you cannot send
+anything: the manager makes the trade in ESPN themselves.
 
 Be direct and brief: three or four sentences unless asked for more. Give a
 recommendation rather than a survey of options. Never dress up a close call as
@@ -142,6 +155,7 @@ interface Consensus {
   spread?: number;
   points?: number;
   rosRank?: string;
+  rosTier?: number;
   status?: string;
   probability?: number;
   injuryType?: string;
@@ -190,6 +204,7 @@ async function consensusFor(
       const it = entry(row.fp_id);
       if (row.kind === "ros") {
         it.rosRank = row.pos_rank ?? undefined;
+        it.rosTier = row.tier ?? undefined;
       } else {
         it.posRank = row.pos_rank ?? undefined;
         it.tier = row.tier ?? undefined;
@@ -217,7 +232,8 @@ async function consensusFor(
 function describeConsensus(view: Consensus | undefined): string {
   if (!view) return "";
   const parts: string[] = [];
-  if (view.posRank) parts.push(`consensus ${view.posRank}`);
+  if (view.posRank) parts.push(`consensus ${view.posRank} this week`);
+  if (view.rosRank) parts.push(`${view.rosRank} rest of season`);
   if (view.tier !== undefined) parts.push(`tier ${view.tier}`);
   if (view.points !== undefined) parts.push(`FP projects ${view.points.toFixed(1)}`);
   // A rank that has moved several places in a week usually means news.
@@ -453,6 +469,8 @@ Deno.serve(async (request) => {
             position: positionName[raw.defaultPositionId] ?? "",
             points: projection(raw, week),
             status: String(raw.injuryStatus ?? "").toUpperCase(),
+            eligible: raw.eligibleSlots ?? [],
+            slot: entry.lineupSlotId,
             starting: entry.lineupSlotId !== BENCH && entry.lineupSlotId !== IR,
           };
         }),
@@ -503,6 +521,25 @@ Deno.serve(async (request) => {
       (p) => view.get(p.espnId ?? NaN)?.points !== undefined).length;
     const haveConsensus = covered >= Math.ceil(players.length / 2);
 
+    // A power ranking, since FantasyPros' API has no idea this league exists —
+    // every endpoint is player-level, so their site's league rankings are not
+    // reachable. This is the honest equivalent: the strongest legal lineup
+    // each team could field, scored on the expert consensus where the cache
+    // has a number and ESPN's projection where it does not. Same solver every
+    // team's own lineup is judged by, so nobody is measured differently.
+    const strengthOf = (squad: Player[]) => bestLineup(
+      squad.map((p) => {
+        const points = view.get(p.espnId ?? NaN)?.points;
+        return points === undefined ? p : { ...p, points };
+      }), slots).total;
+
+    const power = [
+      { name: team.name?.trim() ?? "Your team", total: strengthOf(players), own: true },
+      ...rivals.map((r) => ({
+        name: r.name, total: strengthOf(r.squad as Player[]), own: false,
+      })),
+    ].sort((a, b) => b.total - a.total);
+
     const context = [
       `Manager: ${profile.display_name ?? "a member"}`,
       `Team: ${team.name?.trim() ?? "their team"}`,
@@ -544,7 +581,9 @@ Deno.serve(async (request) => {
         const roster = [...rival.squad]
           .sort((a, b) => b.points - a.points)
           .map((p) => {
-            const rank = view.get(p.espnId ?? NaN)?.posRank;
+            const seen = view.get(p.espnId ?? NaN);
+            const rank = [seen?.posRank, seen?.rosRank && `${seen.rosRank} ROS`]
+              .filter(Boolean).join(", ");
             return `${p.starting ? "*" : ""}${p.name} (${p.position}, ` +
               `${p.points.toFixed(1)}${rank ? `, ${rank}` : ""}` +
               `${p.status && p.status !== "ACTIVE" ? `, ${p.status}` : ""})`;
@@ -558,6 +597,12 @@ Deno.serve(async (request) => {
         "No week-on-week rank movement is reported this week, for anybody. " +
         "Do not describe any player as rising, falling, sliding, trending or " +
         "climbing — there is no such data here, and it would be invented.",
+      "",
+      "Power ranking — the best legal lineup each team could field this week,",
+      "on the expert consensus. This is calculated here, not published by",
+      "FantasyPros, so call it our own ranking rather than theirs:",
+      ...power.map((t, i) =>
+        `${i + 1}. ${t.name}${t.own ? " (this manager)" : ""}: ${t.total.toFixed(1)}`),
       "",
       !haveConsensus
         ? "No FantasyPros consensus is available for this roster right now, " +
