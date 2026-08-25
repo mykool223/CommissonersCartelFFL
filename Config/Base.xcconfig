@@ -5,7 +5,15 @@
 // file the app still builds and runs — it just uses sample data.
 
 PRODUCT_BUNDLE_IDENTIFIER = com.commissionerscartel.app
-MARKETING_VERSION = 0.22.0
+// Beta App Review runs per version string, not per build. The first build of
+// a new MARKETING_VERSION waits for review before external testers can have
+// it; later builds of the same version go straight out. So this moves only for
+// a release worth announcing, and the build number — a timestamp, set by
+// Scripts/archive.sh — carries everything else.
+//
+// 0.1.0 is what external testing was approved on, so builds of it reach the
+// league immediately.
+MARKETING_VERSION = 0.1.0
 CURRENT_PROJECT_VERSION = 1
 
 // Placeholders. AppConfiguration treats REPLACE_ME as "not configured" and
