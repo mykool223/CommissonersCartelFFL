@@ -29,6 +29,11 @@ struct LeagueChatView: View {
         .task(id: environment.session?.userID) {
             await model.load(using: environment)
         }
+        // Cancelled automatically when the view goes away, so it only runs
+        // while somebody is reading.
+        .task(id: environment.session?.userID) {
+            await model.watch(using: environment)
+        }
     }
 
     private var signedOutState: some View {

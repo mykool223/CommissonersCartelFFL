@@ -29,6 +29,34 @@ final class LeagueChatViewModel {
         reactions = (try? await chat.reactions()) ?? reactions
     }
 
+    /// Re-reads the thread while it is on screen.
+    ///
+    /// A conversation that only updates when you leave and come back is not a
+    /// conversation. Landry made this obvious — you ask him something, the
+    /// notification arrives, and the thread you are staring at shows nothing.
+    ///
+    /// Polling rather than a live subscription: this is a twelve-person league
+    /// and the honest cost is one small request every few seconds while
+    /// somebody is actually reading. A websocket would be the right answer for
+    /// a thousand leagues and is more moving parts than this one needs.
+    func watch(using environment: AppEnvironment) async {
+        while !Task.isCancelled {
+            try? await Task.sleep(for: .seconds(5))
+            if Task.isCancelled { return }
+            await refresh(using: environment)
+        }
+    }
+
+    /// A quiet reload: no spinner, and it keeps what is on screen if the
+    /// request fails, so a dropped connection does not empty the thread.
+    private func refresh(using environment: AppEnvironment) async {
+        guard let chat = environment.chat, environment.isSignedIn else { return }
+        if let latest = try? await chat.messages(), latest != messages {
+            messages = latest
+            reactions = (try? await chat.reactions()) ?? reactions
+        }
+    }
+
     func load(using environment: AppEnvironment) async {
         guard let chat = environment.chat, environment.isSignedIn else {
             messages = []
