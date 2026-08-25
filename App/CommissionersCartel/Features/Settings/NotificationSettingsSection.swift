@@ -45,6 +45,7 @@ struct NotificationSettingsSection: View {
                 Toggle("New polls", isOn: binding(\.polls))
                 Toggle("Adds, drops and trades", isOn: binding(\.activity))
                 Toggle("Lineup warnings", isOn: binding(\.lineup))
+                Toggle("News about my players", isOn: binding(\.rosterNews))
                 Toggle("My matchup", isOn: binding(\.matchups))
                 Toggle("Private messages", isOn: binding(\.direct))
                 Toggle("When someone @s me", isOn: binding(\.mentions))

@@ -40,6 +40,8 @@ const PREFERENCE_COLUMN: Record<string, string> = {
     // either. It was missing entirely, so every suggestion the Wednesday job
     // produced was rejected with "Unknown kind: trade" and dropped.
     trade: "activity",
+    // News about a player on your own roster.
+    roster: "roster_news",
 };
 
 /** The tab to open when the notification is tapped. */
@@ -60,6 +62,8 @@ const DESTINATION: Record<string, string> = {
     // A trade suggestion opens Matchups, where the coach can be asked what it
     // would actually do to the lineup.
     trade: "matchups",
+    // Player news lives under News, alongside the league's own.
+    roster: "news",
 };
 
 function base64URL(bytes: Uint8Array): string {

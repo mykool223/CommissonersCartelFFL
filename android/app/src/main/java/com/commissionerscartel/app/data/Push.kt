@@ -25,6 +25,8 @@ data class NotificationPreferences(
     val direct: Boolean = true,
     /** Somebody typing your name in the league thread. */
     val mentions: Boolean = true,
+    /** News about a player on your own roster, as it lands. */
+    val rosterNews: Boolean = true,
 )
 
 @Serializable
@@ -38,6 +40,7 @@ private data class PreferencesRow(
     /** Private messages from another member. */
     val direct: Boolean = true,
     val mentions: Boolean = true,
+    @SerialName("roster_news") val rosterNews: Boolean = true,
 )
 
 /**
@@ -144,7 +147,8 @@ object Push {
         // read as "wants silence".
         val row = rows.firstOrNull() ?: return NotificationPreferences()
         return NotificationPreferences(
-            row.messages, row.news, row.polls, row.activity, row.lineup, row.matchups, row.direct, row.mentions
+            row.messages, row.news, row.polls, row.activity, row.lineup,
+            row.matchups, row.direct, row.mentions, row.rosterNews
         )
     }
 
@@ -162,6 +166,7 @@ object Push {
                     put("matchups", preferences.matchups)
                     put("direct", preferences.direct)
                     put("mentions", preferences.mentions)
+                    put("roster_news", preferences.rosterNews)
                 }
             ) { onConflict = "user_id" }
     }

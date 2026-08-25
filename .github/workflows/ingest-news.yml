@@ -57,3 +57,20 @@ jobs:
             exit 0
           fi
           ./Scripts/ingest_news.py
+      # Straight after, so an alert goes out with the story that caused it
+      # rather than waiting for a job on its own schedule.
+      - name: Alert on roster news
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          PUSH_SECRET: ${{ secrets.PUSH_SECRET }}
+          ESPN_S2: ${{ secrets.ESPN_S2 }}
+          ESPN_SWID: ${{ secrets.ESPN_SWID }}
+          ESPN_LEAGUE_ID: ${{ secrets.ESPN_LEAGUE_ID }}
+          DRY_RUN: ${{ inputs.dry_run && '1' || '' }}
+        run: |
+          if [ -z "$ESPN_S2" ]; then
+            echo "ESPN secrets are not set; nobody to match news against."
+            exit 0
+          fi
+          ./Scripts/roster_news.py

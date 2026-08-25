@@ -112,6 +112,9 @@ fun SettingsScreen(modifier: Modifier = Modifier, model: SettingsViewModel = vie
                 Toggle("Lineup warnings", state.preferences.lineup) {
                     model.setPreferences(state.preferences.copy(lineup = it))
                 }
+                Toggle("News about my players", state.preferences.rosterNews) {
+                    model.setPreferences(state.preferences.copy(rosterNews = it))
+                }
                 Toggle("My matchup", state.preferences.matchups) {
                     model.setPreferences(state.preferences.copy(matchups = it))
                 }

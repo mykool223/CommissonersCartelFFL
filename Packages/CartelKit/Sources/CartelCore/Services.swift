@@ -154,6 +154,8 @@ public struct NotificationPreferences: Equatable, Sendable {
     public var direct: Bool
     /// Somebody typing your name in the league thread.
     public var mentions: Bool
+    /// News about a player on your own roster, as it lands.
+    public var rosterNews: Bool
 
     public static let all = NotificationPreferences()
 
@@ -163,7 +165,7 @@ public struct NotificationPreferences: Equatable, Sendable {
     public static let none = NotificationPreferences(
         messages: false, news: false, polls: false,
         activity: false, lineup: false, matchups: false,
-        direct: false, mentions: false
+        direct: false, mentions: false, rosterNews: false
     )
 
     public init(
@@ -174,7 +176,8 @@ public struct NotificationPreferences: Equatable, Sendable {
         lineup: Bool = true,
         matchups: Bool = true,
         direct: Bool = true,
-        mentions: Bool = true
+        mentions: Bool = true,
+        rosterNews: Bool = true
     ) {
         self.messages = messages
         self.news = news
@@ -184,9 +187,11 @@ public struct NotificationPreferences: Equatable, Sendable {
         self.matchups = matchups
         self.direct = direct
         self.mentions = mentions
+        self.rosterNews = rosterNews
     }
 
     public var isAnythingEnabled: Bool {
-        messages || news || polls || activity || lineup || matchups || direct || mentions
+        messages || news || polls || activity || lineup || matchups
+            || direct || mentions || rosterNews
     }
 }
