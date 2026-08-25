@@ -142,20 +142,41 @@ private final class PushNotificationDelegate: NSObject, UNUserNotificationCenter
         self.onTap = onTap
     }
 
+    // The completion-handler forms rather than the `async` ones, deliberately.
+    //
+    // With the async variants, Swift resumes on a background executor and
+    // UIKit then does its own work — window snapshots and state restoration —
+    // on whatever thread it was handed. That work asserts that it is on the
+    // main thread, so tapping a notification aborted the app:
+    //
+    //   -[UIApplication _updateSnapshotAndStateRestorationWithAction:...]
+    //   NSAssertionHandler handleFailureInMethod:... → SIGABRT
+    //
+    // Calling the completion handler on the main queue puts UIKit back where
+    // it requires to be. Nothing here needs to be async in the first place.
+
     /// Show the banner even while the app is open — otherwise a member reading
     /// News never learns that someone replied in the league thread.
     func userNotificationCenter(
         _ center: UNUserNotificationCenter,
-        willPresent notification: UNNotification
-    ) async -> UNNotificationPresentationOptions {
-        [.banner, .sound]
+        willPresent notification: UNNotification,
+        withCompletionHandler completionHandler:
+            @escaping @Sendable (UNNotificationPresentationOptions) -> Void
+    ) {
+        DispatchQueue.main.async { completionHandler([.banner, .sound]) }
     }
 
     func userNotificationCenter(
         _ center: UNUserNotificationCenter,
-        didReceive response: UNNotificationResponse
-    ) async {
-        onTap(response.notification.request.content.userInfo["destination"] as? String)
+        didReceive response: UNNotificationResponse,
+        withCompletionHandler completionHandler: @escaping @Sendable () -> Void
+    ) {
+        // Only the destination string crosses over; the notification objects
+        // themselves are not Sendable.
+        let destination = response.notification.request.content
+            .userInfo["destination"] as? String
+        onTap(destination)
+        DispatchQueue.main.async { completionHandler() }
     }
 }
 
