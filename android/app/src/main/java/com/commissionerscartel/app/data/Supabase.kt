@@ -139,6 +139,13 @@ object Supabase {
     )
 
     /** The trophy case. Empty until the first week is in the books. */
+    /** Player news and analysis from FantasyPros, newest first. */
+    suspend fun analysis(limit: Long = 60): List<AnalysisItem> =
+        client.from("fantasypros_news").select {
+            order("published_at", Order.DESCENDING)
+            limit(limit)
+        }.decodeList()
+
     /** The newest published ranking, best first. Empty until one exists. */
     suspend fun powerRankings(season: Int): List<PowerRanking> {
         val rows: List<PowerRanking> = client.from("power_rankings").select {

@@ -9,12 +9,14 @@ enum NewsSection: String, TabSection {
     case league
     case activity
     case players
+    case analysis
 
     var title: String {
         switch self {
         case .league: "League news"
         case .activity: "Activity"
         case .players: "Player news"
+        case .analysis: "Analysis"
         }
     }
 
@@ -23,6 +25,7 @@ enum NewsSection: String, TabSection {
         case .league: "newspaper"
         case .activity: "arrow.left.arrow.right"
         case .players: "figure.american.football"
+        case .analysis: "text.book.closed"
         }
     }
 }
@@ -39,6 +42,7 @@ struct NewsFeedView: View {
                 case .league: leagueNews
                 case .activity: activity
                 case .players: playerNews
+                case .analysis: AnalysisView()
                 }
             }
             .screenStyle()

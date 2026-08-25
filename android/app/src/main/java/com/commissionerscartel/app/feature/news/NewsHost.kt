@@ -16,6 +16,7 @@ enum class NewsSection(val label: String) {
     League("League news"),
     Activity("Activity"),
     Players("Player news"),
+    Analysis("Analysis"),
 }
 
 /** The News tab, with the two feeds the iOS dropdown offers. */
@@ -41,6 +42,7 @@ fun NewsHost(modifier: Modifier = Modifier) {
             NewsSection.League -> NewsScreen(onOpen = { reading = it })
             NewsSection.Activity -> ActivityScreen()
             NewsSection.Players -> PlayerNewsScreen()
+            NewsSection.Analysis -> AnalysisScreen()
         }
     }
 }

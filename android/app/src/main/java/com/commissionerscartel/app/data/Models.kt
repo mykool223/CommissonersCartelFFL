@@ -68,6 +68,29 @@ data class Poll(
  * not expose, and attempts to reproduce its ordering came out barely better
  * than shuffling.
  */
+/**
+ * A player news item from FantasyPros, with their read on what it means.
+ *
+ * The headline and a short extract are shown; the full piece is a tap away on
+ * their site. Their writing is theirs, and a link is the honest way to pass
+ * somebody else's work along.
+ */
+@Serializable
+data class AnalysisItem(
+    val id: String,
+    @SerialName("source_id") val sourceId: Long,
+    val title: String,
+    val description: String? = null,
+    val impact: String? = null,
+    val link: String,
+    @SerialName("player_name") val playerName: String? = null,
+    val team: String? = null,
+    val author: String? = null,
+    val categories: List<String> = emptyList(),
+    @SerialName("published_at") val publishedAt: String,
+    @SerialName("created_at") val createdAt: String? = null,
+)
+
 @Serializable
 data class PowerRanking(
     val season: Int,

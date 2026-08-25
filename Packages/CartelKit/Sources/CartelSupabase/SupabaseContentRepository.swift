@@ -74,6 +74,18 @@ public struct SupabaseContentRepository: ContentRepository {
         return rows.reversed().map(\.model)
     }
 
+    public func analysis(limit: Int) async throws -> [AnalysisItem] {
+        let rows: [AnalysisRow] = try await client.select(
+            "fantasypros_news",
+            query: [
+                "select": "*",
+                "order": "published_at.desc",
+                "limit": "\(limit)",
+            ]
+        )
+        return rows.compactMap(\.model)
+    }
+
     public func powerRankings(season: Int) async throws -> [PowerRanking] {
         // The newest published week, whichever that is: the preseason one is
         // week 0 and each in-season update supersedes it.
@@ -233,6 +245,28 @@ private struct CoachMessageRow: Decodable {
         CoachMessage(
             id: id, sequence: seq, isCoach: role == "coach",
             text: content, createdAt: created_at
+        )
+    }
+}
+
+private struct AnalysisRow: Decodable {
+    let id: UUID
+    let title: String
+    let description: String?
+    let impact: String?
+    let link: String
+    let player_name: String?
+    let team: String?
+    let published_at: Date
+
+    /// Nil rather than a broken row if the link will not parse: an item you
+    /// cannot open is worse than one that is not there.
+    var model: AnalysisItem? {
+        guard let url = URL(string: link) else { return nil }
+        return AnalysisItem(
+            id: id, title: title, summary: description, impact: impact,
+            link: url, playerName: player_name, team: team,
+            publishedAt: published_at
         )
     }
 }
