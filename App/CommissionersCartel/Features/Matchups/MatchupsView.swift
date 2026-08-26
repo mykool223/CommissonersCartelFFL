@@ -37,7 +37,7 @@ enum MatchupsSection: String, TabSection {
     /// works even when everything else is unconfigured or erroring.
     /// Coach Landry is drawn, not a symbol.
     var icon: Image {
-        self == .coach ? Image("CoachIcon") : Image(systemName: systemImage)
+        self == .coach ? Image("LandryAvatar") : Image(systemName: systemImage)
     }
 
     var needsLeagueData: Bool { self != .nfl && self != .coach }

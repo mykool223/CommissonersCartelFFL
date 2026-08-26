@@ -1,5 +1,6 @@
 package com.commissionerscartel.app.feature.coach
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -60,11 +61,12 @@ fun CoachScreen(modifier: Modifier = Modifier, model: CoachViewModel = viewModel
         if (state.turns.isEmpty() && !state.busy) {
             Box(Modifier.weight(1f).fillMaxWidth().padding(24.dp), Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
-                        painterResource(R.drawable.ic_coach),
+                    // Image rather than Icon: the avatar is gold on black and
+                    // tinting it would flatten it to a single colour.
+                    Image(
+                        painterResource(R.drawable.ic_landry_avatar),
                         contentDescription = null,
-                        tint = CartelGold,
-                        modifier = Modifier.size(40.dp).padding(bottom = 10.dp),
+                        modifier = Modifier.size(72.dp).padding(bottom = 12.dp),
                     )
                     Text(
                         "Ask about your own team. He has your roster and this " +

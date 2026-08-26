@@ -20,12 +20,26 @@ struct CoachView: View {
     var body: some View {
         VStack(spacing: 0) {
             if model.turns.isEmpty && !model.isBusy {
-                ContentUnavailableView {
-                    Label("Coach Landry", image: "CoachIcon")
-                } description: {
+                // Its own layout rather than ContentUnavailableView, which
+                // draws a label's image at symbol size — fine for a glyph,
+                // far too small for a face.
+                VStack(spacing: Theme.Spacing.medium) {
+                    Image("LandryAvatar")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 96, height: 96)
+
+                    Text("Coach Landry")
+                        .font(.title2.bold())
+
                     Text("Ask about your own team. He has your roster and this "
                          + "week's projections in front of him.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, Theme.Spacing.large)
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 ScrollViewReader { proxy in
                     ScrollView {
