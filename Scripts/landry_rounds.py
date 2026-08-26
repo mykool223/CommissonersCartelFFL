@@ -162,6 +162,17 @@ def main() -> int:
     chances = probabilities(season, week)
     ideas = supabase(
         "GET", f"trade_ideas?select=*&season=eq.{season}&week=eq.{week}") or []
+
+    # Pronouns, by ESPN team id. Anybody not listed is they and them — the
+    # league has one woman in it and a coach guessing from names gets her
+    # wrong every time.
+    pronouns = {
+        row["espn_team_id"]: row["manager_pronouns"]
+        for row in supabase(
+            "GET",
+            "team_bios?select=espn_team_id,manager_pronouns"
+            f"&season=eq.{season}&manager_pronouns=not.is.null") or []
+    }
     already = {
         (row["user_id"], row["kind"], row["subject"])
         for row in supabase(
@@ -245,11 +256,14 @@ def main() -> int:
             send = idea["a_sends"] if mine else idea["b_sends"]
             get = idea["b_sends"] if mine else idea["a_sends"]
             gain = float(idea["a_gain"] if mine else idea["b_gain"])
+            other_id = idea["team_b"] if mine else idea["team_a"]
+            says = pronouns.get(other_id, "they/them")
             options.append((
                 gain, "trade", f"{other}:{send}",
                 f"{team_name} could offer {send} to {other} for {get}. It "
                 f"would add {gain:.1f} points to their lineup and improve "
-                f"{other}'s as well, which is why it is worth asking.",
+                f"{other}'s as well, which is why it is worth asking. The "
+                f"manager of {other} uses {says}.",
                 f"Offer {send} to {other} for {get} — it would add "
                 f"{gain:.1f} to your lineup and help theirs too.",
             ))
@@ -261,12 +275,17 @@ def main() -> int:
         options.sort(key=lambda o: -o[0])
         _, kind, subject, brief, plain = options[0]
 
+        # Say plainly who is being written to. Without this the brief named
+        # two managers — the recipient and the counterparty — and he addressed
+        # the wrong one, telling Danny to think it over, Devon.
         body = in_landrys_words(
-            brief,
-            "Write this as a short private message to that manager. Two or "
-            "three sentences. Speak to them directly, no greeting and no "
-            "sign-off. " + IN_CHARACTER + "Do not invent any number you were "
-            "not given.",
+            f"You are writing privately to {profile['display_name']}, who "
+            f"manages {team_name}. Nobody else will see this message.\n\n"
+            + brief,
+            "Write this as a short private message to that manager — the "
+            "one named at the top, not anybody else mentioned. Two or three "
+            "sentences. Speak to them directly, no greeting and no sign-off. "
+            + IN_CHARACTER + "Do not invent any number you were not given.",
             plain,
         )
 

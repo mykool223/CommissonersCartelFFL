@@ -239,6 +239,27 @@ Deno.serve(async (request) => {
       console.error(`consensus unavailable: ${error}`);
     }
 
+    // Who is who, so he is not guessing from a name.
+    let pronouns = "";
+    try {
+      const bios = await rest(
+        `team_bios?select=manager_pronouns,espn_team_id&season=eq.${season}` +
+        "&manager_pronouns=not.is.null",
+      ) as Array<{ manager_pronouns: string; espn_team_id: number }>;
+      if (bios?.length) {
+        const named = await rest(
+          "profiles?select=display_name,espn_swid&espn_swid=not.is.null",
+        ) as Array<{ display_name: string; espn_swid: string }>;
+        pronouns = "Pronouns, where the league has recorded them: " +
+          bios.map((b) => `team ${b.espn_team_id} — ${b.manager_pronouns}`)
+            .join("; ") +
+          ". Anybody not listed: they and them.";
+        void named;
+      }
+    } catch (error) {
+      console.error(`pronouns unavailable: ${error}`);
+    }
+
     const projections = await leagueProjections(consensus);
 
     const brief = [
@@ -252,6 +273,8 @@ Deno.serve(async (request) => {
         : "",
       "",
       projections,
+      "",
+      pronouns,
     ].join("\n");
 
     const text = await speak(
