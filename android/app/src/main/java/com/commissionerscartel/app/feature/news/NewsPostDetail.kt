@@ -1,5 +1,10 @@
 package com.commissionerscartel.app.feature.news
 
+import coil3.compose.AsyncImage
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -47,6 +52,20 @@ fun NewsPostDetail(post: NewsPost, onBack: () -> Unit) {
                 .padding(horizontal = 20.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            // Above the headline and centred, as on iOS: an image at the top
+            // starts an article, one below the title merely illustrates it.
+            post.coverImageUrl?.let { url ->
+                AsyncImage(
+                    model = url,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .padding(top = 8.dp)
+                        .size(112.dp)
+                        .clip(CircleShape)
+                        .align(Alignment.CenterHorizontally),
+                )
+            }
+
             post.week?.let {
                 Text(
                     "WEEK $it",

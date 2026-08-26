@@ -16,6 +16,12 @@ data class NewsPost(
     val season: Int,
     val week: Int? = null,
     @SerialName("published_at") val publishedAt: String,
+    /**
+     * Drawn centred above the headline. Absent on most posts; iOS has read
+     * this since the beginning and Android never asked for it, which is why
+     * Landry's face appeared on one platform and not the other.
+     */
+    @SerialName("cover_image_url") val coverImageUrl: String? = null,
 )
 
 /**
