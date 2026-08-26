@@ -11,9 +11,14 @@ PRODUCT_BUNDLE_IDENTIFIER = com.commissionerscartel.app
 // a release worth announcing, and the build number — a timestamp, set by
 // Scripts/archive.sh — carries everything else.
 //
-// 0.1.0 is what external testing was approved on, so builds of it reach the
-// league immediately.
-MARKETING_VERSION = 0.1.0
+// Pin to the highest version that has cleared review. 0.1.0 was the first
+// one approved, so builds of it went straight out — until 0.22.0 cleared as
+// well, at which point pinning below it made every new build look like a
+// downgrade: TestFlight orders by version string, not by build number, so it
+// kept offering 0.22.0 and never mentioned the newer 0.1.0 builds.
+//
+// 0.22.0 is approved, so builds of it skip review *and* read as updates.
+MARKETING_VERSION = 0.22.0
 CURRENT_PROJECT_VERSION = 1
 
 // Placeholders. AppConfiguration treats REPLACE_ME as "not configured" and
