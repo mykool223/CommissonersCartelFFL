@@ -81,8 +81,10 @@ def in_landrys_words(brief: str, fallback: str) -> str:
                 "Write this week's recap for the league news feed. Three or "
                 "four short paragraphs. Name the highest and lowest scores and "
                 "the biggest beating, and say something worth reading about "
-                "each. No greeting, no sign-off, no headings, and do not "
-                "invent a number you were not given."),
+                "each. No greeting, no sign-off, no headings. Stay in "
+                "character throughout: the league is the outfit, managers are "
+                "operators, and you are its football man. Do not invent a "
+                "number you were not given."),
             "max_tokens": 700,
         }).encode(),
         method="POST",

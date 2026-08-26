@@ -307,6 +307,13 @@ def main() -> int:
              "trade_ideas?on_conflict=season,week,team_a,team_b,a_sends,b_sends",
              ideas, prefer="resolution=merge-duplicates,return=minimal")
 
+    # Storing and notifying are separate acts. Landry's rounds read these
+    # ideas and mention them privately, so there are times to record what was
+    # found without also interrupting anybody about it.
+    if os.environ.get("TRADE_NOTIFY") == "0":
+        log(f"Stored {len(ideas)} trade idea(s); notifying nobody.")
+        return 0
+
     # Tell each manager about ideas involving their own roster, and only those.
     profiles = supabase("GET", "profiles?select=id,espn_swid") or []
     by_swid = {(p.get("espn_swid") or "").strip(): p["id"]

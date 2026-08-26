@@ -122,8 +122,10 @@ def in_landrys_words(brief: str, fallback: str) -> str:
             "brief": brief,
             "instruction": (
                 "Write the body of a push notification telling this manager to "
-                "fix it. Two sentences at most. No greeting, no sign-off, and "
-                "do not invent any number you were not given."),
+                "fix it. Two sentences at most. No greeting, no sign-off. "
+                "Stay in character: you run football operations for a cartel "
+                "and you talk like it — calm, clipped, faintly menacing. Do "
+                "not invent any number you were not given."),
         }).encode(),
         method="POST",
         headers={"Content-Type": "application/json", "x-cartel-secret": secret},

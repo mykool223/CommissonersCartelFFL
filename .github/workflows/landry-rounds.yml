@@ -1,0 +1,52 @@
+# Landry does his rounds: one direct message to each manager who needs one.
+#
+# A free agent worth signing, a trade worth proposing, a starter who may not
+# play — whichever is most useful to that manager, sent as a message rather
+# than a notification. A notification is gone once dismissed; a message is
+# still there on Thursday when somebody wants to check what he said.
+#
+# One message per manager per run, deliberately. A coach who sends four
+# messages is a coach nobody reads.
+name: Landry's rounds
+
+on:
+  schedule:
+    # 13:30 UTC Tuesday and Friday — mid-morning Central. Tuesday is after
+    # waivers and the recap; Friday is in time to do something about it.
+    - cron: "30 13 * * 2,5"
+  workflow_dispatch:
+    inputs:
+      week:
+        description: "Force a week (defaults to ESPN's current)"
+        type: string
+      min_gain:
+        description: "Points a signing must add to be worth mentioning"
+        type: string
+      dry_run:
+        description: "Print what he would send, without sending"
+        type: boolean
+        default: true
+
+jobs:
+  rounds:
+    name: Rounds
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Rounds
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          PUSH_SECRET: ${{ secrets.PUSH_SECRET }}
+          ESPN_S2: ${{ secrets.ESPN_S2 }}
+          ESPN_SWID: ${{ secrets.ESPN_SWID }}
+          ESPN_LEAGUE_ID: ${{ secrets.ESPN_LEAGUE_ID }}
+          ROUNDS_WEEK: ${{ inputs.week }}
+          ROUNDS_MIN_GAIN: ${{ inputs.min_gain }}
+          DRY_RUN: ${{ inputs.dry_run && '1' || '' }}
+        run: |
+          if [ -z "$ESPN_S2" ]; then
+            echo "ESPN secrets are not set; nobody to advise."
+            exit 0
+          fi
+          ./Scripts/landry_rounds.py

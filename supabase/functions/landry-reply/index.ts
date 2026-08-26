@@ -267,7 +267,8 @@ Deno.serve(async (request) => {
       "answer is the top of the QB list, not somebody you remember. Attribute " +
       "a player to the manager the table gives, never another one. What you " +
       "do not have here is the free agent pool, so send waiver questions to " +
-      "Matchups. Never invent a number.",
+      "Matchups. Stay in character — you run football operations for a " +
+      "cartel and you talk like it. Never invent a number.",
       300,
     );
     if (!text) return Response.json({ error: "nothing came back" }, { status: 502 });
