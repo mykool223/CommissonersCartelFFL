@@ -42,6 +42,44 @@ DEFAULT_PRUNE_DAYS = 30
 
 TAG = re.compile(r"<[^>]+>")
 
+# The feed carries every sport they cover. Football items are categorised NFL
+# and nothing else is, so that is the test — a golf DFS piece is not what
+# anybody opened this app for.
+FOOTBALL = {"nfl"}
+
+# Categories that mark a page as a sign-up rather than an article.
+PROMOTIONAL_CATEGORIES = {"registration", "sweepstakes", "giveaway"}
+
+# Their own products get written up as articles and filed under NFL like
+# anything else. These are the phrases those pieces use about themselves;
+# it is a keyword list and will need a line added occasionally, which is
+# still better than the alternative of running their marketing.
+PROMOTIONAL_PHRASES = (
+    "a brand new way to play",
+    "where fantasy football meets",
+    "download the app",
+    "download our app",
+    "sign up",
+    "sweepstakes",
+    "giveaway",
+    "promo code",
+    "now available on",
+    "introducing ",
+    "subscribe to",
+    "free trial",
+)
+
+
+def is_football(categories: list[str]) -> bool:
+    return any(c.strip().lower() in FOOTBALL for c in categories)
+
+
+def is_promotional(title: str, categories: list[str]) -> bool:
+    lowered = title.lower()
+    if any(phrase in lowered for phrase in PROMOTIONAL_PHRASES):
+        return True
+    return any(c.strip().lower() in PROMOTIONAL_CATEGORIES for c in categories)
+
 
 def log(message: str) -> None:
     print(message, file=sys.stderr)
@@ -102,7 +140,7 @@ def main() -> int:
     with urllib.request.urlopen(request, timeout=30) as response:
         feed = response.read().decode("utf-8", "replace")
 
-    rows = []
+    rows, skipped = [], []
     for block in re.findall(r"<item>(.*?)</item>", feed, re.S):
         title, link = field(block, "title"), field(block, "link")
         guid = field(block, "guid") or link
@@ -116,6 +154,16 @@ def main() -> int:
         categories = [html.unescape(c) for c in
                       re.findall(r"<category>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?</category>",
                                  block, re.S)]
+
+        # Say what was dropped and why. A filter nobody can see is a filter
+        # nobody notices has gone wrong.
+        if not is_football(categories):
+            skipped.append(("not football", title))
+            continue
+        if is_promotional(title, categories):
+            skipped.append(("promotion", title))
+            continue
+
         rows.append({
             "guid": guid,
             "title": title,
@@ -128,7 +176,9 @@ def main() -> int:
             "published_at": when.astimezone(dt.timezone.utc).isoformat(),
         })
 
-    log(f"{len(rows)} article(s) in the feed")
+    for reason, title in skipped:
+        log(f"  skipped ({reason}): {title[:66]}")
+    log(f"{len(rows)} football article(s), {len(skipped)} skipped")
     if dry_run:
         for row in rows[:5]:
             log(f"  {row['published_at'][:16]}  {row['title'][:66]}")
