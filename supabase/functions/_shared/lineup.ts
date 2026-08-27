@@ -11,6 +11,8 @@ export const IR = 21;
 export interface Player {
   /** ESPN's player id, which joins to the FantasyPros cache. */
   espnId?: number;
+  /** ESPN's defaultPositionId. Set for free agents, so the wire can be read. */
+  position?: number;
   name: string;
   slot: number;
   points: number;

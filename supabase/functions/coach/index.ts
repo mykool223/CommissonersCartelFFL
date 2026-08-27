@@ -74,6 +74,7 @@ async function freeAgents(season: number, week: number): Promise<Player[]> {
       return {
         espnId: raw.id,
         name: raw.fullName ?? "A player",
+        position: raw.defaultPositionId,
         slot: BENCH,
         points: projection(raw, week),
         status: String(raw.injuryStatus ?? "").toUpperCase(),
@@ -338,6 +339,14 @@ Deno.serve(async (request) => {
       .sort((a, b) => b.points - a.points)
       .slice(0, 8);
 
+    // The wire itself, not just the part of it that helps. Asked who is
+    // available he could previously name only players who would improve the
+    // lineup — usually one — which reads as an empty waiver wire rather than
+    // a well-set team.
+    const available = [...pool]
+      .sort((a, b) => b.points - a.points)
+      .slice(0, 18);
+
     const upgrades = shortlist
       .map((candidate) => ({
         candidate,
@@ -392,7 +401,7 @@ Deno.serve(async (request) => {
 
     // The experts' view of everybody in play, from the nightly cache.
     const view = await consensusFor(
-      [...players, ...shortlist].map((p) => p.espnId ?? NaN)
+      [...players, ...shortlist, ...available].map((p) => p.espnId ?? NaN)
         .concat(rivals.flatMap((r) => r.squad.map((p) => p.espnId ?? NaN))),
       season, week);
 
@@ -464,6 +473,20 @@ Deno.serve(async (request) => {
         ? `That is ${(optimal.total - currentTotal).toFixed(1)} points being left on the bench.`
         : "The lineup is already optimal against these projections.",
       "",
+      available.length
+        ? [
+          `The ${pool.length} free agents worth considering were checked. The`,
+          "best of them by projection, whether or not they would improve this",
+          "lineup — this is the wire, so answer \"who is available\" from it:",
+          ...available.map((p) =>
+            `- ${p.name} (${positionName[p.position ?? -1] ?? "?"}), ` +
+            `projected ${p.points.toFixed(1)}, owned in ` +
+            `${(p as any).owned}% of leagues` +
+            describeConsensus(view.get(p.espnId ?? NaN))
+          ),
+          "",
+        ].join("\n")
+        : "",
       upgrades.length
         ? [
           "Free agents who would improve this lineup, with what each would add:",
