@@ -74,6 +74,67 @@ public struct SupabaseContentRepository: ContentRepository {
         return rows.reversed().map(\.model)
     }
 
+    public func pickemGames(season: Int, week: Int) async throws -> [PickemGame] {
+        let rows: [PickemGameRow] = try await client.select(
+            "pickem_games",
+            query: [
+                "select": "*",
+                "season": "eq.\(season)",
+                "week": "eq.\(week)",
+                "order": "kickoff_at.asc",
+            ]
+        )
+        return rows.map(\.model)
+    }
+
+    public func pickemPicks(season: Int, week: Int) async throws -> [PickemPick] {
+        // Row level security decides what comes back: your own picks always,
+        // and everybody's on games that have already started.
+        let rows: [PickemPickRow] = try await client.select(
+            "pickem_picks",
+            query: ["select": "*", "season": "eq.\(season)", "week": "eq.\(week)"]
+        )
+        return rows.map(\.model)
+    }
+
+    public func savePickemPicks(
+        season: Int, week: Int, picks: [PickemPick]
+    ) async throws {
+        guard let userID = picks.first?.userID else { return }
+        // Sent in one request: the unique index on the weight means a
+        // half-applied set could leave two games sharing a value, and the
+        // second write would then fail against the first.
+        try await client.upsert(
+            "pickem_picks",
+            rows: picks.map { pick in
+                [
+                    "user_id": AnyEncodable(userID.uuidString.lowercased()),
+                    "season": AnyEncodable(season),
+                    "week": AnyEncodable(week),
+                    "event_id": AnyEncodable(pick.eventID),
+                    "chosen_abbr": AnyEncodable(pick.chosenAbbreviation),
+                    "confidence": AnyEncodable(pick.confidence),
+                ]
+            },
+            onConflict: "user_id,season,week,event_id"
+        )
+    }
+
+    public func pickemStandings(
+        season: Int, week: Int
+    ) async throws -> [PickemStanding] {
+        let rows: [PickemStandingRow] = try await client.select(
+            "pickem_standings",
+            query: [
+                "select": "*,profiles(display_name)",
+                "season": "eq.\(season)",
+                "week": "eq.\(week)",
+                "order": "points.desc",
+            ]
+        )
+        return rows.map(\.model)
+    }
+
     public func analysis(limit: Int) async throws -> [AnalysisItem] {
         let rows: [AnalysisRow] = try await client.select(
             "fantasypros_articles",
@@ -245,6 +306,60 @@ private struct CoachMessageRow: Decodable {
         CoachMessage(
             id: id, sequence: seq, isCoach: role == "coach",
             text: content, createdAt: created_at
+        )
+    }
+}
+
+private struct PickemGameRow: Decodable {
+    let season: Int
+    let week: Int
+    let event_id: String
+    let home_abbr: String
+    let home_name: String
+    let away_abbr: String
+    let away_name: String
+    let kickoff_at: Date
+    let winner_abbr: String?
+    let final: Bool
+
+    var model: PickemGame {
+        PickemGame(
+            season: season, week: week, eventID: event_id,
+            homeAbbreviation: home_abbr, homeName: home_name,
+            awayAbbreviation: away_abbr, awayName: away_name,
+            kickoff: kickoff_at, winnerAbbreviation: winner_abbr, isFinal: final
+        )
+    }
+}
+
+private struct PickemPickRow: Decodable {
+    let user_id: UUID
+    let event_id: String
+    let chosen_abbr: String
+    let confidence: Int
+
+    var model: PickemPick {
+        PickemPick(
+            userID: user_id, eventID: event_id,
+            chosenAbbreviation: chosen_abbr, confidence: confidence
+        )
+    }
+}
+
+private struct PickemStandingRow: Decodable {
+    struct Profile: Decodable { let display_name: String? }
+
+    let user_id: UUID
+    let correct: Int
+    let decided: Int
+    let points: Int
+    let profiles: Profile?
+
+    var model: PickemStanding {
+        PickemStanding(
+            userID: user_id,
+            displayName: profiles?.display_name ?? "Someone",
+            correct: correct, decided: decided, points: points
         )
     }
 }

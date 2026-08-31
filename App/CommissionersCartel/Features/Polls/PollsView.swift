@@ -1,12 +1,33 @@
 import SwiftUI
 import CartelCore
 
+/// The two things the league votes on: polls, and every NFL game.
+enum PollsSection: String, TabSection {
+    case polls
+    case pickem
+
+    var title: String {
+        switch self {
+        case .polls: "Polls"
+        case .pickem: "Pick 'em"
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .polls: "chart.bar"
+        case .pickem: "checklist"
+        }
+    }
+}
+
 /// League polls. Results stay hidden until you vote or the poll closes, so
 /// early votes don't anchor everyone else.
 struct PollsView: View {
     @Environment(AppEnvironment.self) private var environment
     @State private var model = PollsViewModel()
     @State private var isComposing = false
+    @State private var section: PollsSection = .initial(default: .polls)
 
     var body: some View {
         NavigationStack {
@@ -16,15 +37,18 @@ struct PollsView: View {
                 } else if !environment.isLeagueMember {
                     notAMemberState
                 } else {
-                    pollList
+                    switch section {
+                    case .polls: pollList
+                    case .pickem: PickemView()
+                    }
                 }
             }
             .screenStyle()
-            .navigationTitle("Polls")
+            .sectionPicker($section)
             .toolbar {
                 // Any member can start one, so this is not gated on being the
                 // commissioner — only on being signed in at all.
-                if environment.isLeagueMember {
+                if environment.isLeagueMember, section == .polls {
                     ToolbarItem(placement: .topBarTrailing) {
                         Button {
                             isComposing = true

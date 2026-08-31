@@ -38,6 +38,16 @@ public protocol ContentRepository: Sendable {
     /// Their own only: row level security sees to that, and so does the coach.
     func coachHistory(limit: Int) async throws -> [CoachMessage]
 
+    /// The week's NFL fixtures for the pick'em.
+    func pickemGames(season: Int, week: Int) async throws -> [PickemGame]
+    /// Picks the caller is allowed to see: their own, plus everybody's on any
+    /// game that has already kicked off.
+    func pickemPicks(season: Int, week: Int) async throws -> [PickemPick]
+    /// Saves the caller's picks for a week, replacing what was there.
+    func savePickemPicks(season: Int, week: Int, picks: [PickemPick]) async throws
+    /// The week's table, computed server-side.
+    func pickemStandings(season: Int, week: Int) async throws -> [PickemStanding]
+
     /// Player news and analysis from FantasyPros, newest first.
     func analysis(limit: Int) async throws -> [AnalysisItem]
 

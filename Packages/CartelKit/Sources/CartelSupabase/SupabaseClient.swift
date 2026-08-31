@@ -115,6 +115,31 @@ public struct SupabaseClient: Sendable {
     ///
     /// Used for rows the app rewrites on every launch (a device token) rather
     /// than appends to.
+    /// Upserts several rows in one request.
+    ///
+    /// One request rather than a loop because a set of rows can be mutually
+    /// constrained — a confidence pool spends each weight once — and applying
+    /// half of them can violate a constraint the whole set satisfies.
+    public func upsert(
+        _ table: String,
+        rows: [[String: AnyEncodable]],
+        onConflict: String
+    ) async throws {
+        var components = URLComponents(
+            url: configuration.url.appending(path: "/rest/v1/\(table)"),
+            resolvingAgainstBaseURL: false
+        )
+        components?.queryItems = [URLQueryItem(name: "on_conflict", value: onConflict)]
+        guard let url = components?.url else {
+            throw CartelError.notConfigured("Could not build a Supabase URL for \(table).")
+        }
+        var request = request(url: url, method: "POST")
+        request.setValue("resolution=merge-duplicates,return=minimal",
+                         forHTTPHeaderField: "Prefer")
+        request.httpBody = try JSONEncoder().encode(rows)
+        _ = try await raw(request)
+    }
+
     public func upsert(
         _ table: String,
         values: [String: AnyEncodable],
