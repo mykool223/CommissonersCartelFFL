@@ -1,0 +1,36 @@
+# Keeps the pick'em fixtures and results in step with the NFL.
+#
+# The same feed serves both: before the games it stores the week's fixtures so
+# there is something to pick, and afterwards it marks the winners so the
+# standings settle themselves. Scores are never stored — the standings view
+# computes them from the picks and the results.
+name: Sync pick'em
+
+on:
+  schedule:
+    # Every three hours. Often enough that results land the same evening,
+    # rarely enough to be unnoticeable against a public scoreboard.
+    - cron: "40 */3 * * *"
+  workflow_dispatch:
+    inputs:
+      weeks:
+        description: 'A week or a range, e.g. "3" or "1-4"'
+        type: string
+      dry_run:
+        description: "Fetch and print, without writing"
+        type: boolean
+        default: true
+
+jobs:
+  sync:
+    name: Sync
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Sync
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          PICKEM_WEEKS: ${{ inputs.weeks }}
+          DRY_RUN: ${{ inputs.dry_run && '1' || '' }}
+        run: ./Scripts/sync_pickem.py
