@@ -24,6 +24,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import com.commissionerscartel.app.ui.SectionPicker
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -39,6 +40,31 @@ import com.commissionerscartel.app.data.Poll
 import com.commissionerscartel.app.data.PollOption
 import com.commissionerscartel.app.ui.CartelGold
 import kotlin.math.roundToInt
+
+/** The two things the league votes on: polls, and every NFL game. */
+enum class PollsSection(val label: String) {
+    Polls("Polls"),
+    Pickem("Pick 'em"),
+}
+
+/** The Polls tab, with the two sections the iOS dropdown offers. */
+@Composable
+fun PollsHost(modifier: Modifier = Modifier) {
+    var section by remember { mutableStateOf(PollsSection.Polls) }
+
+    Column(modifier.fillMaxSize()) {
+        SectionPicker(
+            sections = PollsSection.entries,
+            selected = section,
+            label = { it.label },
+            onSelect = { section = it },
+        )
+        when (section) {
+            PollsSection.Polls -> PollsScreen()
+            PollsSection.Pickem -> PickemScreen()
+        }
+    }
+}
 
 @Composable
 fun PollsScreen(modifier: Modifier = Modifier, model: PollsViewModel = viewModel()) {

@@ -30,7 +30,7 @@ import com.commissionerscartel.app.feature.members.MembersHost
 import com.commissionerscartel.app.feature.direct.StartConversation
 import com.commissionerscartel.app.feature.news.NewsHost
 import com.commissionerscartel.app.feature.matchups.MatchupsHost
-import com.commissionerscartel.app.feature.polls.PollsScreen
+import com.commissionerscartel.app.feature.polls.PollsHost
 import com.commissionerscartel.app.feature.settings.SettingsScreen
 
 /** The five tabs, in the same order as iOS so the two apps feel like one app. */
@@ -101,7 +101,7 @@ fun RootScreen() {
         when (selected) {
             Tab.News -> NewsHost(inner)
             Tab.Matchups -> MatchupsHost(inner)
-            Tab.Polls -> PollsScreen(inner)
+            Tab.Polls -> PollsHost(inner)
             Tab.Members -> MembersHost(inner, onOpen = { openMember = it })
             Tab.Settings -> SettingsScreen(inner)
         }

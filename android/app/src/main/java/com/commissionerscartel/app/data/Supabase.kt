@@ -6,6 +6,7 @@ import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.postgrest
+import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonNull
@@ -139,6 +140,52 @@ object Supabase {
     )
 
     /** The trophy case. Empty until the first week is in the books. */
+    /** The week's NFL fixtures for the pick'em. */
+    suspend fun pickemGames(season: Int, week: Int): List<PickemGame> =
+        client.from("pickem_games").select {
+            filter {
+                eq("season", season)
+                eq("week", week)
+            }
+            order("kickoff_at", Order.ASCENDING)
+        }.decodeList()
+
+    /**
+     * Picks the caller may see: their own, and everybody's on any game that
+     * has already kicked off. Row level security decides, not this.
+     */
+    suspend fun pickemPicks(season: Int, week: Int): List<PickemPick> =
+        client.from("pickem_picks").select {
+            filter {
+                eq("season", season)
+                eq("week", week)
+            }
+        }.decodeList()
+
+    /**
+     * Saves a week's picks in one request. The weights are only valid as a
+     * set — each spent once — so applying half of them can break a rule the
+     * whole set obeys.
+     */
+    suspend fun savePickemPicks(picks: List<PickemPick>) {
+        if (picks.isEmpty()) return
+        client.from("pickem_picks").upsert(picks) {
+            onConflict = "user_id,season,week,event_id"
+        }
+    }
+
+    /** The week's table, computed server-side. */
+    suspend fun pickemStandings(season: Int, week: Int): List<PickemStanding> =
+        client.from("pickem_standings").select(
+            Columns.raw("*,profiles(display_name)")
+        ) {
+            filter {
+                eq("season", season)
+                eq("week", week)
+            }
+            order("points", Order.DESCENDING)
+        }.decodeList()
+
     /** Articles from FantasyPros, newest first. */
     suspend fun analysis(limit: Long = 60): List<AnalysisItem> =
         client.from("fantasypros_articles").select {

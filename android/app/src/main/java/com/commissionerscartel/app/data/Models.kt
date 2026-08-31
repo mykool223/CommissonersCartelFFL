@@ -95,6 +95,66 @@ data class AnalysisItem(
     @SerialName("created_at") val createdAt: String? = null,
 )
 
+/** One NFL fixture in the week's pick'em. */
+@Serializable
+data class PickemGame(
+    val season: Int,
+    val week: Int,
+    /** ESPN's own event id. */
+    @SerialName("event_id") val eventId: String,
+    @SerialName("home_abbr") val homeAbbr: String,
+    @SerialName("home_name") val homeName: String,
+    @SerialName("away_abbr") val awayAbbr: String,
+    @SerialName("away_name") val awayName: String,
+    @SerialName("kickoff_at") val kickoffAt: String,
+    /** Null until decided. A tie leaves it null and scores nobody. */
+    @SerialName("winner_abbr") val winnerAbbr: String? = null,
+    val final: Boolean = false,
+    @SerialName("updated_at") val updatedAt: String? = null,
+) {
+    /**
+     * Picks lock per game rather than per week — a Sunday game should not be
+     * locked by a Thursday kickoff.
+     */
+    val locked: Boolean
+        get() = runCatching {
+            java.time.Instant.parse(kickoffAt).isBefore(java.time.Instant.now())
+        }.getOrDefault(false)
+}
+
+/** Somebody's call on one game, and how sure they were. */
+@Serializable
+data class PickemPick(
+    @SerialName("user_id") val userId: String,
+    val season: Int,
+    val week: Int,
+    @SerialName("event_id") val eventId: String,
+    @SerialName("chosen_abbr") val chosenAbbr: String,
+    /** 1 up to the number of games that week, each value used once. */
+    val confidence: Int,
+    @SerialName("updated_at") val updatedAt: String? = null,
+)
+
+/**
+ * Where somebody stands for a week. Computed server-side from the picks and
+ * the results, so it cannot disagree with them.
+ */
+@Serializable
+data class PickemStanding(
+    val season: Int,
+    val week: Int,
+    @SerialName("user_id") val userId: String,
+    val correct: Int,
+    val decided: Int,
+    val points: Int,
+    val profiles: PickemProfile? = null,
+) {
+    val displayName: String get() = profiles?.displayName ?: "Someone"
+}
+
+@Serializable
+data class PickemProfile(@SerialName("display_name") val displayName: String? = null)
+
 @Serializable
 data class PowerRanking(
     val season: Int,
