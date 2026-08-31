@@ -35,9 +35,13 @@ final class PickemViewModel {
         do {
             games = try await environment.content.pickemGames(season: season, week: week)
             let picks = try await environment.content.pickemPicks(season: season, week: week)
-            mine = Dictionary(
+            let stored = Dictionary(
                 uniqueKeysWithValues: picks.filter { $0.userID == userID }
                     .map { ($0.eventID, $0) })
+            // Anything picked here but not yet saved is kept, so a failed save
+            // does not silently undo the pick in front of somebody — which
+            // also left the weight disabled and unchangeable.
+            mine = stored.merging(mine.filter { stored[$0.key] == nil }) { server, _ in server }
             // The table is a nicety; losing it should not lose the board.
             standings = (try? await environment.content.pickemStandings(
                 season: season, week: week)) ?? []

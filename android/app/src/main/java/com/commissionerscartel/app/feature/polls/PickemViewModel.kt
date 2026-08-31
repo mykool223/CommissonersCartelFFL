@@ -60,9 +60,13 @@ class PickemViewModel : ViewModel() {
             val week = currentWeek()
             _state.value = runCatching {
                 val games = Supabase.pickemGames(season, week)
-                val mine = Supabase.pickemPicks(season, week)
+                val stored = Supabase.pickemPicks(season, week)
                     .filter { it.userId == me }
                     .associateBy { it.eventId }
+                // Anything picked here but not yet saved is kept, so a failed
+                // save does not silently undo the pick in front of somebody.
+                val pending = (_state.value as? PickemState.Loaded)?.picks.orEmpty()
+                val mine = stored + pending.filterKeys { it !in stored }
                 // The table is a nicety; losing it should not lose the board.
                 val standings = runCatching { Supabase.pickemStandings(season, week) }
                     .getOrDefault(emptyList())
