@@ -91,8 +91,11 @@ final class PickemViewModel {
         let made = mine.count
         let open = games.filter { !$0.isLocked }.count
         if open == 0 { return "Every game has started. Picks are locked." }
-        if made == games.count { return "All \(games.count) picked. Change any of them until kickoff." }
-        return "\(made) of \(games.count) picked. Tap a team; the highest weight left is used first."
+        if made == games.count {
+            return "All \(games.count) picked. Tap the points to reweigh, any time before kickoff."
+        }
+        return "\(made) of \(games.count) picked. Tap a team to pick it, "
+            + "then tap the points to change what it is worth."
     }
 
     private var saveTask: Task<Void, Never>?

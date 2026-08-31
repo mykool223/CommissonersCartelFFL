@@ -33,10 +33,11 @@ sealed interface PickemState {
                 return when {
                     open == 0 -> "Every game has started. Picks are locked."
                     picks.size == games.size ->
-                        "All ${games.size} picked. Change any of them until kickoff."
+                        "All ${games.size} picked. Tap the points to reweigh, " +
+                            "any time before kickoff."
                     else ->
-                        "${picks.size} of ${games.size} picked. Tap a team; the " +
-                            "highest weight left is used first."
+                        "${picks.size} of ${games.size} picked. Tap a team to " +
+                            "pick it, then tap the points to change what it is worth."
                 }
             }
     }

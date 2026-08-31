@@ -192,11 +192,19 @@ private struct PickemRow: View {
                     Button("\(value) points") { onWeigh(value) }
                 }
             } label: {
-                Text(pick.map { "\($0.confidence) pts" } ?? "Weight")
-                    .font(.caption.weight(.semibold))
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 4)
-                    .background(Color.brand.opacity(0.15), in: .capsule)
+                // A chevron, because without one this reads as a label and
+                // people assume the weight is fixed once assigned.
+                HStack(spacing: 3) {
+                    Text(pick.map { "\($0.confidence) pts" } ?? "Weight")
+                    Image(systemName: "chevron.up.chevron.down")
+                        .font(.system(size: 8, weight: .bold))
+                }
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Color.brand)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 5)
+                .background(Color.brand.opacity(0.15), in: .capsule)
+                .overlay(Capsule().strokeBorder(Color.brand.opacity(0.35), lineWidth: 1))
             }
             .disabled(pick == nil)
         }

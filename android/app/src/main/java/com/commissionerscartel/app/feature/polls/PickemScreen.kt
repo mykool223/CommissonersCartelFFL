@@ -15,6 +15,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.border
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material3.Icon
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
@@ -231,16 +236,31 @@ private fun Weight(
 
     var open by remember { mutableStateOf(false) }
     Box {
-        Text(
-            pick?.let { "${it.confidence} pts" } ?: "Weight",
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier
+        // A caret, because without one this reads as a label and people
+        // assume the weight is fixed once assigned.
+        Row(
+            Modifier
                 .clip(RoundedCornerShape(20.dp))
                 .background(CartelGold.copy(alpha = 0.15f))
+                .border(1.dp, CartelGold.copy(alpha = 0.35f), RoundedCornerShape(20.dp))
                 .clickable(enabled = pick != null) { open = true }
                 .padding(horizontal = 12.dp, vertical = 6.dp),
-        )
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(3.dp),
+        ) {
+            Text(
+                pick?.let { "${it.confidence} pts" } ?: "Weight",
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+                color = CartelGold,
+            )
+            Icon(
+                Icons.Default.ArrowDropDown,
+                contentDescription = null,
+                tint = CartelGold,
+                modifier = Modifier.size(16.dp),
+            )
+        }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             available.forEach { value ->
                 DropdownMenuItem(
