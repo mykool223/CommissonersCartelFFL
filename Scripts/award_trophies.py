@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """Awards the week's trophies once its games are final.
 
-Currently one: the highest score of the week. More can be added to AWARDS
-without touching anything else.
+Two of them: the highest fantasy score of the week, and the best pick'em
+board. They come from different places — the first from ESPN, the second from
+the confidence pool in Supabase — and either can be skipped without affecting
+the other.
 
 ESPN has no history for this league, so the trophy case starts empty and fills
 up from here. Awards are unique per season, week and kind, so re-running the
@@ -52,6 +54,85 @@ def espn(path: str, query: str) -> dict:
         return json.load(response)
 
 
+def supabase_get(path: str) -> list[dict]:
+    """Reads with the service role key, so row level security does not apply.
+
+    The pick'em standings are deliberately private until kickoff — you cannot
+    read another member's picks — so an anon read here would see almost
+    nothing and hand out the trophy to whoever happened to be visible.
+    """
+    base = os.environ["SUPABASE_URL"].rstrip("/")
+    key = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
+    request = urllib.request.Request(
+        f"{base}/rest/v1/{path}",
+        headers={"apikey": key, "Authorization": f"Bearer {key}", "Accept": "application/json"},
+    )
+    with urllib.request.urlopen(request, timeout=30) as response:
+        return json.load(response)
+
+
+def normalise_swid(swid: str | None) -> str:
+    """ESPN writes a SWID as '{1A2B-...}'. Compare without the braces or case."""
+    return (swid or "").strip().strip("{}").upper()
+
+
+def teams_by_swid(data: dict) -> dict[str, int]:
+    """SWID -> ESPN team id, for every owner of every team."""
+    out: dict[str, int] = {}
+    for team in data.get("teams") or []:
+        for owner in team.get("owners") or []:
+            key = normalise_swid(owner)
+            if key:
+                out[key] = team["id"]
+    return out
+
+
+def pickem_awards(
+    standings: list[dict],
+    swid_by_user: dict[str, str],
+    team_by_swid: dict[str, int],
+    season: int,
+    week: int,
+) -> tuple[list[dict], list[str]]:
+    """Trophy rows for the best pick'em board, plus anything worth logging.
+
+    Everyone tied at the top wins: a confidence pool ends level often enough
+    that dropping a co-winner would be noticed, and argued about.
+
+    A member who has never told the app which ESPN team is theirs cannot be
+    given a trophy — the case is keyed by team, not by account — so they are
+    named in the notes rather than silently passed over.
+    """
+    scored = [row for row in standings if (row.get("points") or 0) > 0]
+    if not scored:
+        return [], ["nobody scored in the pick'em; no trophy"]
+
+    best = max(row["points"] for row in scored)
+    winners = [row for row in scored if row["points"] == best]
+
+    rows: list[dict] = []
+    notes: list[str] = []
+    for winner in sorted(winners, key=lambda r: str(r.get("display_name") or "")):
+        name = winner.get("display_name") or "Someone"
+        swid = normalise_swid(swid_by_user.get(winner["user_id"]))
+        team = team_by_swid.get(swid) if swid else None
+        if team is None:
+            notes.append(f"{name} won the pick'em but has no ESPN team claimed; not awarded")
+            continue
+        rows.append({
+            "season": season,
+            "week": week,
+            "espn_team_id": team,
+            "kind": "pickem_top",
+            "title": f"Best pick'em, week {week}",
+            "detail": f"{name} — {best} points, "
+                      f"{winner.get('correct', 0)} of {winner.get('decided', 0)} right",
+        })
+    if len(rows) > 1:
+        notes.append(f"{len(rows)} tied on {best} points; all awarded")
+    return rows, notes
+
+
 def performances(data: dict, week: int) -> list[tuple[int, float]]:
     """(teamId, points) for every side of every completed fixture that week."""
     out: list[tuple[int, float]] = []
@@ -68,6 +149,44 @@ def performances(data: dict, week: int) -> list[tuple[int, float]]:
             if entry.get("teamId") is not None:
                 out.append((entry["teamId"], float(entry.get("totalPoints") or 0.0)))
     return out
+
+
+def pickem_rows(data: dict, season: int, week: int) -> list[dict]:
+    """The week's pick'em trophy, or nothing if the week cannot be settled yet.
+
+    The pick'em runs on the NFL's week and is settled by its own sync, not by
+    ESPN's fantasy matchup period. Awarding it while a game is still going
+    would hand the trophy to whoever happened to be ahead at the time.
+    """
+    if not os.environ.get("SUPABASE_URL") or not os.environ.get("SUPABASE_SERVICE_ROLE_KEY"):
+        log("No Supabase credentials; skipping the pick'em trophy.")
+        return []
+
+    games = supabase_get(f"pickem_games?season=eq.{season}&week=eq.{week}&select=final")
+    if not games:
+        log(f"Week {week} has no pick'em fixtures to settle.")
+        return []
+    if not all(game["final"] for game in games):
+        done = sum(1 for game in games if game["final"])
+        log(f"Pick'em week {week} is still going ({done}/{len(games)} final); "
+            "leaving that trophy until it is settled.")
+        return []
+
+    standings = supabase_get(
+        f"pickem_standings?season=eq.{season}&week=eq.{week}"
+        "&select=user_id,display_name,correct,decided,points"
+    )
+    profiles = supabase_get("profiles?select=id,espn_swid")
+    rows, notes = pickem_awards(
+        standings,
+        {profile["id"]: profile.get("espn_swid") for profile in profiles},
+        teams_by_swid(data),
+        season,
+        week,
+    )
+    for note in notes:
+        log(f"  {note}")
+    return rows
 
 
 def main() -> int:
@@ -88,22 +207,31 @@ def main() -> int:
         log("No completed week yet.")
         return 0
 
+    rows: list[dict] = []
+
     scores = performances(data, week)
     if not scores:
         log(f"Week {week} has no completed fixtures.")
+    else:
+        names = {
+            t["id"]: (t.get("name") or f"Team {t['id']}").strip()
+            for t in data.get("teams") or []
+        }
+        best = max(scores, key=lambda pair: pair[1])
+        rows.append({
+            "season": season,
+            "week": week,
+            "espn_team_id": best[0],
+            "kind": "top_score",
+            "title": f"Top score, week {week}",
+            "detail": f"{names.get(best[0], 'A team')} — {best[1]:.1f} points",
+        })
+
+    rows.extend(pickem_rows(data, season, week))
+
+    if not rows:
+        log(f"Nothing to award for week {week}.")
         return 0
-
-    names = {t["id"]: (t.get("name") or f"Team {t['id']}").strip() for t in data.get("teams") or []}
-    best = max(scores, key=lambda pair: pair[1])
-
-    rows = [{
-        "season": season,
-        "week": week,
-        "espn_team_id": best[0],
-        "kind": "top_score",
-        "title": f"Top score, week {week}",
-        "detail": f"{names.get(best[0], 'A team')} — {best[1]:.1f} points",
-    }]
 
     if dry_run:
         log(f"DRY_RUN — would award {len(rows)}:")
@@ -114,7 +242,7 @@ def main() -> int:
     base = os.environ["SUPABASE_URL"].rstrip("/")
     key = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
     request = urllib.request.Request(
-        f"{base}/rest/v1/trophies?on_conflict=season,week,kind",
+        f"{base}/rest/v1/trophies?on_conflict=season,week,kind,espn_team_id",
         data=json.dumps(rows).encode(),
         method="POST",
         headers={
@@ -126,7 +254,7 @@ def main() -> int:
     )
     with urllib.request.urlopen(request, timeout=30) as response:
         response.read()
-    log(f"Awarded {len(rows)} trophy for week {week}.")
+    log(f"Awarded {len(rows)} trophy/trophies for week {week}.")
     return 0
 
 
