@@ -123,10 +123,13 @@ public struct SupabaseContentRepository: ContentRepository {
     public func pickemStandings(
         season: Int, week: Int
     ) async throws -> [PickemStanding] {
+        // The name is a column on the view now. Asking PostgREST to embed
+        // profiles instead returned 400 every time — a view has no foreign key
+        // to follow — and the failure was swallowed, so the table never showed.
         let rows: [PickemStandingRow] = try await client.select(
             "pickem_standings",
             query: [
-                "select": "*,profiles(display_name)",
+                "select": "*",
                 "season": "eq.\(season)",
                 "week": "eq.\(week)",
                 "order": "points.desc",
@@ -347,18 +350,16 @@ private struct PickemPickRow: Decodable {
 }
 
 private struct PickemStandingRow: Decodable {
-    struct Profile: Decodable { let display_name: String? }
-
     let user_id: UUID
     let correct: Int
     let decided: Int
     let points: Int
-    let profiles: Profile?
+    let display_name: String?
 
     var model: PickemStanding {
         PickemStanding(
             userID: user_id,
-            displayName: profiles?.display_name ?? "Someone",
+            displayName: display_name ?? "Someone",
             correct: correct, decided: decided, points: points
         )
     }

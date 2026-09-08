@@ -6,7 +6,6 @@ import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.postgrest
-import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonNull
@@ -174,11 +173,15 @@ object Supabase {
         }
     }
 
-    /** The week's table, computed server-side. */
+    /**
+     * The week's table, computed server-side.
+     *
+     * The name is a column on the view now. Embedding profiles instead
+     * returned 400 every time — a view has no foreign key for PostgREST to
+     * follow — and the failure was swallowed, so the table never showed.
+     */
     suspend fun pickemStandings(season: Int, week: Int): List<PickemStanding> =
-        client.from("pickem_standings").select(
-            Columns.raw("*,profiles(display_name)")
-        ) {
+        client.from("pickem_standings").select {
             filter {
                 eq("season", season)
                 eq("week", week)

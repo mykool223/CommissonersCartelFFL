@@ -147,13 +147,10 @@ data class PickemStanding(
     val correct: Int,
     val decided: Int,
     val points: Int,
-    val profiles: PickemProfile? = null,
+    @SerialName("display_name") val name: String? = null,
 ) {
-    val displayName: String get() = profiles?.displayName ?: "Someone"
+    val displayName: String get() = name ?: "Someone"
 }
-
-@Serializable
-data class PickemProfile(@SerialName("display_name") val displayName: String? = null)
 
 @Serializable
 data class PowerRanking(

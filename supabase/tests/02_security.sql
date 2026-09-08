@@ -450,6 +450,14 @@ begin
         values ('22222222-2222-2222-2222-222222222222', 2026, 1, 'evt-3', 'KC', 1) $q$),
         'a pick cannot be made after kickoff');
 
+    -- The apps read the name straight off the view. Asking PostgREST to embed
+    -- profiles instead returned 400 on every request, and both apps swallow a
+    -- failed standings fetch, so the weekly table silently never appeared.
+    perform assert(
+        (select display_name from public.pickem_standings
+          where user_id = member::uuid and season = 2026 and week = 1) = 'Member',
+        'the standings carry the member''s name');
+
     perform set_config('request.jwt.claim.sub', outsider, true);
     perform assert(blocked($q$
         insert into public.pickem_picks (user_id, season, week, event_id, chosen_abbr, confidence)
