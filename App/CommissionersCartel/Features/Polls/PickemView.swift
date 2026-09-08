@@ -69,6 +69,11 @@ struct PickemView: View {
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
 
+            Text("Picks lock 30 minutes before each kickoff.")
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(Color.brand)
+                .multilineTextAlignment(.center)
+
             if model.isSaving {
                 ProgressView().controlSize(.small)
             } else if let error = model.saveError {
@@ -175,7 +180,14 @@ private struct PickemRow: View {
         if game.isFinal {
             return game.winnerAbbreviation.map { "Final · \($0)" } ?? "Final · tie"
         }
-        if game.isLocked { return "Started · picks locked" }
+        if game.hasStarted { return "Started · picks locked" }
+        // Locked but not yet under way: saying "started" here would be a lie
+        // for the half hour in between, and the first person to notice would
+        // reasonably report it as a bug.
+        if game.isLocked {
+            return "Locked · kicks off "
+                + game.kickoff.formatted(.dateTime.hour().minute())
+        }
         return game.kickoff.formatted(.dateTime.weekday(.abbreviated).hour().minute())
     }
 

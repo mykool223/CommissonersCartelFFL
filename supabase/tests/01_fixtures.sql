@@ -54,4 +54,7 @@ insert into public.pickem_games
 values
     (2026, 1, 'evt-1', 'CHI', 'Bears',   'GB',  'Packers', now() + interval '2 days', false),
     (2026, 1, 'evt-2', 'DAL', 'Cowboys', 'PHI', 'Eagles',  now() + interval '2 days', false),
-    (2026, 1, 'evt-3', 'KC',  'Chiefs',  'BUF', 'Bills',   now() - interval '2 hours', false);
+    (2026, 1, 'evt-3', 'KC',  'Chiefs',  'BUF', 'Bills',   now() - interval '2 hours', false),
+    -- Inside the half-hour lock but not yet under way: the case that separates
+    -- "locked" from "started".
+    (2026, 1, 'evt-4', 'NYJ', 'Jets',    'MIA', 'Dolphins', now() + interval '20 minutes', false);

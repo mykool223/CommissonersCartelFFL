@@ -17,9 +17,23 @@ public struct PickemGame: Identifiable, Hashable, Sendable {
 
     public var id: String { eventID }
 
-    /// Picks are locked once the ball is in the air, per game rather than per
-    /// week — a Sunday game should not be locked by a Thursday kickoff.
-    public var isLocked: Bool { kickoff <= Date() }
+    /// How long before kickoff a game stops accepting picks. The same cushion
+    /// is enforced by the row level security policies on `pickem_picks`; this
+    /// copy is only what greys the row out. If the two ever disagree, the
+    /// database wins and the member sees a save fail.
+    public static let lockCushion: TimeInterval = 30 * 60
+
+    /// When this game stops accepting picks.
+    public var locksAt: Date { kickoff.addingTimeInterval(-Self.lockCushion) }
+
+    /// Picks are locked half an hour before the ball is in the air, per game
+    /// rather than per week — a Sunday game should not be locked by a Thursday
+    /// kickoff.
+    public var isLocked: Bool { locksAt <= Date() }
+
+    /// Whether the game itself has started, which is a later moment than the
+    /// lock and is what the row says when it explains itself.
+    public var hasStarted: Bool { kickoff <= Date() }
 
     public init(
         season: Int, week: Int, eventID: String,

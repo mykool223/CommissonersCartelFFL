@@ -91,6 +91,13 @@ fun PickemScreen(modifier: Modifier = Modifier, model: PickemViewModel = viewMod
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center,
                         )
+                        Text(
+                            "Picks lock 30 minutes before each kickoff.",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = CartelGold,
+                            textAlign = TextAlign.Center,
+                        )
                     }
                 }
 
@@ -275,12 +282,15 @@ private fun Weight(
 /** Locked games say why; open ones say when they go. */
 private fun detailFor(game: PickemGame): String {
     if (game.final) return game.winnerAbbr?.let { "Final · $it" } ?: "Final · tie"
-    if (game.locked) return "Started · picks locked"
-    return runCatching {
+    if (game.started) return "Started · picks locked"
+    val kickoff = runCatching {
         java.time.format.DateTimeFormatter.ofPattern("EEE h:mm a")
             .withZone(java.time.ZoneId.systemDefault())
             .format(java.time.Instant.parse(game.kickoffAt))
     }.getOrDefault("Kickoff to come")
+    // Locked but not yet under way: saying "started" here would be a lie for
+    // the half hour in between, and somebody would reasonably report it.
+    return if (game.locked) "Locked · kicks off $kickoff" else kickoff
 }
 
 @Composable

@@ -113,13 +113,29 @@ data class PickemGame(
     @SerialName("updated_at") val updatedAt: String? = null,
 ) {
     /**
-     * Picks lock per game rather than per week — a Sunday game should not be
-     * locked by a Thursday kickoff.
+     * Picks lock half an hour before kickoff, per game rather than per week —
+     * a Sunday game should not be locked by a Thursday kickoff.
+     *
+     * The same cushion is enforced by the row level security policies on
+     * pickem_picks; this copy is only what greys the row out. If the two ever
+     * disagree the database wins and the member sees a save fail.
      */
     val locked: Boolean
         get() = runCatching {
+            java.time.Instant.parse(kickoffAt)
+                .minusSeconds(LOCK_CUSHION_SECONDS)
+                .isBefore(java.time.Instant.now())
+        }.getOrDefault(false)
+
+    /** Whether the game itself has started, a later moment than the lock. */
+    val started: Boolean
+        get() = runCatching {
             java.time.Instant.parse(kickoffAt).isBefore(java.time.Instant.now())
         }.getOrDefault(false)
+
+    companion object {
+        const val LOCK_CUSHION_SECONDS = 30L * 60
+    }
 }
 
 /** Somebody's call on one game, and how sure they were. */

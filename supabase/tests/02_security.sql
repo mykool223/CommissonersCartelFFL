@@ -450,6 +450,15 @@ begin
         values ('22222222-2222-2222-2222-222222222222', 2026, 1, 'evt-3', 'KC', 1) $q$),
         'a pick cannot be made after kickoff');
 
+    -- evt-4 kicks off in twenty minutes. The apps grey it out; this is the
+    -- half that actually stops a pick, and the half an older build cannot
+    -- talk its way past.
+    perform assert(blocked($q$
+        insert into public.pickem_picks (user_id, season, week, event_id, chosen_abbr, confidence)
+        values ('22222222-2222-2222-2222-222222222222', 2026, 1, 'evt-4', 'NYJ', 4) $q$),
+        'a pick cannot be made inside the last half hour');
+
+
     -- The apps read the name straight off the view. Asking PostgREST to embed
     -- profiles instead returned 400 on every request, and both apps swallow a
     -- failed standings fetch, so the weekly table silently never appeared.
@@ -465,6 +474,26 @@ begin
         'a non-member cannot play');
     perform assert((select count(*) from public.pickem_picks) = 0,
                    'nobody sees another member''s picks before kickoff');
+end $$;
+
+-- Planted as the owner, because the whole point is that the member cannot put
+-- it there themselves once the game is inside the window.
+reset role;
+insert into public.pickem_picks (user_id, season, week, event_id, chosen_abbr, confidence)
+values ('22222222-2222-2222-2222-222222222222', 2026, 1, 'evt-4', 'NYJ', 9);
+
+set role authenticated;
+do $$
+declare member constant text := '22222222-2222-2222-2222-222222222222';
+begin
+    perform set_config('request.jwt.claim.sub', member, true);
+    perform assert(blocked($q$
+        update public.pickem_picks set chosen_abbr = 'MIA'
+         where event_id = 'evt-4'
+           and user_id = '22222222-2222-2222-2222-222222222222' $q$)
+        or (select chosen_abbr from public.pickem_picks
+             where event_id = 'evt-4' and user_id = member::uuid) = 'NYJ',
+        'a pick already made cannot be changed inside the last half hour');
 end $$;
 
 \echo ''

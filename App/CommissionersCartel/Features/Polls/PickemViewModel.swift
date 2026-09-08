@@ -126,9 +126,10 @@ final class PickemViewModel {
     var summary: String {
         let made = mine.count
         let open = games.filter { !$0.isLocked }.count
-        if open == 0 { return "Every game has started. Picks are locked." }
+        if open == 0 { return "Every game is locked. The week is settled." }
         if made == games.count {
-            return "All \(games.count) picked. Tap the points to reweigh, any time before kickoff."
+            return "All \(games.count) picked. Tap the points to reweigh, "
+                + "any time before a game locks."
         }
         return "\(made) of \(games.count) picked. Tap a team to pick it, "
             + "then tap the points to change what it is worth."

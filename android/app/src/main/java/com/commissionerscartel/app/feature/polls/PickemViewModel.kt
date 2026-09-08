@@ -31,10 +31,10 @@ sealed interface PickemState {
             get() {
                 val open = games.count { !it.locked }
                 return when {
-                    open == 0 -> "Every game has started. Picks are locked."
+                    open == 0 -> "Every game is locked. The week is settled."
                     picks.size == games.size ->
                         "All ${games.size} picked. Tap the points to reweigh, " +
-                            "any time before kickoff."
+                            "any time before a game locks."
                     else ->
                         "${picks.size} of ${games.size} picked. Tap a team to " +
                             "pick it, then tap the points to change what it is worth."
