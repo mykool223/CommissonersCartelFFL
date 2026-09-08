@@ -24,14 +24,29 @@ class Week(unittest.TestCase):
     def test_before_the_season_is_week_one(self):
         self.assertEqual(sync.current_week(dt.date(2026, 8, 20)), 1)
 
-    def test_first_tuesday_of_september_starts_week_one(self):
-        self.assertEqual(sync.current_week(dt.date(2026, 9, 1)), 1)
+    def test_week_one_starts_the_tuesday_after_labor_day(self):
+        # 2026 is the case that caught this out: September starts on a Tuesday,
+        # so "the first Tuesday in September" was Sept 1 — a week before Labor
+        # Day, and before the NFL had played a down. Week 1 opens Sept 8.
+        self.assertEqual(sync.current_week(dt.date(2026, 9, 8)), 1)
 
-    def test_a_week_later_is_week_two(self):
-        self.assertEqual(sync.current_week(dt.date(2026, 9, 8)), 2)
+    def test_the_opening_thursday_is_week_one(self):
+        self.assertEqual(sync.current_week(dt.date(2026, 9, 10)), 1)
 
     def test_the_day_before_the_rollover_is_still_week_one(self):
+        self.assertEqual(sync.current_week(dt.date(2026, 9, 14)), 1)
+
+    def test_the_rollover_is_the_following_tuesday(self):
+        self.assertEqual(sync.current_week(dt.date(2026, 9, 15)), 2)
+
+    def test_labor_day_itself_is_still_the_preseason(self):
         self.assertEqual(sync.current_week(dt.date(2026, 9, 7)), 1)
+
+    def test_a_year_where_september_does_not_start_on_a_tuesday(self):
+        # 2025 opened Thursday Sept 4; week 1 ran from Tuesday Sept 2.
+        self.assertEqual(sync.current_week(dt.date(2025, 9, 1)), 1)
+        self.assertEqual(sync.current_week(dt.date(2025, 9, 2)), 1)
+        self.assertEqual(sync.current_week(dt.date(2025, 9, 9)), 2)
 
     def test_it_never_exceeds_eighteen(self):
         self.assertEqual(sync.current_week(dt.date(2027, 3, 1)), 18)

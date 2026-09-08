@@ -66,11 +66,18 @@ def current_season(today: dt.date | None = None) -> int:
 
 
 def current_week(today: dt.date | None = None) -> int:
-    """Week 1 begins on the first Tuesday of September; clamped to 1-18."""
+    """Week 1 begins the Tuesday after Labor Day, the week the NFL opens on.
+
+    This used to anchor to the first Tuesday in September, which is the same
+    date in most years and a week early when September starts on a Tuesday.
+    2026 is such a year: week 1 landed before the season began, so the opening
+    week was numbered 2. Clamped to 1-18.
+    """
     today = today or dt.date.today()
     september = dt.date(current_season(today), 9, 1)
-    # weekday() is 0 for Monday, so 1 is Tuesday.
-    kickoff = september + dt.timedelta(days=(1 - september.weekday()) % 7)
+    # weekday() is 0 for Monday, so Labor Day is September's first Monday.
+    labor_day = september + dt.timedelta(days=(0 - september.weekday()) % 7)
+    kickoff = labor_day + dt.timedelta(days=1)
     if today < kickoff:
         return 1
     return min(18, (today - kickoff).days // 7 + 1)

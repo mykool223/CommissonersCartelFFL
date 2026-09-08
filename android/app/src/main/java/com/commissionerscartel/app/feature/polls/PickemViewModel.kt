@@ -183,14 +183,21 @@ class PickemViewModel : ViewModel() {
     }
 
     /**
-     * Week 1 begins on the first Tuesday of September; clamped to 1-18.
-     * The same calculation the scripts and iOS use.
+     * Week 1 begins the Tuesday after Labor Day, the week the NFL opens on that
+     * Thursday; clamped to 1-18. The same calculation the scripts and iOS use.
+     *
+     * This used to anchor to the first Tuesday in September, which is the same
+     * date in most years and a week early when September starts on a Tuesday.
+     * 2026 is such a year: week 1 was placed before the season began, so the
+     * opening week was labelled week 2 and week 1 could never be picked.
      */
     private fun currentWeek(today: LocalDate = LocalDate.now()): Int {
         val season = Config.currentSeason()
         val september = LocalDate.of(season, 9, 1)
-        // DayOfWeek: Monday is 1, so Tuesday is 2.
-        val kickoff = september.plusDays(((2 - september.dayOfWeek.value + 7) % 7).toLong())
+        // DayOfWeek: Monday is 1. Labor Day is September's first Monday, and
+        // week 1 starts the day after it.
+        val laborDay = september.plusDays(((1 - september.dayOfWeek.value + 7) % 7).toLong())
+        val kickoff = laborDay.plusDays(1)
         if (today.isBefore(kickoff)) return 1
         val days = java.time.temporal.ChronoUnit.DAYS.between(kickoff, today)
         return minOf(18, (days / 7 + 1).toInt())

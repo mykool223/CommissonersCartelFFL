@@ -171,8 +171,14 @@ final class PickemViewModel {
         }
     }
 
-    /// Week 1 begins on the first Tuesday of September; clamped to 1-18.
-    /// Matches the same calculation in the scripts.
+    /// Week 1 begins the Tuesday after Labor Day, the week the NFL opens on
+    /// that Thursday; clamped to 1-18. Matches the same calculation in the
+    /// scripts.
+    ///
+    /// This used to anchor to the first Tuesday in September, which is the same
+    /// date in most years and a week early when September starts on a Tuesday.
+    /// 2026 is such a year: week 1 was placed before the season began, so the
+    /// opening week was labelled week 2 and week 1 could never be picked.
     static func currentWeek(today: Date = Date()) -> Int {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(identifier: "America/Chicago") ?? .current
@@ -182,8 +188,9 @@ final class PickemViewModel {
         guard let september = calendar.date(from: DateComponents(year: year, month: 9, day: 1))
         else { return 1 }
         let weekday = calendar.component(.weekday, from: september)   // Sunday == 1
-        let untilTuesday = (3 - weekday + 7) % 7
-        guard let kickoff = calendar.date(byAdding: .day, value: untilTuesday, to: september)
+        let untilLaborDay = (2 - weekday + 7) % 7                     // Monday == 2
+        guard let kickoff = calendar.date(
+            byAdding: .day, value: untilLaborDay + 1, to: september)
         else { return 1 }
         if today < kickoff { return 1 }
         let days = calendar.dateComponents([.day], from: kickoff, to: today).day ?? 0
