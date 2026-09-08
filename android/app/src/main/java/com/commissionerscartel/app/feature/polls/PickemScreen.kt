@@ -98,7 +98,7 @@ fun PickemScreen(modifier: Modifier = Modifier, model: PickemViewModel = viewMod
                     GameRow(
                         game = game,
                         pick = current.picks[game.eventId],
-                        available = model.availableWeights(game),
+                        available = model.weightChoices(game),
                         onChoose = { model.choose(it, game) },
                         onWeigh = { model.weigh(game, it) },
                     )
@@ -147,7 +147,7 @@ fun PickemScreen(modifier: Modifier = Modifier, model: PickemViewModel = viewMod
 private fun GameRow(
     game: PickemGame,
     pick: PickemPick?,
-    available: List<Int>,
+    available: List<WeightChoice>,
     onChoose: (String) -> Unit,
     onWeigh: (Int) -> Unit,
 ) {
@@ -219,7 +219,7 @@ private fun Team(
 private fun Weight(
     game: PickemGame,
     pick: PickemPick?,
-    available: List<Int>,
+    available: List<WeightChoice>,
     onWeigh: (Int) -> Unit,
 ) {
     if (game.locked) {
@@ -262,10 +262,10 @@ private fun Weight(
             )
         }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
-            available.forEach { value ->
+            available.forEach { choice ->
                 DropdownMenuItem(
-                    text = { Text("$value points") },
-                    onClick = { onWeigh(value); open = false },
+                    text = { Text(choice.label) },
+                    onClick = { onWeigh(choice.value); open = false },
                 )
             }
         }

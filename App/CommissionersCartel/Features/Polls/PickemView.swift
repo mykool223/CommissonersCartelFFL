@@ -45,7 +45,7 @@ struct PickemView: View {
                     PickemRow(
                         game: game,
                         pick: model.pick(for: game),
-                        available: model.availableWeights(for: game),
+                        available: model.weightChoices(for: game),
                         onChoose: { model.choose(team: $0, in: game) },
                         onWeigh: { model.weigh(game, at: $0) }
                     )
@@ -116,7 +116,7 @@ struct PickemView: View {
 private struct PickemRow: View {
     let game: PickemGame
     let pick: PickemPick?
-    let available: [Int]
+    let available: [PickemViewModel.WeightChoice]
     let onChoose: (String) -> Void
     let onWeigh: (Int) -> Void
 
@@ -188,8 +188,8 @@ private struct PickemRow: View {
             }
         } else {
             Menu {
-                ForEach(available, id: \.self) { value in
-                    Button("\(value) points") { onWeigh(value) }
+                ForEach(available) { choice in
+                    Button(choice.label) { onWeigh(choice.value) }
                 }
             } label: {
                 // A chevron, because without one this reads as a label and

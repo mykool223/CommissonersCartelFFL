@@ -46,3 +46,12 @@ values ('aaaaaaaa-0000-0000-0000-000000000002', 'Closed one', 2026,
 insert into public.poll_options (id, poll_id, label, position)
 values ('bbbbbbbb-0000-0000-0000-000000000009',
         'aaaaaaaa-0000-0000-0000-000000000002', 'Too late', 0);
+
+-- A pick'em week: two games still to come and one already under way, which is
+-- what makes a locked pick's weight untouchable.
+insert into public.pickem_games
+    (season, week, event_id, home_abbr, home_name, away_abbr, away_name, kickoff_at, final)
+values
+    (2026, 1, 'evt-1', 'CHI', 'Bears',   'GB',  'Packers', now() + interval '2 days', false),
+    (2026, 1, 'evt-2', 'DAL', 'Cowboys', 'PHI', 'Eagles',  now() + interval '2 days', false),
+    (2026, 1, 'evt-3', 'KC',  'Chiefs',  'BUF', 'Bills',   now() - interval '2 hours', false);

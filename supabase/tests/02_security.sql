@@ -394,6 +394,72 @@ reset role;
 delete from public.direct_messages;
 
 \echo ''
+\echo '--- the pick\'em board ---'
+reset role;
+set role authenticated;
+
+do $$
+declare
+    member   constant text := '22222222-2222-2222-2222-222222222222';
+    outsider constant text := '33333333-3333-3333-3333-333333333333';
+begin
+    perform set_config('request.jwt.claim.sub', member, true);
+
+    -- The app saves the whole board in one statement, because the weights are
+    -- only valid as a set.
+    insert into public.pickem_picks (user_id, season, week, event_id, chosen_abbr, confidence)
+    values (member::uuid, 2026, 1, 'evt-1', 'CHI', 3),
+           (member::uuid, 2026, 1, 'evt-2', 'DAL', 2)
+    on conflict (user_id, season, week, event_id) do update
+       set chosen_abbr = excluded.chosen_abbr, confidence = excluded.confidence;
+
+    perform assert((select count(*) from public.pickem_picks where user_id = member::uuid) = 2,
+                   'a member can save a board');
+
+    -- Swapping two weights is how a board is reordered, and it passes through
+    -- a moment where both rows hold the same number. The constraint is
+    -- deferred so it is judged on the finished set; a plain unique index
+    -- rejected this, and the pick vanished under whoever made it.
+    insert into public.pickem_picks (user_id, season, week, event_id, chosen_abbr, confidence)
+    values (member::uuid, 2026, 1, 'evt-1', 'CHI', 2),
+           (member::uuid, 2026, 1, 'evt-2', 'DAL', 3)
+    on conflict (user_id, season, week, event_id) do update
+       set chosen_abbr = excluded.chosen_abbr, confidence = excluded.confidence;
+
+    perform assert(
+        (select confidence from public.pickem_picks
+          where user_id = member::uuid and event_id = 'evt-1') = 2,
+        'two games can swap weights in one save');
+
+    -- Deferring the check must not mean abandoning it. `set constraints all
+    -- immediate` is what brings the verdict forward to here; in the app it
+    -- arrives when PostgREST commits the request, and the write is refused
+    -- just the same.
+    perform assert(blocked($q$
+        insert into public.pickem_picks (user_id, season, week, event_id, chosen_abbr, confidence)
+        values ('22222222-2222-2222-2222-222222222222', 2026, 1, 'evt-1', 'CHI', 2),
+               ('22222222-2222-2222-2222-222222222222', 2026, 1, 'evt-2', 'DAL', 2)
+        on conflict (user_id, season, week, event_id) do update
+           set confidence = excluded.confidence;
+        set constraints all immediate $q$),
+        'two games cannot end up sharing a weight');
+
+    -- evt-3 has kicked off.
+    perform assert(blocked($q$
+        insert into public.pickem_picks (user_id, season, week, event_id, chosen_abbr, confidence)
+        values ('22222222-2222-2222-2222-222222222222', 2026, 1, 'evt-3', 'KC', 1) $q$),
+        'a pick cannot be made after kickoff');
+
+    perform set_config('request.jwt.claim.sub', outsider, true);
+    perform assert(blocked($q$
+        insert into public.pickem_picks (user_id, season, week, event_id, chosen_abbr, confidence)
+        values ('33333333-3333-3333-3333-333333333333', 2026, 1, 'evt-1', 'GB', 1) $q$),
+        'a non-member cannot play');
+    perform assert((select count(*) from public.pickem_picks) = 0,
+                   'nobody sees another member''s picks before kickoff');
+end $$;
+
+\echo ''
 \echo '--- anon (the key shipped in the app) ---'
 reset role;
 set role anon;

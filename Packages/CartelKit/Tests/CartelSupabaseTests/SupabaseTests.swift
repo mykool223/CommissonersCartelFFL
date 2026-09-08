@@ -136,6 +136,59 @@ struct PostgRESTRequestTests {
         let json = try #require(parsed as? [String: Any])
         #expect(json["p_season"] as? Int == 2025)
     }
+
+    /// Regression guard, and the reason no pick'em save ever landed: the
+    /// multi-row upsert was the one write that never named its content type,
+    /// so URLSession labelled it `application/x-www-form-urlencoded` and
+    /// PostgREST read the board as form fields rather than as rows.
+    @Test("Every request that carries a body says it is JSON")
+    func bodiesDeclareJSON() async throws {
+        let (client, recorder) = makeClient(responding: "")
+
+        try await client.upsert(
+            "pickem_picks",
+            rows: [["event_id": AnyEncodable("401671800")]],
+            onConflict: "user_id,season,week,event_id"
+        )
+        #expect(recorder.last?.value(forHTTPHeaderField: "Content-Type") == "application/json")
+
+        try await client.upsert(
+            "device_tokens", values: ["token": AnyEncodable("abc")], onConflict: "token"
+        )
+        #expect(recorder.last?.value(forHTTPHeaderField: "Content-Type") == "application/json")
+
+        try await client.patchRows(
+            "direct_messages",
+            query: ["read_at": "is.null"],
+            values: ["read_at": AnyEncodable("2026-09-08T00:00:00Z")]
+        )
+        #expect(recorder.last?.value(forHTTPHeaderField: "Content-Type") == "application/json")
+    }
+
+    /// A whole board goes in one request, so the weights are judged as a set.
+    @Test("Upserting rows posts a JSON array with the conflict target in the URL")
+    func upsertsRowsAsAnArray() async throws {
+        let (client, recorder) = makeClient(responding: "")
+        try await client.upsert(
+            "pickem_picks",
+            rows: [
+                ["event_id": AnyEncodable("e1"), "confidence": AnyEncodable(16)],
+                ["event_id": AnyEncodable("e2"), "confidence": AnyEncodable(15)],
+            ],
+            onConflict: "user_id,season,week,event_id"
+        )
+
+        let request = try #require(recorder.last)
+        #expect(request.httpMethod == "POST")
+        #expect(request.url?.query == "on_conflict=user_id,season,week,event_id")
+        #expect(request.value(forHTTPHeaderField: "Prefer")
+            == "resolution=merge-duplicates,return=minimal")
+
+        let parsed = try JSONSerialization.jsonObject(with: try #require(request.httpBody))
+        let rows = try #require(parsed as? [[String: Any]])
+        #expect(rows.count == 2)
+        #expect(rows.first?["confidence"] as? Int == 16)
+    }
 }
 
 @Suite("PostgREST errors")

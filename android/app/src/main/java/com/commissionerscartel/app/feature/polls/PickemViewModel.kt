@@ -43,6 +43,22 @@ sealed interface PickemState {
     }
 }
 
+/** A weight a game can be moved to, and who pays for it. */
+data class WeightChoice(
+    val value: Int,
+    /**
+     * The team picked in the game that holds this weight now, when another
+     * open game holds it. Taking it hands that game this one's.
+     */
+    val takenFrom: String?,
+) {
+    val label: String
+        get() {
+            val points = if (value == 1) "1 point" else "$value points"
+            return takenFrom?.let { "$points · swap with $it" } ?: points
+        }
+}
+
 class PickemViewModel : ViewModel() {
     private val _state = MutableStateFlow<PickemState>(PickemState.Loading)
     val state: StateFlow<PickemState> = _state.asStateFlow()
@@ -78,14 +94,35 @@ class PickemViewModel : ViewModel() {
         }
     }
 
-    /** Weights not already spent, plus whatever this game currently holds. */
-    fun availableWeights(game: PickemGame): List<Int> {
+    /**
+     * Every weight the week has, minus the ones locked games are holding.
+     *
+     * Offering only the unspent ones made the control useless exactly when it
+     * mattered: on a finished board nothing is unspent, so the menu listed back
+     * the value the game already had and reweighing was impossible. Taking a
+     * weight another open game holds is allowed — [weigh] hands that game the
+     * one being vacated. A locked game's weight is not on offer, because its
+     * pick can no longer be changed to accept the swap.
+     */
+    fun weightChoices(game: PickemGame): List<WeightChoice> {
         val current = _state.value as? PickemState.Loaded ?: return emptyList()
-        val spent = current.picks.values
-            .filter { it.eventId != game.eventId }
-            .map { it.confidence }
-            .toSet()
-        return (1..maxOf(current.games.size, 1)).filterNot { it in spent }.reversed()
+        val locked = current.games.filter { it.locked }.map { it.eventId }.toSet()
+        val holders = current.picks.values.associateBy { it.confidence }
+        return (maxOf(current.games.size, 1) downTo 1).mapNotNull { value ->
+            val holder = holders[value] ?: return@mapNotNull WeightChoice(value, null)
+            when {
+                holder.eventId in locked -> null
+                holder.eventId == game.eventId -> WeightChoice(value, null)
+                else -> WeightChoice(value, holder.chosenAbbr)
+            }
+        }
+    }
+
+    /** The highest weight nobody has spent yet. */
+    private fun highestUnspentWeight(): Int {
+        val current = _state.value as? PickemState.Loaded ?: return 1
+        val spent = current.picks.values.map { it.confidence }.toSet()
+        return (maxOf(current.games.size, 1) downTo 1).firstOrNull { it !in spent } ?: 1
     }
 
     /**
@@ -98,8 +135,7 @@ class PickemViewModel : ViewModel() {
         if (game.locked) return
 
         val confidence = current.picks[game.eventId]?.confidence
-            ?: availableWeights(game).firstOrNull()
-            ?: 1
+            ?: highestUnspentWeight()
         val updated = current.picks + (game.eventId to PickemPick(
             userId = me, season = game.season, week = game.week,
             eventId = game.eventId, chosenAbbr = team, confidence = confidence,

@@ -53,20 +53,52 @@ final class PickemViewModel {
 
     func pick(for game: PickemGame) -> PickemPick? { mine[game.eventID] }
 
-    /// Weights not already spent, plus whatever this game currently holds.
-    func availableWeights(for game: PickemGame) -> [Int] {
-        let spent = Set(mine.values.filter { $0.eventID != game.eventID }
-            .map(\.confidence))
-        return (1...max(games.count, 1)).filter { !spent.contains($0) }.reversed()
+    /// A weight this game can be moved to, and who pays for it.
+    struct WeightChoice: Identifiable, Equatable {
+        let value: Int
+        /// The team picked in the game that holds this weight now, when
+        /// another open game holds it. Taking it hands that game this one's.
+        let takenFrom: String?
+
+        var id: Int { value }
+        var label: String {
+            let points = value == 1 ? "1 point" : "\(value) points"
+            return takenFrom.map { "\(points) · swap with \($0)" } ?? points
+        }
+    }
+
+    /// Every weight the week has, minus the ones locked games are holding.
+    ///
+    /// Offering only the unspent ones made the control useless exactly when it
+    /// mattered: on a finished board nothing is unspent, so the menu listed
+    /// back the value the game already had and reweighing was impossible.
+    /// Taking a weight another open game holds is allowed — `weigh` hands that
+    /// game the one being vacated. A locked game's weight is not on offer,
+    /// because its pick can no longer be changed to accept the swap.
+    func weightChoices(for game: PickemGame) -> [WeightChoice] {
+        let locked = Set(games.filter(\.isLocked).map(\.eventID))
+        let holders = Dictionary(mine.values.map { ($0.confidence, $0) }) { first, _ in first }
+        return (1...max(games.count, 1)).reversed().compactMap { value in
+            guard let holder = holders[value] else {
+                return WeightChoice(value: value, takenFrom: nil)
+            }
+            if locked.contains(holder.eventID) { return nil }
+            if holder.eventID == game.eventID { return WeightChoice(value: value, takenFrom: nil) }
+            return WeightChoice(value: value, takenFrom: holder.chosenAbbreviation)
+        }
+    }
+
+    /// The highest weight nobody has spent yet.
+    private var highestUnspentWeight: Int {
+        let spent = Set(mine.values.map(\.confidence))
+        return (1...max(games.count, 1)).reversed().first { !spent.contains($0) } ?? 1
     }
 
     /// Picking a team assigns the highest weight still unspent, so working
     /// down from the game you are surest about is one tap each.
     func choose(team: String, in game: PickemGame) {
         guard let userID, !game.isLocked else { return }
-        let confidence = mine[game.eventID]?.confidence
-            ?? availableWeights(for: game).first
-            ?? 1
+        let confidence = mine[game.eventID]?.confidence ?? highestUnspentWeight
         mine[game.eventID] = PickemPick(
             userID: userID, eventID: game.eventID,
             chosenAbbreviation: team, confidence: confidence)
@@ -133,7 +165,9 @@ final class PickemViewModel {
                 season: environment.season, week: week,
                 picks: mine.values.filter { open.contains($0.eventID) })
         } catch {
-            saveError = "Couldn't save that pick. It will retry when you change another."
+            // The reason, not a shrug: "couldn't save that pick" sent somebody
+            // hunting through the app for a bug the server had already named.
+            saveError = "Couldn't save. \(error.localizedDescription)"
         }
     }
 

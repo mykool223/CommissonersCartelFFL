@@ -105,6 +105,7 @@ public struct SupabaseClient: Sendable {
             throw CartelError.notConfigured("Could not build a Supabase URL for \(table).")
         }
         var request = request(url: url, method: "PATCH")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("return=minimal", forHTTPHeaderField: "Prefer")
         request.httpBody = try JSONEncoder().encode(values)
         _ = try await raw(request)
@@ -134,6 +135,7 @@ public struct SupabaseClient: Sendable {
             throw CartelError.notConfigured("Could not build a Supabase URL for \(table).")
         }
         var request = request(url: url, method: "POST")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("resolution=merge-duplicates,return=minimal",
                          forHTTPHeaderField: "Prefer")
         request.httpBody = try JSONEncoder().encode(rows)
@@ -178,6 +180,11 @@ public struct SupabaseClient: Sendable {
 
     // MARK: - Plumbing
 
+    /// Anything added here that sends a body must set `Content-Type` itself.
+    /// URLSession fills an unset one in as `application/x-www-form-urlencoded`,
+    /// which PostgREST believes: it reads form bodies too, so a JSON document
+    /// is not refused as malformed, it is read as form fields. Every write goes
+    /// out looking well-formed and comes back rejected.
     private func request(url: URL, method: String) -> URLRequest {
         var request = URLRequest(url: url)
         request.httpMethod = method
