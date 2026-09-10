@@ -41,6 +41,76 @@ private func makeClient(
     )
 }
 
+private func clientOverPayload(_ json: String) -> ESPNClient {
+    let transport = StubTransport { request in
+        let response = HTTPURLResponse(
+            url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil
+        )!
+        return (Data(json.utf8), response)
+    }
+    return ESPNClient(
+        configuration: ESPNConfiguration(leagueID: "1234567", season: 2026),
+        transport: transport,
+        now: { Date(timeIntervalSince1970: 0) }
+    )
+}
+
+@Suite("Live scoring")
+struct ESPNLiveScoringTests {
+    /// ESPN keeps totalPoints at 0.0 for the whole week it is being played and
+    /// puts the running score in totalPointsLive. Reading only the former left
+    /// the scoreboard on dashes every Sunday, filling in once everything was
+    /// over — the one moment nobody needed it.
+    private static let inProgress = """
+    {
+      "id": 1234567,
+      "schedule": [{
+        "id": 1, "matchupPeriodId": 1, "winner": "UNDECIDED",
+        "home": {"teamId": 10, "totalPoints": 0.0, "totalPointsLive": 14.2,
+                 "totalProjectedPointsLive": 116.5},
+        "away": {"teamId": 7, "totalPoints": 0.0, "totalPointsLive": 6.0,
+                 "totalProjectedPointsLive": 121.3}
+      }]
+    }
+    """
+
+    /// Once the period is settled totalPoints is the authority: ESPN stops
+    /// updating totalPointsLive, and on a corrected stat the two disagree.
+    private static let finished = """
+    {
+      "id": 1234567,
+      "schedule": [{
+        "id": 1, "matchupPeriodId": 1, "winner": "HOME",
+        "home": {"teamId": 10, "totalPoints": 128.4, "totalPointsLive": 126.9},
+        "away": {"teamId": 7, "totalPoints": 121.7, "totalPointsLive": 119.0}
+      }]
+    }
+    """
+
+    @Test("A week in progress shows the running score, not zero")
+    func liveScore() async throws {
+        let matchups = try await clientOverPayload(Self.inProgress).matchups(week: 1)
+        let game = try #require(matchups.first)
+
+        #expect(game.home.points == 14.2)
+        #expect(game.away?.points == 6.0)
+        #expect(!game.isComplete)
+        // The status chip keys off points, so this is what stops a live board
+        // still calling itself "scheduled".
+        #expect(game.hasStarted)
+    }
+
+    @Test("A settled week uses the final total, not the last live one")
+    func finalScore() async throws {
+        let matchups = try await clientOverPayload(Self.finished).matchups(week: 1)
+        let game = try #require(matchups.first)
+
+        #expect(game.isComplete)
+        #expect(game.home.points == 128.4)
+        #expect(game.away?.points == 121.7)
+    }
+}
+
 @Suite("ESPN request building")
 struct ESPNRequestTests {
     @Test("URL carries the season, league id and one query item per view")

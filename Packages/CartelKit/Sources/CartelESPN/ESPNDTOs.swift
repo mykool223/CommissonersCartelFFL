@@ -84,7 +84,13 @@ struct ESPNLeagueResponse: Decodable {
 
         struct SideDTO: Decodable {
             let teamId: Int
+            /// Zero until ESPN settles the matchup period, so this is the
+            /// final score and nothing else. During play it reads 0.0 no
+            /// matter what is happening on the field.
             let totalPoints: Double?
+            /// What the side has scored so far. This is the number people mean
+            /// when they ask what the score is.
+            let totalPointsLive: Double?
             let totalProjectedPointsLive: Double?
         }
     }

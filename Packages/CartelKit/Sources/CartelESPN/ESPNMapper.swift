@@ -143,7 +143,15 @@ enum ESPNMapper {
     ) -> MatchupSide {
         MatchupSide(
             teamID: dto.teamId,
-            points: dto.totalPoints ?? 0,
+            // While a week is being played ESPN keeps totalPoints at 0.0 and
+            // puts the running score in totalPointsLive. Reading only the
+            // former meant the scoreboard sat on dashes all Sunday and then
+            // filled in after everything had finished — the one time nobody
+            // needed it. Once the period is settled totalPoints is the
+            // authority, because totalPointsLive stops being updated.
+            points: isComplete
+                ? (dto.totalPoints ?? 0)
+                : (dto.totalPointsLive ?? dto.totalPoints ?? 0),
             // Projections are meaningless once the games are final.
             projectedPoints: isComplete ? nil : dto.totalProjectedPointsLive
         )

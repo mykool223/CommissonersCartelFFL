@@ -59,16 +59,28 @@ object EspnMapper {
             .map { game ->
                 val home = game.home
                 val away = game.away
-                val homeScore = home?.totalPoints ?: 0.0
-                val awayScore = away?.totalPoints ?: 0.0
-                val live = (home?.totalPointsLive ?: 0.0) + (away?.totalPointsLive ?: 0.0)
+                val settled = !game.winner.isNullOrBlank() && game.winner != "UNDECIDED"
 
-                // A winner means it is over. Live points with no winner means
-                // it is happening. Neither means it has not started — without
-                // this every fixture reads "IN PROGRESS" all preseason.
+                // ESPN holds totalPoints at 0.0 for the whole week it is being
+                // played and puts the running score in totalPointsLive. The
+                // status already knew that; the score did not, so a live
+                // fixture read "IN PROGRESS" next to nothing at all. Once the
+                // period settles totalPoints is the authority — ESPN stops
+                // updating totalPointsLive, and a corrected stat lands only on
+                // the former.
+                val homeScore =
+                    if (settled) home?.totalPoints ?: 0.0
+                    else home?.totalPointsLive ?: home?.totalPoints ?: 0.0
+                val awayScore =
+                    if (settled) away?.totalPoints ?: 0.0
+                    else away?.totalPointsLive ?: away?.totalPoints ?: 0.0
+
+                // A winner means it is over. Points with no winner means it is
+                // happening. Neither means it has not started — without this
+                // every fixture reads "IN PROGRESS" all preseason.
                 val status = when {
-                    !game.winner.isNullOrBlank() && game.winner != "UNDECIDED" -> MatchupStatus.Final
-                    live > 0.0 || homeScore + awayScore > 0.0 -> MatchupStatus.InProgress
+                    settled -> MatchupStatus.Final
+                    homeScore + awayScore > 0.0 -> MatchupStatus.InProgress
                     else -> MatchupStatus.Scheduled
                 }
 
