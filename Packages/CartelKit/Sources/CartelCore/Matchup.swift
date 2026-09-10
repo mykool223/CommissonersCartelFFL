@@ -72,10 +72,23 @@ public struct MatchupSide: Hashable, Sendable, Codable {
     public let points: Double
     /// ESPN's projected total. Nil once the games have been played.
     public let projectedPoints: Double?
+    /// Starters first in lineup order, then the bench. Empty when the payload
+    /// was fetched without the boxscore view, so a caller must cope with that
+    /// rather than assume a team always has players.
+    public let roster: [RosterEntry]
 
-    public init(teamID: Int, points: Double, projectedPoints: Double? = nil) {
+    public init(
+        teamID: Int,
+        points: Double,
+        projectedPoints: Double? = nil,
+        roster: [RosterEntry] = []
+    ) {
         self.teamID = teamID
         self.points = points
         self.projectedPoints = projectedPoints
+        self.roster = roster
     }
+
+    public var starters: [RosterEntry] { roster.filter(\.isStarter) }
+    public var bench: [RosterEntry] { roster.filter { !$0.isStarter } }
 }

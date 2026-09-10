@@ -51,6 +51,7 @@
 		9DE066068B891E3CB0B66EB4 /* CartelESPN in Frameworks */ = {isa = PBXBuildFile; productRef = FBF57DDE217E1BC30051762A /* CartelESPN */; };
 		A5492B9492A9D86A52D247D2 /* CreatePollView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B1DCADEB27EFF3B6943804B /* CreatePollView.swift */; };
 		A960A5FCEE9901CE00DC540C /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D3EA656F6D507B3748C1377F /* Assets.xcassets */; };
+		B04B9FE5A7AA5342EBB65711 /* MatchupBoxscoreView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F3F133EBB205B37ADF1A113 /* MatchupBoxscoreView.swift */; };
 		B11A87F46FFEAAEAC971C3C9 /* NewsFeedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C45E44EFEFD22E3FAF3CF11 /* NewsFeedView.swift */; };
 		B1CCEFAD55EB9F8A91464815 /* CartelWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 9C85CA1B92922F1FA6F453CA /* CartelWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		B5C67F6766A983DEE1F27866 /* PickemView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 178EECA6157DBC355EFD9E0D /* PickemView.swift */; };
@@ -119,6 +120,7 @@
 		6169B7B9F9F50A43F4E6F14A /* StateViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StateViews.swift; sourceTree = "<group>"; };
 		6400996C8909B068E1496C1C /* AppConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfiguration.swift; sourceTree = "<group>"; };
 		6685FC13C6BDCFF3928269DF /* SectionPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SectionPicker.swift; sourceTree = "<group>"; };
+		6F3F133EBB205B37ADF1A113 /* MatchupBoxscoreView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MatchupBoxscoreView.swift; sourceTree = "<group>"; };
 		722EC606D4D20DB5CACCE5E1 /* SignInView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignInView.swift; sourceTree = "<group>"; };
 		76013A84901DC11BF8157CAA /* NotOnTheRosterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotOnTheRosterView.swift; sourceTree = "<group>"; };
 		7D337817B4D94977D9118686 /* Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Debug.xcconfig; sourceTree = "<group>"; };
@@ -191,6 +193,7 @@
 			children = (
 				9F8E12DD1D1FACD5AD7C4F45 /* CoachView.swift */,
 				040A21A41FBC8D0A46A7CAB9 /* CoachViewModel.swift */,
+				6F3F133EBB205B37ADF1A113 /* MatchupBoxscoreView.swift */,
 				BF7395A6303E9F6392B366FC /* MatchupsView.swift */,
 				19CAF352C89479A5D8415900 /* MatchupsViewModel.swift */,
 				E2ECC67CFE4ACEAA8E570FA7 /* NFLScoresView.swift */,
@@ -507,6 +510,7 @@
 				C7B013AA42E98992D0791121 /* LeagueChatView.swift in Sources */,
 				F6692FE43393690B2EBCF429 /* LeagueChatViewModel.swift in Sources */,
 				D034477AA96A788485C238A0 /* Loadable.swift in Sources */,
+				B04B9FE5A7AA5342EBB65711 /* MatchupBoxscoreView.swift in Sources */,
 				D51A5252E1B29247083E7149 /* MatchupsView.swift in Sources */,
 				94A01FAD9CF58E3161976C91 /* MatchupsViewModel.swift in Sources */,
 				52336F7120F8E612A2A04EBB /* MemberDetailView.swift in Sources */,

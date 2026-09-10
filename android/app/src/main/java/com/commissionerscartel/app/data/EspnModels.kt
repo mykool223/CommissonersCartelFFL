@@ -83,4 +83,39 @@ data class EspnSide(
     val teamId: Int? = null,
     val totalPoints: Double? = null,
     @SerialName("totalPointsLive") val totalPointsLive: Double? = null,
+    /**
+     * The roster as it stands now: complete while a week is being played, and
+     * the wrong one for a week that finished, where it shows today's lineup.
+     * Present only when the payload was fetched with mBoxscore.
+     */
+    val rosterForCurrentScoringPeriod: EspnRoster? = null,
+    /**
+     * The roster as it was for this matchup period. Right for a settled week,
+     * only partly filled in while one is still going.
+     */
+    val rosterForMatchupPeriod: EspnRoster? = null,
+)
+
+@Serializable
+data class EspnRoster(val entries: List<EspnRosterEntry> = emptyList())
+
+@Serializable
+data class EspnRosterEntry(
+    /** 20 is the bench, 21 injured reserve, 23 the flex. */
+    val lineupSlotId: Int? = null,
+    val playerPoolEntry: EspnPlayerPoolEntry? = null,
+)
+
+@Serializable
+data class EspnPlayerPoolEntry(
+    val id: Int? = null,
+    val appliedStatTotal: Double? = null,
+    val player: EspnPlayer? = null,
+)
+
+@Serializable
+data class EspnPlayer(
+    val id: Int? = null,
+    val fullName: String? = null,
+    val defaultPositionId: Int? = null,
 )

@@ -41,7 +41,9 @@ class EspnClient(
     /** Matches the iOS client's two-minute cache. */
     private val ttlMillis = 2 * 60 * 1000L
 
-    private val views = listOf("mSettings", "mTeam", "mMatchupScore")
+    // mBoxscore is what carries player names and their points; without it
+    // the roster entries arrive stripped of everything but statistics.
+    private val views = listOf("mSettings", "mTeam", "mMatchupScore", "mBoxscore")
 
     suspend fun payload(): EspnPayload {
         cached?.let { (payload, at) ->

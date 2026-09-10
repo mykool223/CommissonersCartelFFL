@@ -92,6 +92,42 @@ struct ESPNLeagueResponse: Decodable {
             /// when they ask what the score is.
             let totalPointsLive: Double?
             let totalProjectedPointsLive: Double?
+            /// Present only when the payload was fetched with `mBoxscore`.
+            /// Without that view the entries arrive stripped of names, which
+            /// is why the app asks for it.
+            ///
+            /// This is the roster as it stands now, so it is the complete and
+            /// current one while a week is being played — and the wrong one
+            /// for a week that finished, where it would show today's lineup.
+            let rosterForCurrentScoringPeriod: RosterDTO?
+            /// The roster as it was for this matchup period. Correct for a
+            /// week that has been settled, but only partly filled in while one
+            /// is still being played.
+            let rosterForMatchupPeriod: RosterDTO?
+
+            struct RosterDTO: Decodable {
+                let entries: [EntryDTO]?
+
+                struct EntryDTO: Decodable {
+                    /// ESPN's slot numbering: 20 is the bench, 21 injured
+                    /// reserve, 23 the flex. Translated in ESPNMapper.
+                    let lineupSlotId: Int?
+                    let playerPoolEntry: PlayerPoolEntryDTO?
+
+                    struct PlayerPoolEntryDTO: Decodable {
+                        let id: Int?
+                        /// What this player has scored this week.
+                        let appliedStatTotal: Double?
+                        let player: PlayerDTO?
+
+                        struct PlayerDTO: Decodable {
+                            let id: Int?
+                            let fullName: String?
+                            let defaultPositionId: Int?
+                        }
+                    }
+                }
+            }
         }
     }
 }

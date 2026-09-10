@@ -153,7 +153,89 @@ enum ESPNMapper {
                 ? (dto.totalPoints ?? 0)
                 : (dto.totalPointsLive ?? dto.totalPoints ?? 0),
             // Projections are meaningless once the games are final.
-            projectedPoints: isComplete ? nil : dto.totalProjectedPointsLive
+            projectedPoints: isComplete ? nil : dto.totalProjectedPointsLive,
+            // A settled week wants the roster that actually played it;
+            // ESPN's "current" roster would show whoever is on the team
+            // today. A week still going wants the opposite: the matchup-period
+            // roster fills in only as players lock, so mid-Sunday it is a
+            // handful of names rather than a lineup.
+            roster: roster(
+                from: isComplete
+                    ? (dto.rosterForMatchupPeriod ?? dto.rosterForCurrentScoringPeriod)
+                    : (dto.rosterForCurrentScoringPeriod ?? dto.rosterForMatchupPeriod)
+            )
         )
+    }
+
+    /// What a player is, by ESPN's `defaultPositionId`.
+    private static let positions: [Int: String] = [
+        1: "QB", 2: "RB", 3: "WR", 4: "TE", 5: "K",
+        9: "DT", 10: "DE", 11: "LB", 12: "CB", 13: "S", 14: "DB",
+        16: "D/ST", 17: "P", 18: "HC",
+    ]
+
+    /// Where a player is being played, by ESPN's `lineupSlotId`, with the
+    /// order a lineup is conventionally read in.
+    ///
+    /// The bench and injured reserve sort last on purpose: a boxscore is read
+    /// starters first, and burying the people who actually scored underneath
+    /// the ones who did not would be a strange way to show it.
+    private static let slots: [Int: (label: String, rank: Int, isStarter: Bool)] = [
+        0: ("QB", 0, true),
+        2: ("RB", 1, true),
+        4: ("WR", 2, true),
+        6: ("TE", 3, true),
+        23: ("FLEX", 4, true),
+        3: ("RB/WR", 4, true),
+        5: ("WR/TE", 4, true),
+        7: ("OP", 5, true),
+        16: ("D/ST", 6, true),
+        17: ("K", 7, true),
+        8: ("DT", 8, true), 9: ("DE", 8, true), 10: ("LB", 8, true),
+        11: ("DL", 8, true), 12: ("CB", 8, true), 13: ("S", 8, true),
+        14: ("DB", 8, true), 15: ("DP", 8, true), 18: ("P", 8, true),
+        19: ("HC", 8, true),
+        20: ("Bench", 98, false),
+        21: ("IR", 99, false),
+    ]
+
+    private static func roster(
+        from dto: ESPNLeagueResponse.ScheduleItemDTO.SideDTO.RosterDTO?
+    ) -> [RosterEntry] {
+        guard let entries = dto?.entries else { return [] }
+
+        return entries.compactMap { entry -> (RosterEntry, Int)? in
+            guard let pool = entry.playerPoolEntry else { return nil }
+            let player = pool.player
+            // A player with no id cannot be identified or deduplicated, and a
+            // row with no name is not worth showing anybody.
+            guard let id = player?.id ?? pool.id, let name = player?.fullName else {
+                return nil
+            }
+            // An unknown slot is treated as a starter: ESPN adds slots for new
+            // formats, and hiding somebody who is scoring is worse than
+            // showing a slot label we do not have a name for.
+            let slot = slots[entry.lineupSlotId ?? -1] ?? ("—", 50, true)
+            return (
+                RosterEntry(
+                    playerID: id,
+                    name: name,
+                    position: positions[player?.defaultPositionId ?? -1] ?? "—",
+                    slot: slot.label,
+                    isStarter: slot.isStarter,
+                    points: pool.appliedStatTotal ?? 0
+                ),
+                slot.rank
+            )
+        }
+        // Stable within a slot: ESPN's own roster order, which is how the two
+        // running backs stay in the same order between refreshes.
+        .enumerated()
+        .sorted { left, right in
+            left.element.1 == right.element.1
+                ? left.offset < right.offset
+                : left.element.1 < right.element.1
+        }
+        .map(\.element.0)
     }
 }

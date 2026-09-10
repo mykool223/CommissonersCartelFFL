@@ -22,6 +22,7 @@ public actor ESPNClient: LeagueDataSource {
         "mSettings",   // league name, schedule length
         "mTeam",       // team names, logos, owners, records
         "mMatchupScore", // weekly scores
+        "mBoxscore",   // who is in the lineup and what they have scored
     ]
 
     public init(

@@ -38,9 +38,24 @@ import com.commissionerscartel.app.ui.CartelGold
 import com.commissionerscartel.app.ui.WinGreen
 import com.commissionerscartel.app.ui.TeamLogo
 import java.util.Locale
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.draw.alpha
+import com.commissionerscartel.app.data.RosterEntry
 
 @Composable
 fun ScoreboardSection(data: MatchupsData) {
+    var opened by remember { mutableStateOf<Matchup?>(null) }
+
+    opened?.let { matchup ->
+        MatchupBoxscore(matchup, data.teams, onBack = { opened = null })
+        return
+    }
+
     LazyColumn(
         Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
@@ -57,7 +72,10 @@ fun ScoreboardSection(data: MatchupsData) {
         if (data.matchups.isEmpty()) {
             item { Text("No fixtures for this week yet.", style = MaterialTheme.typography.bodyMedium) }
         }
-        items(data.matchups.size) { index -> MatchupCard(data.matchups[index], data.teams) }
+        items(data.matchups.size) { index ->
+            val matchup = data.matchups[index]
+            MatchupCard(matchup, data.teams, onClick = { opened = matchup })
+        }
     }
 }
 
@@ -82,8 +100,8 @@ fun NflSection(data: MatchupsData) {
 }
 
 @Composable
-private fun MatchupCard(matchup: Matchup, teams: Map<Int, Team>) {
-    Card(Modifier.fillMaxWidth()) {
+private fun MatchupCard(matchup: Matchup, teams: Map<Int, Team>, onClick: () -> Unit) {
+    Card(Modifier.fillMaxWidth().clickable(onClick = onClick)) {
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Side(teams[matchup.awayTeamId], matchup.awayScore, matchup.status)
             Side(teams[matchup.homeTeamId], matchup.homeScore, matchup.status)
@@ -190,6 +208,117 @@ private fun NflSide(side: NflCompetitor, isFinal: Boolean) {
             // The winner in green, matching iOS. Only once it is decided —
             // colouring a leader mid-game reads as a result.
             color = if (isFinal && side.isWinner) WinGreen else MaterialTheme.colorScheme.onSurface,
+        )
+    }
+}
+
+/**
+ * One matchup, player by player.
+ *
+ * Stacked by team rather than side by side: two lineups across a phone leaves
+ * room for about nine characters of a name, and "Amon-Ra St. Brown" is not
+ * nine characters.
+ */
+@Composable
+private fun MatchupBoxscore(matchup: Matchup, teams: Map<Int, Team>, onBack: () -> Unit) {
+    LazyColumn(
+        Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        item {
+            TextButton(onClick = onBack) { Text("‹  Back to scoreboard") }
+        }
+        item {
+            Text(
+                "WEEK ${matchup.week}",
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+                color = CartelGold,
+            )
+        }
+        item {
+            Lineup(teams[matchup.homeTeamId], matchup.homeScore, matchup.homeRoster)
+        }
+        item {
+            Lineup(teams[matchup.awayTeamId], matchup.awayScore, matchup.awayRoster)
+        }
+    }
+}
+
+@Composable
+private fun Lineup(team: Team?, score: Double, roster: List<RosterEntry>) {
+    Card(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    team?.name ?: "TBD",
+                    Modifier.weight(1f),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                )
+                Text(
+                    "%.1f".format(score),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                )
+            }
+
+            if (roster.isEmpty()) {
+                // Not an error: a week ESPN has posted no lineup for looks
+                // exactly like this, and saying so beats an empty card that
+                // reads as a bug.
+                Text(
+                    "ESPN hasn't posted a lineup for this week yet.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else {
+                roster.filter { it.isStarter }.forEach { PlayerRow(it) }
+                val bench = roster.filterNot { it.isStarter }
+                if (bench.isNotEmpty()) {
+                    Text(
+                        "BENCH",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    bench.forEach { PlayerRow(it) }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PlayerRow(entry: RosterEntry) {
+    // The bench is context, not the story, so it recedes rather than competing
+    // with the lineup that is actually scoring.
+    val fade = if (entry.isStarter) 1f else 0.6f
+    Row(
+        Modifier.fillMaxWidth().alpha(fade),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            entry.slot,
+            Modifier.width(46.dp),
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Bold,
+            color = if (entry.isStarter) CartelGold else MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Column(Modifier.weight(1f)) {
+            Text(entry.name, style = MaterialTheme.typography.bodyMedium, maxLines = 1)
+            Text(
+                entry.position,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Text(
+            "%.1f".format(entry.points),
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = if (entry.isStarter) FontWeight.SemiBold else FontWeight.Normal,
         )
     }
 }

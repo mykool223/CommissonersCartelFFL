@@ -91,6 +91,85 @@ object EspnMapper {
                     homeScore = homeScore,
                     awayScore = awayScore,
                     status = status,
+                    homeRoster = roster(home, settled),
+                    awayRoster = roster(away, settled),
                 )
             }
+
+    /** What a player is, by ESPN's defaultPositionId. */
+    private val positions = mapOf(
+        1 to "QB", 2 to "RB", 3 to "WR", 4 to "TE", 5 to "K",
+        9 to "DT", 10 to "DE", 11 to "LB", 12 to "CB", 13 to "S", 14 to "DB",
+        16 to "D/ST", 17 to "P", 18 to "HC",
+    )
+
+    /**
+     * Where a player is being played, by ESPN's lineupSlotId, with the order a
+     * lineup is conventionally read in. Bench and injured reserve sort last:
+     * a boxscore is read starters first, and burying the people who scored
+     * under the ones who did not would be a strange way to show it.
+     */
+    private data class Slot(val label: String, val rank: Int, val isStarter: Boolean)
+
+    private val slots = mapOf(
+        0 to Slot("QB", 0, true),
+        2 to Slot("RB", 1, true),
+        4 to Slot("WR", 2, true),
+        6 to Slot("TE", 3, true),
+        23 to Slot("FLEX", 4, true),
+        3 to Slot("RB/WR", 4, true),
+        5 to Slot("WR/TE", 4, true),
+        7 to Slot("OP", 5, true),
+        16 to Slot("D/ST", 6, true),
+        17 to Slot("K", 7, true),
+        8 to Slot("DT", 8, true), 9 to Slot("DE", 8, true), 10 to Slot("LB", 8, true),
+        11 to Slot("DL", 8, true), 12 to Slot("CB", 8, true), 13 to Slot("S", 8, true),
+        14 to Slot("DB", 8, true), 15 to Slot("DP", 8, true), 18 to Slot("P", 8, true),
+        19 to Slot("HC", 8, true),
+        20 to Slot("Bench", 98, false),
+        21 to Slot("IR", 99, false),
+    )
+
+    /**
+     * A settled week wants the roster that actually played it; ESPN's
+     * "current" roster would show whoever is on the team today. A week still
+     * going wants the opposite: the matchup-period roster fills in only as
+     * players lock, so mid-Sunday it is a handful of names, not a lineup.
+     */
+    private fun roster(side: EspnSide?, settled: Boolean): List<RosterEntry> {
+        if (side == null) return emptyList()
+        val source =
+            if (settled) side.rosterForMatchupPeriod ?: side.rosterForCurrentScoringPeriod
+            else side.rosterForCurrentScoringPeriod ?: side.rosterForMatchupPeriod
+        val entries = source?.entries ?: return emptyList()
+
+        return entries.mapIndexedNotNull { index, entry ->
+            val pool = entry.playerPoolEntry ?: return@mapIndexedNotNull null
+            val player = pool.player
+            // Nothing identifiable or nothing to call them by: not a row worth
+            // showing anybody.
+            val id = player?.id ?: pool.id ?: return@mapIndexedNotNull null
+            val name = player?.fullName ?: return@mapIndexedNotNull null
+            // An unknown slot counts as a starter: ESPN adds slots for new
+            // formats, and hiding somebody who is scoring is worse than
+            // showing a label we do not have a name for.
+            val slot = slots[entry.lineupSlotId] ?: Slot("—", 50, true)
+            Triple(
+                index,
+                slot.rank,
+                RosterEntry(
+                    playerId = id,
+                    name = name,
+                    position = positions[player.defaultPositionId] ?: "—",
+                    slot = slot.label,
+                    isStarter = slot.isStarter,
+                    points = pool.appliedStatTotal ?: 0.0,
+                ),
+            )
+        }
+            // Stable within a slot: ESPN's own order, which is what keeps two
+            // running backs in the same order between refreshes.
+            .sortedWith(compareBy({ it.second }, { it.first }))
+            .map { it.third }
+    }
 }

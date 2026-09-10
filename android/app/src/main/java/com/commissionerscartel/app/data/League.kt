@@ -63,6 +63,24 @@ data class Manager(
 
 enum class MatchupStatus { Scheduled, InProgress, Final }
 
+/**
+ * One player on a team for a week, and what they have scored.
+ *
+ * Free of ESPN's numbering on purpose: the wire format uses integer ids for
+ * both the position and the slot, and those mean nothing outside ESPN. They
+ * are translated once, in EspnMapper.
+ */
+data class RosterEntry(
+    val playerId: Int,
+    val name: String,
+    /** What the player is — "QB", "RB", "D/ST". */
+    val position: String,
+    /** Where they are being played — "QB", "FLEX", "Bench". Not the same. */
+    val slot: String,
+    val isStarter: Boolean,
+    val points: Double,
+)
+
 data class Matchup(
     val week: Int,
     val homeTeamId: Int?,
@@ -70,4 +88,8 @@ data class Matchup(
     val homeScore: Double,
     val awayScore: Double,
     val status: MatchupStatus,
+    /** Starters first in lineup order, then the bench. Empty if ESPN has
+     *  posted no lineup for the week. */
+    val homeRoster: List<RosterEntry> = emptyList(),
+    val awayRoster: List<RosterEntry> = emptyList(),
 )

@@ -146,7 +146,14 @@ struct MatchupsView: View {
             )
         } else {
             ForEach(board.matchups) { matchup in
-                MatchupCard(matchup: matchup, board: board)
+                NavigationLink {
+                    MatchupBoxscoreView(matchup: matchup, board: board)
+                } label: {
+                    MatchupCard(matchup: matchup, board: board)
+                }
+                // Without this the card's own colours are replaced by the
+                // link's accent and every team name turns blue.
+                .buttonStyle(.plain)
             }
         }
     }

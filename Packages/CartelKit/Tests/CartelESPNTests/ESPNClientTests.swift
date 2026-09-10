@@ -111,6 +111,68 @@ struct ESPNLiveScoringTests {
     }
 }
 
+@Suite("Boxscore")
+struct ESPNBoxscoreTests {
+    /// Slots out of lineup order on purpose — ESPN returns them in roster
+    /// order, not the order a lineup is read in.
+    private static let payload = """
+    {
+      "id": 1234567,
+      "schedule": [{
+        "id": 1, "matchupPeriodId": 1, "winner": "UNDECIDED",
+        "home": {
+          "teamId": 10, "totalPoints": 0.0, "totalPointsLive": 21.4,
+          "rosterForCurrentScoringPeriod": {"entries": [
+            {"lineupSlotId": 20, "playerPoolEntry": {"appliedStatTotal": 0.0,
+              "player": {"id": 5, "fullName": "Benched Barry", "defaultPositionId": 1}}},
+            {"lineupSlotId": 23, "playerPoolEntry": {"appliedStatTotal": 7.8,
+              "player": {"id": 3, "fullName": "Flex Fred", "defaultPositionId": 2}}},
+            {"lineupSlotId": 0, "playerPoolEntry": {"appliedStatTotal": 13.6,
+              "player": {"id": 1, "fullName": "Quarter Quinn", "defaultPositionId": 1}}},
+            {"lineupSlotId": 21, "playerPoolEntry": {"appliedStatTotal": 0.0,
+              "player": {"id": 6, "fullName": "Injured Ivy", "defaultPositionId": 3}}},
+            {"lineupSlotId": 4, "playerPoolEntry": {"appliedStatTotal": 0.0,
+              "player": {"id": 2, "fullName": "Wide Wendy", "defaultPositionId": 3}}}
+          ]}
+        },
+        "away": {"teamId": 7, "totalPoints": 0.0, "totalPointsLive": 6.0}
+      }]
+    }
+    """
+
+    @Test("Starters come back in lineup order, with the bench after them")
+    func rosterOrder() async throws {
+        let matchups = try await clientOverPayload(Self.payload).matchups(week: 1)
+        let home = try #require(matchups.first).home
+
+        #expect(home.roster.map(\.name) == [
+            "Quarter Quinn", "Wide Wendy", "Flex Fred", "Benched Barry", "Injured Ivy",
+        ])
+        #expect(home.starters.map(\.slot) == ["QB", "WR", "FLEX"])
+        #expect(home.bench.map(\.slot) == ["Bench", "IR"])
+    }
+
+    @Test("A player keeps their own position, not the slot they are filling")
+    func positionVersusSlot() async throws {
+        let matchups = try await clientOverPayload(Self.payload).matchups(week: 1)
+        let home = try #require(matchups.first).home
+        let flex = try #require(home.roster.first { $0.name == "Flex Fred" })
+        // A running back in the flex is an RB in FLEX, not a FLEX.
+        #expect(flex.position == "RB")
+        #expect(flex.slot == "FLEX")
+        #expect(flex.points == 7.8)
+    }
+
+    @Test("A side with no boxscore in the payload has an empty roster, not a crash")
+    func missingRoster() async throws {
+        let matchups = try await clientOverPayload(Self.payload).matchups(week: 1)
+        let matchup = try #require(matchups.first)
+        let away = try #require(matchup.away)
+        #expect(away.roster.isEmpty)
+        #expect(away.points == 6.0)
+    }
+}
+
 @Suite("ESPN request building")
 struct ESPNRequestTests {
     @Test("URL carries the season, league id and one query item per view")
