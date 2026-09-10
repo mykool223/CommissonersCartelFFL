@@ -98,6 +98,49 @@ final class MatchupsViewModel {
         nflScoreboard = try? await environment.nflScoreboard.scoreboard()
     }
 
+    /// Whether a game is being played right now.
+    var isAnythingLive: Bool {
+        nflScoreboard?.games.contains { $0.state == .inProgress } ?? false
+    }
+
+    /// Keeps the score on screen close to the score on the television.
+    ///
+    /// Until now the board showed whatever had loaded when the tab was opened
+    /// and then sat there, so the only way to see a score change was to pull
+    /// down — on the one screen people leave open all afternoon precisely
+    /// because they want to watch it change.
+    ///
+    /// A minute while something is in progress, a quarter of an hour when
+    /// nothing is: outside game hours this would otherwise refetch the same
+    /// numbers all day on somebody's phone. It ticks every minute either way
+    /// so that a kickoff is picked up promptly rather than up to fifteen
+    /// minutes late.
+    ///
+    /// Cancellation is the whole safety story. SwiftUI cancels this when the
+    /// section changes, the tab is left, or the app stops being frontmost, so
+    /// it never runs behind anyone's back or on a screen nobody is looking at.
+    func pollLiveScores(using environment: AppEnvironment, scoresOnly: Bool) async {
+        var waited: Duration = .zero
+        while !Task.isCancelled {
+            try? await Task.sleep(for: .seconds(60))
+            guard !Task.isCancelled else { return }
+
+            waited += .seconds(60)
+            let due: Duration = isAnythingLive ? .seconds(60) : .seconds(900)
+            guard waited >= due else { continue }
+            waited = .zero
+
+            if scoresOnly {
+                // The NFL section does not need the league payload, and
+                // fetching it would be a lot of bytes nobody is looking at.
+                await environment.nflScoreboard.refresh()
+                await loadNFLScores(using: environment)
+            } else {
+                await refresh(using: environment)
+            }
+        }
+    }
+
     func load(using environment: AppEnvironment, showSpinner: Bool = true) async {
         if showSpinner, state.isInitialLoad { state = .loading }
 

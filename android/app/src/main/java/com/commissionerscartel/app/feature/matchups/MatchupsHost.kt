@@ -35,6 +35,9 @@ import com.commissionerscartel.app.data.PowerRanking
 import com.commissionerscartel.app.data.Supabase
 import com.commissionerscartel.app.data.Config
 import androidx.compose.runtime.LaunchedEffect
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
 import com.commissionerscartel.app.data.Team
 import com.commissionerscartel.app.data.WeeklyAward
 import com.commissionerscartel.app.feature.coach.CoachScreen
@@ -56,6 +59,18 @@ enum class MatchupsSection(val label: String) {
 fun MatchupsHost(modifier: Modifier = Modifier, model: MatchupsViewModel = viewModel()) {
     var section by remember { mutableStateOf(MatchupsSection.Scoreboard) }
     val state by model.state.collectAsStateWithLifecycle()
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    // Only the two sections showing a score that moves, and only while the app
+    // is actually in front of somebody: repeatOnLifecycle stops the poll on
+    // the way to the background and starts it again on the way back.
+    LaunchedEffect(section, lifecycleOwner) {
+        if (section == MatchupsSection.Scoreboard || section == MatchupsSection.Nfl) {
+            lifecycleOwner.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+                model.pollLiveScores()
+            }
+        }
+    }
 
     Column(modifier.fillMaxSize()) {
         // Four chips do not fit across a phone, so this row scrolls.

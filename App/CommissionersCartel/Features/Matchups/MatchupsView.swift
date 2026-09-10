@@ -45,8 +45,13 @@ enum MatchupsSection: String, TabSection {
 
 struct MatchupsView: View {
     @Environment(AppEnvironment.self) private var environment
+    @Environment(\.scenePhase) private var scenePhase
     @State private var model = MatchupsViewModel()
     @State private var section: MatchupsSection = .initial(default: .scoreboard)
+
+    /// Restarts the poll when the section changes or the app moves in or out
+    /// of the foreground, and cancels it when this view goes away.
+    private var pollKey: String { "\(section.rawValue)-\(scenePhase)" }
 
     var body: some View {
         NavigationStack {
@@ -97,6 +102,14 @@ struct MatchupsView: View {
                 if section == .recap {
                     await model.showMostRecentPlayedWeek(using: environment)
                 }
+            }
+            // Only the two sections that show a score that moves, and only
+            // while the app is in front of somebody.
+            .task(id: pollKey) {
+                guard scenePhase == .active,
+                      section == .scoreboard || section == .nfl else { return }
+                await model.pollLiveScores(
+                    using: environment, scoresOnly: section == .nfl)
             }
             .onChange(of: section) { _, newSection in
                 Task {

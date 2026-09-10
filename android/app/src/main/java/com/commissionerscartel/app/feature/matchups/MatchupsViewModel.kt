@@ -12,6 +12,7 @@ import com.commissionerscartel.app.data.NflScoreboard
 import com.commissionerscartel.app.data.Team
 import com.commissionerscartel.app.data.WeeklyAward
 import com.commissionerscartel.app.data.WeeklyAwards
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -85,10 +86,47 @@ class MatchupsViewModel : ViewModel() {
 
     init { load() }
 
-    fun load() {
+    /** Whether a game is being played right now. */
+    private val isAnythingLive: Boolean
+        get() = (_state.value as? MatchupsState.Loaded)?.data?.nfl?.any { it.isLive } == true
+
+    /**
+     * Keeps the score on screen close to the score on the television.
+     *
+     * Until now the board showed whatever had loaded when the tab was opened
+     * and then sat there, so the only way to see a score change was to leave
+     * and come back — on the one screen people keep open all afternoon
+     * precisely because they want to watch it change.
+     *
+     * A minute while something is in progress, a quarter of an hour when
+     * nothing is: outside game hours this would otherwise refetch the same
+     * numbers all day on somebody's phone. It ticks every minute either way so
+     * a kickoff is picked up promptly rather than up to fifteen minutes late.
+     *
+     * The caller scopes this to the resumed lifecycle, so it stops when the
+     * app goes to the background rather than polling behind somebody's back.
+     */
+    suspend fun pollLiveScores() {
+        var waited = 0L
+        while (true) {
+            delay(60_000)
+            waited += 60
+            val due = if (isAnythingLive) 60L else 900L
+            if (waited < due) continue
+            waited = 0
+            load(forceRefresh = true)
+        }
+    }
+
+    /**
+     * @param forceRefresh drops the two-minute ESPN cache first. Without it a
+     *   poll faster than the cache would replay the same payload back.
+     */
+    fun load(forceRefresh: Boolean = false) {
         viewModelScope.launch {
             _state.value = runCatching {
-                val payload = AppGraph.espn.payload()
+                val payload =
+                    if (forceRefresh) AppGraph.espn.refresh() else AppGraph.espn.payload()
                 val league = EspnMapper.league(payload, AppGraph.season)
                 val teams = EspnMapper.teams(payload, AppGraph.espn).associateBy { it.id }
                 // Real NFL scores are a bonus; losing them must not empty the
