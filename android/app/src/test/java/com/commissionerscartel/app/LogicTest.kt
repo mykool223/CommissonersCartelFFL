@@ -200,6 +200,11 @@ class PollDecodingTest {
 
     @Test
     fun `decodes the payload the function actually returns`() {
+        // Computed rather than written down. A fixed close date turned into
+        // the past at midnight UTC on 10 September 2026, and the test started
+        // failing on an assertion about a poll being open — which by then it
+        // was not. The date is incidental to what this test is about.
+        val closesAt = java.time.Instant.now().plus(java.time.Duration.ofDays(30))
         val payload = """
             [{
               "id": "53302675-0bd5-4134-a683-29031bb7f8bd",
@@ -208,7 +213,7 @@ class PollDecodingTest {
               "week": 1,
               "created_by_name": "The Commissioner",
               "created_at": "2026-08-24T14:00:00+00:00",
-              "closes_at": "2026-09-10T00:00:00+00:00",
+              "closes_at": "$closesAt",
               "my_vote_option_id": null,
               "options": [
                 {"id": "a", "label": "Ja'Marr Chase (CIN)", "vote_count": 2},
