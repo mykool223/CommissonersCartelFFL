@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
-"""Ranks the league by the best lineup each team could actually field.
+"""Ranks the league on what has actually been played.
 
-Not by record — in September nobody has one worth reading, and a team can win
-on a bad week from a weak roster. This scores the strongest legal lineup each
-roster could put out, on the FantasyPros expert consensus where we have a
-number and ESPN's projection where we do not, using the same solver the coach
-uses. Everybody is measured the same way.
+By points scored across the completed weeks, which is the one measure nobody
+can argue with and nobody can be unlucky in. Record is shown but does not sort:
+a team can lose a week having scored the second most points in the league, and
+calling that the eleventh best team is how a ranking loses everybody's trust.
+
+It used to rank the strongest lineup each roster could field in the *coming*
+week, on expert projections. That is a defensible thing to measure and it read
+as broken: the team that had just scored the most points in the league came out
+eleventh, because the ranking was answering a question nobody had asked.
 
 Each week is stored so the next one can show movement, and the result is posted
 to league news.
@@ -24,10 +28,8 @@ Usage:
 from __future__ import annotations
 
 import datetime as dt
-import importlib.util
 import json
 import os
-import pathlib
 import sys
 import urllib.error
 import urllib.parse
@@ -35,16 +37,6 @@ import urllib.request
 
 ESPN_HOST = "https://lm-api-reads.fantasy.espn.com"
 USER_AGENT = "curl/8.7.1"
-
-BENCH_SLOTS = {20, 21}
-
-# The lineup solver lives with the Sunday coach. Importing it rather than
-# copying it is the only way two rankings cannot disagree about what a lineup
-# is worth.
-_spec = importlib.util.spec_from_file_location(
-    "lineup_coach", pathlib.Path(__file__).with_name("lineup_coach.py"))
-lineup_coach = importlib.util.module_from_spec(_spec)
-_spec.loader.exec_module(lineup_coach)
 
 
 def log(message: str) -> None:
@@ -90,57 +82,6 @@ def supabase(method: str, path: str, body: object = None,
         return json.loads(raw) if raw else None
 
 
-def consensus_points(season: int, week: int) -> dict[int, float]:
-    """Consensus projections keyed by ESPN player id."""
-    rows = supabase(
-        "GET",
-        "fantasypros_projections?select=points_ppr,fantasypros_players!inner(espn_id)"
-        f"&season=eq.{season}&week=eq.{week}&limit=2000",
-    ) or []
-    out: dict[int, float] = {}
-    for row in rows:
-        espn_id = (row.get("fantasypros_players") or {}).get("espn_id")
-        if espn_id is not None and row.get("points_ppr") is not None:
-            out[int(espn_id)] = float(row["points_ppr"])
-    return out
-
-
-def projection(player: dict, week: int) -> float:
-    for row in player.get("stats") or []:
-        if row.get("statSourceId") == 1 and row.get("scoringPeriodId") == week:
-            return float(row.get("appliedTotal") or 0)
-    return 0.0
-
-
-def starting_slots(data: dict) -> list[int]:
-    counts = ((data.get("settings") or {}).get("rosterSettings") or {}) \
-        .get("lineupSlotCounts") or {}
-    slots: list[int] = []
-    for slot, count in counts.items():
-        if int(slot) in BENCH_SLOTS:
-            continue
-        slots.extend([int(slot)] * int(count))
-    return slots
-
-
-def score(team: dict, slots: list[int], week: int,
-          consensus: dict[int, float]) -> float:
-    players = []
-    for entry in (team.get("roster") or {}).get("entries") or []:
-        raw = (entry.get("playerPoolEntry") or {}).get("player") or {}
-        if raw.get("id") is None:
-            continue
-        players.append({
-            "id": raw["id"],
-            "name": raw.get("fullName") or "A player",
-            # Consensus where we have it, ESPN where we do not.
-            "points": consensus.get(raw["id"], projection(raw, week)),
-            "eligible": set(raw.get("eligibleSlots") or []),
-        })
-    total, _ = lineup_coach.best_lineup(players, slots)
-    return round(total, 1)
-
-
 def arrow(previous: int | None, rank: int) -> str:
     if previous is None:
         return ""
@@ -150,21 +91,30 @@ def arrow(previous: int | None, rank: int) -> str:
     return f" {'▲' if moved > 0 else '▼'}{abs(moved)}"
 
 
+def overall(team: dict) -> dict:
+    """ESPN's cumulative record for the completed weeks."""
+    return (team.get("record") or {}).get("overall") or {}
+
+
+def record_of(team: dict) -> str:
+    """"2-1", or "2-1-1" when a tie is involved."""
+    o = overall(team)
+    wins, losses = int(o.get("wins") or 0), int(o.get("losses") or 0)
+    ties = int(o.get("ties") or 0)
+    return f"{wins}-{losses}-{ties}" if ties else f"{wins}-{losses}"
+
+
 def compose(week: int, rows: list[dict], previous: dict[int, int]) -> str:
+    through = week - 1
     lines = [
-        f"Strength of the best lineup each team could field in week {week}, "
-        "on the expert consensus. Not record — records in September say very "
-        "little, and a bad team can win a good week.",
-        "",
-        "This measures one Sunday, not how good a roster is. FantasyPros' own "
-        "league analyzer scores whole rosters against draft rankings and will "
-        "often say something different. Both are true; they are answering "
-        "different questions.",
+        f"Points scored through week {through}. Ranked on what has been put on "
+        "the board, not on record — a team can lose a week having scored the "
+        "second most points in the league, and the schedule is nobody's doing.",
         "",
     ]
     for row in rows:
         lines.append(
-            f"{row['rank']}. {row['team_name']} — {row['score']}"
+            f"{row['rank']}. {row['team_name']} — {row['score']} ({row['record']})"
             f"{arrow(previous.get(row['espn_team_id']), row['rank'])}")
 
     movers = [
@@ -176,8 +126,7 @@ def compose(week: int, rows: list[dict], previous: dict[int, int]) -> str:
         lines += ["", f"{climbed[1]['team_name']} climbed {climbed[0]} "
                       f"{'place' if climbed[0] == 1 else 'places'} this week."]
 
-    lines += ["", "Our own arithmetic, built on consensus data from "
-                  "FantasyPros. Not a FantasyPros ranking."]
+    lines += ["", "Total points scored, straight from the scoreboard."]
     return "\n".join(lines)
 
 
@@ -193,37 +142,41 @@ def main() -> int:
     league = os.environ["ESPN_LEAGUE_ID"]
 
     data = espn(f"/apis/v3/games/ffl/seasons/{season}/segments/0/leagues/{league}",
-                "view=mRoster&view=mTeam&view=mSettings")
+                # Records only. The rosters and the league settings were for
+                # solving lineups, which this no longer does.
+                "view=mTeam")
     week = int(os.environ.get("POWER_WEEK")
                or (data.get("status") or {}).get("currentMatchupPeriod") or 1)
 
-    # Nothing has been played before week 1 is done, so a ranking then is
-    # just a list of preseason projections dressed up as a verdict. The first
-    # one goes out after week 1, when it can show movement and mean something.
+    # Nothing has been played before week 1 is done, and a ranking of nothing
+    # is a list of projections dressed up as a verdict. The first one goes out
+    # once week 1 is complete, when it has results to stand on.
     if week < 2 and not os.environ.get("POWER_FORCE"):
-        log(f"Week {week}: too early to rank anybody. Nothing to publish.")
+        log(f"Week {week}: nothing has been played. Nothing to publish.")
         return 0
 
-    slots = starting_slots(data)
-    consensus = consensus_points(season, week)
-    log(f"Week {week}; {len(consensus)} consensus projections available")
+    log(f"Week {week}: ranking on play through week {week - 1}")
 
     scored = sorted(
         ({"espn_team_id": t["id"],
           "team_name": (t.get("name") or f"Team {t['id']}").strip(),
-          "score": score(t, slots, week, consensus)}
+          "score": round(float(overall(t).get("pointsFor") or 0.0), 1),
+          "record": record_of(t)}
          for t in data.get("teams") or []),
         key=lambda r: -r["score"],
     )
-    rows = [{**r, "season": season, "week": week, "rank": i + 1}
-            for i, r in enumerate(scored)]
+    ranked = [r | {"season": season, "week": week, "rank": i + 1}
+              for i, r in enumerate(scored)]
+    # The record belongs in the post, not in the table, which has no column
+    # for it.
+    rows = [{k: v for k, v in r.items() if k != "record"} for r in ranked]
 
-    # Projections for a week do not exist until close to it. Without them every
-    # team scores zero and the ranking is alphabetical noise — which would be
-    # published to the whole league as though it meant something.
+    # A league where nobody has scored means ESPN has given us no results —
+    # the ranking would be alphabetical noise published as though it meant
+    # something.
     if sum(1 for r in rows if r["score"] > 0) < len(rows) / 2:
-        log(f"Week {week}: projections are not out yet, so every team scores "
-            "nothing. Refusing to publish a ranking of zeros.")
+        log(f"Week {week}: ESPN reports no points for most teams. "
+            "Refusing to publish a ranking of zeros.")
         return 0
 
     prior = supabase(
@@ -232,8 +185,11 @@ def main() -> int:
     ) or []
     previous = {r["espn_team_id"]: r["rank"] for r in prior}
 
-    title = f"Week {week} Lineup Strength"
-    body = compose(week, rows, previous)
+    # The title carries the week that was played, not the week we are in —
+    # it was "Week 2 Lineup Strength" for a ranking of week 1's results, which
+    # reads as a forecast and is how the old measure confused everybody.
+    title = f"Power Rankings — through week {week - 1}"
+    body = compose(week, ranked, previous)
 
     if dry_run:
         log(f"DRY_RUN — would publish '{title}':")
