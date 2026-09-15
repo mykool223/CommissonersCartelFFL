@@ -13,6 +13,7 @@ final class PickemViewModel {
     private(set) var state: State = .idle
     private(set) var games: [PickemGame] = []
     private(set) var standings: [PickemStanding] = []
+    private(set) var seasonStandings: [PickemStanding] = []
     private(set) var isSaving = false
     private(set) var saveError: String?
     private(set) var week = 1
@@ -42,9 +43,11 @@ final class PickemViewModel {
             // does not silently undo the pick in front of somebody — which
             // also left the weight disabled and unchangeable.
             mine = stored.merging(mine.filter { stored[$0.key] == nil }) { server, _ in server }
-            // The table is a nicety; losing it should not lose the board.
+            // The tables are a nicety; losing them should not lose the board.
             standings = (try? await environment.content.pickemStandings(
                 season: season, week: week)) ?? []
+            seasonStandings = (try? await environment.content.pickemSeasonStandings(
+                season: season)) ?? []
             state = .ready
         } catch {
             state = .failed(error.localizedDescription)
@@ -52,6 +55,29 @@ final class PickemViewModel {
     }
 
     func pick(for game: PickemGame) -> PickemPick? { mine[game.eventID] }
+
+    /// The board in the order it should read: what you weighted heaviest at
+    /// the top, down to what you weighted least, with anything still unpicked
+    /// underneath in kickoff order.
+    ///
+    /// The point of a confidence pool is the order you put the games in, and
+    /// that order was invisible — the board sat in kickoff order and the
+    /// weights were scattered down it, so checking whether you had actually
+    /// ranked them the way you meant to required reading every row.
+    var orderedGames: [PickemGame] {
+        games.enumerated()
+            .sorted { left, right in rank(left) < rank(right) }
+            .map(\.element)
+    }
+
+    /// Picked games sort by weight, heaviest first. Unpicked games keep the
+    /// order they arrived in, which is kickoff order, and sit below the lot —
+    /// they are the ones still needing attention, and a game with no weight
+    /// has no place in a weighted list.
+    private func rank(_ entry: (offset: Int, element: PickemGame)) -> (Int, Int) {
+        guard let pick = mine[entry.element.eventID] else { return (1, entry.offset) }
+        return (0, -pick.confidence)
+    }
 
     /// A weight this game can be moved to, and who pays for it.
     struct WeightChoice: Identifiable, Equatable {

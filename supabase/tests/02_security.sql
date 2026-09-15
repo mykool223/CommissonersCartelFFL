@@ -467,6 +467,15 @@ begin
           where user_id = member::uuid and season = 2026 and week = 1) = 'Member',
         'the standings carry the member''s name');
 
+    -- The season table is the one that must not appear to reset every week.
+    -- Nothing is final in these fixtures, so the totals are zero — what is
+    -- being asserted is that the member has a row at all, which is the part
+    -- that used to be missing entirely.
+    perform assert(
+        (select count(*) from public.pickem_season_standings
+          where user_id = member::uuid and season = 2026) = 1,
+        'the season table carries a row per member, not per week');
+
     perform set_config('request.jwt.claim.sub', outsider, true);
     perform assert(blocked($q$
         insert into public.pickem_picks (user_id, season, week, event_id, chosen_abbr, confidence)

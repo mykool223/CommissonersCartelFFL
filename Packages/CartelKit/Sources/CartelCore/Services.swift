@@ -47,6 +47,9 @@ public protocol ContentRepository: Sendable {
     func savePickemPicks(season: Int, week: Int, picks: [PickemPick]) async throws
     /// The week's table, computed server-side.
     func pickemStandings(season: Int, week: Int) async throws -> [PickemStanding]
+    /// The season's running table. Counts final games only, so it does not
+    /// appear to reset every Tuesday the way the weekly one does.
+    func pickemSeasonStandings(season: Int) async throws -> [PickemStanding]
 
     /// Player news and analysis from FantasyPros, newest first.
     func analysis(limit: Int) async throws -> [AnalysisItem]

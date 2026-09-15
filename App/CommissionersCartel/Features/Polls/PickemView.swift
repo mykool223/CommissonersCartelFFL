@@ -41,7 +41,7 @@ struct PickemView: View {
             LazyVStack(spacing: Theme.Spacing.small) {
                 header
 
-                ForEach(model.games) { game in
+                ForEach(model.orderedGames) { game in
                     PickemRow(
                         game: game,
                         pick: model.pick(for: game),
@@ -51,11 +51,15 @@ struct PickemView: View {
                     )
                 }
 
+                if !model.seasonStandings.isEmpty {
+                    standingsTable("SEASON", rows: model.seasonStandings)
+                }
                 if !model.standings.isEmpty {
-                    table
+                    standingsTable("THIS WEEK", rows: model.standings)
                 }
             }
             .padding(Theme.Spacing.large)
+            .animation(.snappy, value: model.orderedGames.map(\.eventID))
         }
         .refreshable { await model.load(using: environment, showSpinner: false) }
     }
@@ -87,14 +91,18 @@ struct PickemView: View {
         .padding(.bottom, Theme.Spacing.small)
     }
 
-    private var table: some View {
+    /// The season table sits above the week's: it is the one that carries over,
+    /// and the one people mean when they ask who is winning.
+    private func standingsTable(
+        _ title: String, rows: [PickemStanding]
+    ) -> some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.small) {
-            Text("THIS WEEK")
+            Text(title)
                 .font(.caption2.weight(.bold))
                 .foregroundStyle(.secondary)
                 .padding(.top, Theme.Spacing.large)
 
-            ForEach(Array(model.standings.enumerated()), id: \.element.id) { index, row in
+            ForEach(Array(rows.enumerated()), id: \.element.id) { index, row in
                 Card {
                     HStack {
                         Text("\(index + 1)")

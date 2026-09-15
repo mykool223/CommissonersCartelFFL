@@ -138,6 +138,21 @@ public struct SupabaseContentRepository: ContentRepository {
         return rows.map(\.model)
     }
 
+    /// The season's running table, which is the number people argue about.
+    /// The weekly one reads as a reset every Tuesday: a new week has no final
+    /// games, so everybody sits on nothing.
+    public func pickemSeasonStandings(season: Int) async throws -> [PickemStanding] {
+        let rows: [PickemStandingRow] = try await client.select(
+            "pickem_season_standings",
+            query: [
+                "select": "*",
+                "season": "eq.\(season)",
+                "order": "points.desc",
+            ]
+        )
+        return rows.map(\.model)
+    }
+
     public func analysis(limit: Int) async throws -> [AnalysisItem] {
         let rows: [AnalysisRow] = try await client.select(
             "fantasypros_articles",

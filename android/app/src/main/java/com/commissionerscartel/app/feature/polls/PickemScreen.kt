@@ -43,6 +43,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.commissionerscartel.app.data.PickemGame
 import com.commissionerscartel.app.data.PickemPick
 import com.commissionerscartel.app.ui.CartelGold
+import androidx.compose.foundation.lazy.LazyListScope
+import com.commissionerscartel.app.data.PickemStanding
 
 /**
  * The week's confidence pool: pick every game, weight every pick.
@@ -101,50 +103,62 @@ fun PickemScreen(modifier: Modifier = Modifier, model: PickemViewModel = viewMod
                     }
                 }
 
-                items(current.games, key = { it.eventId }) { game ->
+                items(current.orderedGames, key = { it.eventId }) { game ->
                     GameRow(
                         game = game,
                         pick = current.picks[game.eventId],
                         available = model.weightChoices(game),
                         onChoose = { model.choose(it, game) },
                         onWeigh = { model.weigh(game, it) },
+                        // Rows glide to their new place, so changing a weight
+                        // reads as a reorder rather than the board flickering
+                        // into a different arrangement.
+                        modifier = Modifier.animateItem(),
                     )
                 }
 
-                if (current.standings.isNotEmpty()) {
-                    item {
-                        Text(
-                            "THIS WEEK",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(top = 16.dp),
-                        )
-                    }
-                    itemsIndexed(current.standings) { index, row ->
-                        Card(Modifier.fillMaxWidth()) {
-                            Row(
-                                Modifier.fillMaxWidth().padding(14.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            ) {
-                                Text("${index + 1}", style = MaterialTheme.typography.titleSmall)
-                                Text(
-                                    row.displayName,
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    modifier = Modifier.weight(1f),
-                                )
-                                Text(
-                                    "${row.correct}/${row.decided}",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                                Text("${row.points}", style = MaterialTheme.typography.titleMedium)
-                            }
-                        }
-                    }
-                }
+                standingsTable("SEASON", current.seasonStandings)
+                standingsTable("THIS WEEK", current.standings)
+            }
+        }
+    }
+}
+
+/**
+ * The season table sits above the week's: it is the one that carries over, and
+ * the one people mean when they ask who is winning.
+ */
+private fun LazyListScope.standingsTable(title: String, rows: List<PickemStanding>) {
+    if (rows.isEmpty()) return
+    item {
+        Text(
+            title,
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 16.dp),
+        )
+    }
+    itemsIndexed(rows) { index, row ->
+        Card(Modifier.fillMaxWidth()) {
+            Row(
+                Modifier.fillMaxWidth().padding(14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Text("${index + 1}", style = MaterialTheme.typography.titleSmall)
+                Text(
+                    row.displayName,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.weight(1f),
+                )
+                Text(
+                    "${row.correct}/${row.decided}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text("${row.points}", style = MaterialTheme.typography.titleMedium)
             }
         }
     }
@@ -157,8 +171,9 @@ private fun GameRow(
     available: List<WeightChoice>,
     onChoose: (String) -> Unit,
     onWeigh: (Int) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    Card(Modifier.fillMaxWidth()) {
+    Card(modifier.fillMaxWidth()) {
         Column(
             Modifier.padding(12.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),

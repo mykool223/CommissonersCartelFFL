@@ -189,6 +189,16 @@ object Supabase {
             order("points", Order.DESCENDING)
         }.decodeList()
 
+    /**
+     * The season's running table. Counts final games only, so unlike the
+     * weekly one it does not read as a reset every Tuesday.
+     */
+    suspend fun pickemSeasonStandings(season: Int): List<PickemStanding> =
+        client.from("pickem_season_standings").select {
+            filter { eq("season", season) }
+            order("points", Order.DESCENDING)
+        }.decodeList()
+
     /** Articles from FantasyPros, newest first. */
     suspend fun analysis(limit: Long = 60): List<AnalysisItem> =
         client.from("fantasypros_articles").select {

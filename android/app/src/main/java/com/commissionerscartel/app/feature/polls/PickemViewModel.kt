@@ -26,7 +26,28 @@ sealed interface PickemState {
         /** The signed-in member's own picks, by event. */
         val picks: Map<String, PickemPick>,
         val standings: List<PickemStanding>,
+        val seasonStandings: List<PickemStanding> = emptyList(),
     ) : PickemState {
+        /**
+         * The board in the order it should read: what you weighted heaviest at
+         * the top, down to what you weighted least, with anything still
+         * unpicked underneath in kickoff order.
+         *
+         * The point of a confidence pool is the order you put the games in,
+         * and that order was invisible — the board sat in kickoff order with
+         * the weights scattered down it.
+         */
+        val orderedGames: List<PickemGame>
+            get() = games.withIndex().sortedWith(
+                compareBy(
+                    // Picked games first, then whatever still needs attention.
+                    { if (picks.containsKey(it.value.eventId)) 0 else 1 },
+                    { -(picks[it.value.eventId]?.confidence ?: 0) },
+                    // Unpicked keep the order they arrived in, which is kickoff.
+                    { it.index },
+                )
+            ).map { it.value }
+
         val summary: String
             get() {
                 val open = games.count { !it.locked }
@@ -86,7 +107,9 @@ class PickemViewModel : ViewModel() {
                 // The table is a nicety; losing it should not lose the board.
                 val standings = runCatching { Supabase.pickemStandings(season, week) }
                     .getOrDefault(emptyList())
-                PickemState.Loaded(week, games, mine, standings)
+                val seasonStandings = runCatching { Supabase.pickemSeasonStandings(season) }
+                    .getOrDefault(emptyList())
+                PickemState.Loaded(week, games, mine, standings, seasonStandings)
             }.fold(
                 onSuccess = { it },
                 onFailure = { PickemState.Failed(it.message ?: "Couldn't load the games.") },

@@ -132,6 +132,11 @@ public actor MockContentRepository: ContentRepository {
         return []
     }
 
+    public func pickemSeasonStandings(season: Int) async throws -> [PickemStanding] {
+        try await simulate()
+        return []
+    }
+
     public func analysis(limit: Int) async throws -> [AnalysisItem] {
         try await simulate()
         return []
