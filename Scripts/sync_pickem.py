@@ -72,7 +72,15 @@ def weeks_wanted() -> list[int]:
     if span:
         first, _, last = span.partition("-")
         return list(range(int(first), int(last or first) + 1))
-    return [current_week()]
+
+    # The week just gone as well as this one. Monday night finishes after the
+    # last sync of its own week, and by the next run the week has rolled over —
+    # so the Monday game was never revisited and never marked final. It cost
+    # week one its last result: every pick on Denver at Kansas City counted for
+    # nothing, the standings were short a game, and the trophy that waits for a
+    # settled week waited for ever.
+    week = current_week()
+    return [week - 1, week] if week > 1 else [week]
 
 
 def scoreboard(season: int, week: int) -> dict:
