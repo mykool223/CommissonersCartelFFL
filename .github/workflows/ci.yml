@@ -138,6 +138,7 @@ jobs:
           ./Scripts/test_sync_fantasypros.py
           ./Scripts/test_trade_finder.py
           ./Scripts/test_award_trophies.py
+          ./Scripts/test_landry_recaps.py
 
   lint:
     name: SwiftLint

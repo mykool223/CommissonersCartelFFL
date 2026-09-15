@@ -1,0 +1,53 @@
+# Landry's Tuesday post-mortem: one private message to each manager about the
+# week just gone, and the one thing that would have changed it.
+#
+# Separate from his rounds on purpose. The rounds are about what to do next —
+# a signing, a trade, a starter who may not play. This is about what already
+# happened, and mixing the two would make both easier to ignore.
+name: Landry's recaps
+
+on:
+  schedule:
+    # 2pm in Chicago, whatever the calendar is doing. GitHub's cron is UTC and
+    # does not follow daylight saving, so this fires at both candidate hours
+    # and the script drops the one that is not 14:00 there. Two runs a week,
+    # one of which exits immediately, is cheaper than being an hour out for
+    # half the season.
+    - cron: "0 19,20 * * 2"
+  workflow_dispatch:
+    inputs:
+      week:
+        description: "Force a week (defaults to the last finished one)"
+        type: string
+      ignore_clock:
+        description: "Run now, whatever the time is in Chicago"
+        type: boolean
+        default: true
+      dry_run:
+        description: "Print what he would send, without sending"
+        type: boolean
+        default: true
+
+jobs:
+  recaps:
+    name: Recaps
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Recaps
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          PUSH_SECRET: ${{ secrets.PUSH_SECRET }}
+          ESPN_S2: ${{ secrets.ESPN_S2 }}
+          ESPN_SWID: ${{ secrets.ESPN_SWID }}
+          ESPN_LEAGUE_ID: ${{ secrets.ESPN_LEAGUE_ID }}
+          RECAP_WEEK: ${{ inputs.week }}
+          RECAP_IGNORE_CLOCK: ${{ inputs.ignore_clock && '1' || '' }}
+          DRY_RUN: ${{ inputs.dry_run && '1' || '' }}
+        run: |
+          if [ -z "$ESPN_S2" ]; then
+            echo "ESPN secrets are not set; nothing to review."
+            exit 0
+          fi
+          ./Scripts/landry_recaps.py

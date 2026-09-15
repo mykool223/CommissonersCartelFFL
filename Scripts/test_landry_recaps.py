@@ -1,0 +1,122 @@
+#!/usr/bin/env python3
+"""Checks the arithmetic behind Landry's Tuesday post-mortem.
+
+Worth testing because every number in those messages is measured here and then
+handed to him as fact. If the "points left on the bench" figure is wrong, he
+states it with total confidence to eleven people who will check it against
+ESPN.
+"""
+
+from __future__ import annotations
+
+import importlib.util
+import pathlib
+import unittest
+
+spec = importlib.util.spec_from_file_location(
+    "recaps", pathlib.Path(__file__).with_name("landry_recaps.py"))
+recaps = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(recaps)
+
+BENCH, IR = recaps.coach.BENCH, recaps.coach.IR
+QB, RB, WR, FLEX = 0, 2, 4, 23
+SLOTS = [QB, RB, WR, FLEX]
+
+
+def player(name, slot, points, eligible):
+    return {
+        "lineupSlotId": slot,
+        "playerPoolEntry": {
+            "appliedStatTotal": points,
+            "player": {"fullName": name, "eligibleSlots": eligible},
+        },
+    }
+
+
+def side(*players):
+    return {"rosterForMatchupPeriod": {"entries": list(players)}}
+
+
+class Review(unittest.TestCase):
+    def test_a_perfect_lineup_leaves_nothing(self):
+        result = recaps.review(side(
+            player("Quinn", QB, 20.0, [QB]),
+            player("Ruth", RB, 15.0, [RB, FLEX]),
+            player("Wes", WR, 12.0, [WR, FLEX]),
+            player("Flo", FLEX, 10.0, [RB, WR, FLEX]),
+            player("Ben", BENCH, 1.0, [RB, FLEX]),
+        ), SLOTS)
+        self.assertEqual(57.0, result["actual"])
+        self.assertEqual(0.0, result["left"])
+        self.assertEqual("Quinn", result["best"]["name"])
+        self.assertEqual("Flo", result["worst"]["name"])
+
+    def test_points_left_on_the_bench_are_counted(self):
+        result = recaps.review(side(
+            player("Quinn", QB, 20.0, [QB]),
+            player("Ruth", RB, 5.0, [RB, FLEX]),
+            player("Wes", WR, 12.0, [WR, FLEX]),
+            player("Flo", FLEX, 10.0, [RB, WR, FLEX]),
+            # Should have started over Ruth: same eligibility, 20 more points.
+            player("Ben", BENCH, 25.0, [RB, FLEX]),
+        ), SLOTS)
+        self.assertEqual(47.0, result["actual"])
+        self.assertEqual(67.0, result["ideal"])
+        self.assertEqual(20.0, result["left"])
+        self.assertEqual("Ben", result["bench_top"]["name"])
+
+    def test_injured_reserve_is_not_held_against_anybody(self):
+        # A player on IR cannot be started, so he must not appear in the
+        # lineup they are told they should have played.
+        result = recaps.review(side(
+            player("Quinn", QB, 20.0, [QB]),
+            player("Ruth", RB, 5.0, [RB, FLEX]),
+            player("Wes", WR, 12.0, [WR, FLEX]),
+            player("Flo", FLEX, 10.0, [RB, WR, FLEX]),
+            player("Stretcher", IR, 99.0, [RB, FLEX]),
+        ), SLOTS)
+        self.assertEqual(0.0, result["left"])
+
+    def test_a_side_with_no_lineup_is_skipped_not_guessed_at(self):
+        self.assertIsNone(recaps.review({}, SLOTS))
+        self.assertIsNone(recaps.review(side(player("Ben", BENCH, 9.0, [RB])), SLOTS))
+
+    def test_the_current_roster_is_the_fallback(self):
+        # A week ESPN has not settled carries no matchup-period roster.
+        result = recaps.review(
+            {"rosterForCurrentScoringPeriod": {"entries": [
+                player("Quinn", QB, 11.0, [QB])]}},
+            [QB])
+        self.assertEqual(11.0, result["actual"])
+
+
+class Brief(unittest.TestCase):
+    def setUp(self):
+        self.mine = recaps.review(side(
+            player("Quinn", QB, 20.0, [QB]),
+            player("Ruth", RB, 5.0, [RB, FLEX]),
+            player("Wes", WR, 12.0, [WR, FLEX]),
+            player("Flo", FLEX, 10.0, [RB, WR, FLEX]),
+            player("Ben", BENCH, 25.0, [RB, FLEX]),
+        ), SLOTS)
+
+    def test_the_brief_states_every_number_he_is_allowed_to_use(self):
+        brief, _ = recaps.brief_for("Devon", self.mine, "lost", "Rivals", 60.0, 3)
+        self.assertIn("Devon", brief)
+        self.assertIn("lost 47.0 to 60.0", brief)
+        self.assertIn("Quinn", brief)
+        self.assertIn("20.0 points sat on the bench", brief)
+        self.assertIn("Ben", brief)
+
+    def test_the_plain_version_stands_on_its_own(self):
+        # Sent verbatim when the coach cannot be reached, so it has to read as
+        # a message rather than as a set of notes.
+        _, plain = recaps.brief_for("Devon", self.mine, "lost", "Rivals", 60.0, 3)
+        self.assertIn("Week 3", plain)
+        self.assertIn("Rivals", plain)
+        self.assertIn("20.0 points were left on your bench", plain)
+        self.assertNotIn("Manager:", plain)
+
+
+if __name__ == "__main__":
+    unittest.main()
