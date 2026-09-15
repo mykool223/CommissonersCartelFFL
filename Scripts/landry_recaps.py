@@ -57,35 +57,48 @@ LEAGUE = ZoneInfo("America/Chicago")
 SEND_HOUR = 14
 
 
+def league_path(season: int, league: str) -> str:
+    return f"/apis/v3/games/ffl/seasons/{season}/segments/0/leagues/{league}"
+
+
 def scoreboard(season: int, league: str) -> dict:
     return coach.espn(
-        f"/apis/v3/games/ffl/seasons/{season}/segments/0/leagues/{league}",
-        "view=mMatchupScore&view=mBoxscore&view=mTeam&view=mSettings")
+        league_path(season, league),
+        "view=mMatchupScore&view=mTeam&view=mSettings")
 
 
-def entries(side: dict) -> list[dict]:
-    """The roster that played this matchup, with what each player scored."""
-    roster = side.get("rosterForMatchupPeriod") or {}
-    if not (roster.get("entries") or []):
-        roster = side.get("rosterForCurrentScoringPeriod") or {}
-    out = []
-    for entry in roster.get("entries") or []:
-        pool = entry.get("playerPoolEntry") or {}
-        player = pool.get("player") or {}
-        if not player.get("fullName"):
-            continue
-        out.append({
-            "name": player["fullName"],
-            "slot": entry.get("lineupSlotId"),
-            "eligible": set(player.get("eligibleSlots") or []),
-            "points": float(pool.get("appliedStatTotal") or 0.0),
-        })
+def rosters_for(season: int, league: str, week: int) -> dict[int, list[dict]]:
+    """Each team's lineup for one week: who started where, and what they did.
+
+    The matchup itself will not tell you this. ESPN carries rosters on the
+    schedule only for the week being played, and empties them the moment the
+    period rolls over — so on Tuesday, when this runs, last week's lineups have
+    already gone from there. They remain available on the teams, addressed by
+    scoringPeriodId, which is where this reads them.
+    """
+    data = coach.espn(
+        league_path(season, league), f"view=mRoster&scoringPeriodId={week}")
+    out: dict[int, list[dict]] = {}
+    for team in data.get("teams") or []:
+        entries = []
+        for entry in (team.get("roster") or {}).get("entries") or []:
+            pool = entry.get("playerPoolEntry") or {}
+            player = pool.get("player") or {}
+            if not player.get("fullName"):
+                continue
+            entries.append({
+                "name": player["fullName"],
+                "slot": entry.get("lineupSlotId"),
+                "eligible": set(player.get("eligibleSlots") or []),
+                "points": float(pool.get("appliedStatTotal") or 0.0),
+            })
+        if entries:
+            out[team["id"]] = entries
     return out
 
 
-def review(side: dict, slots: list[int]) -> dict | None:
+def review(roster: list[dict], slots: list[int]) -> dict | None:
     """What this side scored, who carried it, and what was left behind."""
-    roster = entries(side)
     if not roster:
         return None
 
@@ -178,6 +191,11 @@ def main() -> int:
             continue
         slots.extend([slot] * int(count))
 
+    rosters = rosters_for(season, league, week)
+    if not rosters:
+        log(f"ESPN has no lineups for week {week}; nothing to review.")
+        return 0
+
     names = {t["id"]: (t.get("name") or f"Team {t['id']}").strip()
              for t in data.get("teams") or []}
     owners = {}
@@ -211,7 +229,7 @@ def main() -> int:
             if not profile:
                 continue
 
-            mine = review(side, slots)
+            mine = review(rosters.get(team_id) or [], slots)
             if not mine:
                 log(f"  no lineup for {names.get(team_id)}; skipping")
                 continue

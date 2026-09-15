@@ -24,17 +24,12 @@ SLOTS = [QB, RB, WR, FLEX]
 
 
 def player(name, slot, points, eligible):
-    return {
-        "lineupSlotId": slot,
-        "playerPoolEntry": {
-            "appliedStatTotal": points,
-            "player": {"fullName": name, "eligibleSlots": eligible},
-        },
-    }
+    """A roster entry as review() receives it, already unpacked from ESPN."""
+    return {"name": name, "slot": slot, "points": points, "eligible": set(eligible)}
 
 
 def side(*players):
-    return {"rosterForMatchupPeriod": {"entries": list(players)}}
+    return list(players)
 
 
 class Review(unittest.TestCase):
@@ -78,16 +73,11 @@ class Review(unittest.TestCase):
         self.assertEqual(0.0, result["left"])
 
     def test_a_side_with_no_lineup_is_skipped_not_guessed_at(self):
-        self.assertIsNone(recaps.review({}, SLOTS))
+        # ESPN empties last week's lineups once the period rolls over, so an
+        # absent roster is an ordinary Tuesday occurrence rather than a fault.
+        self.assertIsNone(recaps.review([], SLOTS))
+        # A roster that is all bench has nobody who actually played.
         self.assertIsNone(recaps.review(side(player("Ben", BENCH, 9.0, [RB])), SLOTS))
-
-    def test_the_current_roster_is_the_fallback(self):
-        # A week ESPN has not settled carries no matchup-period roster.
-        result = recaps.review(
-            {"rosterForCurrentScoringPeriod": {"entries": [
-                player("Quinn", QB, 11.0, [QB])]}},
-            [QB])
-        self.assertEqual(11.0, result["actual"])
 
 
 class Brief(unittest.TestCase):
