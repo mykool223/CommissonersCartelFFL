@@ -240,7 +240,12 @@ def main() -> int:
         print(body)
         return 0
 
-    supabase("POST", "power_rankings?on_conflict=season,week,espn_team_id", rows,
+    # The conflict target has to match a real unique constraint, and the key
+    # gained a source column when a second kind of ranking became possible.
+    # Without source named here Postgres has nothing to match and refuses the
+    # whole write — which nobody had seen, because this job returns early
+    # before week 2 and week 2 is the first time it ever got this far.
+    supabase("POST", "power_rankings?on_conflict=season,week,source,espn_team_id", rows,
              prefer="resolution=merge-duplicates,return=minimal")
 
     existing = supabase(

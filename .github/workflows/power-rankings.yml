@@ -8,8 +8,11 @@ name: Power rankings
 
 on:
   schedule:
-    # 15:00 UTC Tuesday — around 10am Central, after the recap has posted.
-    - cron: "0 15 * * 2"
+    # 15:23 UTC Tuesday — around 10am Central, after the recap has posted.
+    # Not on the hour: GitHub drops scheduled runs under load rather than
+    # queueing them, and minute 0 is the most contended slot there is. This
+    # job was skipped outright on the first Tuesday it had a ranking to make.
+    - cron: "23 15 * * 2"
   workflow_dispatch:
     inputs:
       week:
