@@ -7,8 +7,11 @@ name: Award trophies
 
 on:
   schedule:
-    # 13:00 UTC Tuesday — around 8am Central.
-    - cron: "0 13 * * 2"
+    # 13:17 UTC Tuesday — around 8am Central. Deliberately not on the hour:
+    # GitHub drops scheduled runs under load and minute 0 is the most
+    # contended slot there is. This job was skipped outright on the first
+    # Tuesday it had anything to award.
+    - cron: "17 13 * * 2"
   workflow_dispatch:
     inputs:
       week:
