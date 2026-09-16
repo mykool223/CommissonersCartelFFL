@@ -151,12 +151,14 @@ def moves_section(options: list) -> tuple[list[str], list[str]]:
     return (briefs, plains)
 
 
-def brief_for(name: str, mine: dict, result: str, opponent: str,
+def brief_for(name: str, team: str, mine: dict, result: str, opponent: str,
               their_score: float, week: int, options: list | None = None
               ) -> tuple[str, str]:
     """The facts for Landry, and the plain version if he cannot be reached."""
     lines = [
-        f"Manager: {name}",
+        f"You are writing privately to {name}, who manages {team}. "
+        "Nobody else will see this message.",
+        "",
         f"Week {week}: {result} {mine['actual']:.1f} to {their_score:.1f} against {opponent}.",
         f"Best starter: {mine['best']['name']} on {mine['best']['points']:.1f}.",
         f"Quietest starter: {mine['worst']['name']} on {mine['worst']['points']:.1f}.",
@@ -301,7 +303,8 @@ def main() -> int:
                 winner, "won" if winner == here.upper() else "lost")
 
             brief, plain = brief_for(
-                profile["display_name"], mine, result,
+                profile["display_name"], names.get(team_id, "their team"),
+                mine, result,
                 names.get(other.get("teamId"), "their opponent"), theirs, week,
                 options_by_team.get(team_id, []))
 
@@ -319,6 +322,10 @@ def main() -> int:
                 "greeting and no sign-off. "
                 + IN_CHARACTER + "Do not invent any number you were not given.",
                 plain,
+                # A week's accounting plus every move does not fit in the
+                # length a single nudge needs; the first attempt stopped
+                # mid-sentence.
+                max_tokens=900,
             )
 
             if dry_run:

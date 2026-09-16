@@ -78,14 +78,15 @@ def supabase(method: str, path: str, body: object = None,
         return json.loads(raw) if raw else None
 
 
-def in_landrys_words(brief: str, instruction: str, fallback: str) -> str:
+def in_landrys_words(brief: str, instruction: str, fallback: str,
+                     max_tokens: int = 320) -> str:
     secret = os.environ.get("PUSH_SECRET")
     if not secret:
         return fallback
     request = urllib.request.Request(
         f"{os.environ['SUPABASE_URL'].rstrip('/')}/functions/v1/landry",
         data=json.dumps({"brief": brief, "instruction": instruction,
-                         "max_tokens": 320}).encode(),
+                         "max_tokens": max_tokens}).encode(),
         method="POST",
         headers={"Content-Type": "application/json", "x-cartel-secret": secret})
     try:

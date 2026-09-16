@@ -112,7 +112,7 @@ class Moves(unittest.TestCase):
             player("Flo", FLEX, 10.0, [RB, WR, FLEX]),
         ), SLOTS)
         brief, plain = recaps.brief_for(
-            "Devon", mine, "lost", "Rivals", 60.0, 3, self.OPTIONS)
+            "Devon", "Devon's Team", mine, "lost", "Rivals", 60.0, 3, self.OPTIONS)
         # Both halves present: what happened, and what to do now.
         self.assertIn("lost 47.0 to 60.0", brief)
         self.assertIn("Spare Sam", brief)
@@ -131,7 +131,7 @@ class Brief(unittest.TestCase):
         ), SLOTS)
 
     def test_the_brief_states_every_number_he_is_allowed_to_use(self):
-        brief, _ = recaps.brief_for("Devon", self.mine, "lost", "Rivals", 60.0, 3)
+        brief, _ = recaps.brief_for("Devon", "Devon's Team", self.mine, "lost", "Rivals", 60.0, 3)
         self.assertIn("Devon", brief)
         self.assertIn("lost 47.0 to 60.0", brief)
         self.assertIn("Quinn", brief)
@@ -141,11 +141,11 @@ class Brief(unittest.TestCase):
     def test_the_plain_version_stands_on_its_own(self):
         # Sent verbatim when the coach cannot be reached, so it has to read as
         # a message rather than as a set of notes.
-        _, plain = recaps.brief_for("Devon", self.mine, "lost", "Rivals", 60.0, 3)
+        _, plain = recaps.brief_for("Devon", "Devon's Team", self.mine, "lost", "Rivals", 60.0, 3)
         self.assertIn("Week 3", plain)
         self.assertIn("Rivals", plain)
         self.assertIn("20.0 points were left on your bench", plain)
-        self.assertNotIn("Manager:", plain)
+        self.assertNotIn("You are writing privately", plain)
 
 
 if __name__ == "__main__":
