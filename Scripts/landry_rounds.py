@@ -306,6 +306,7 @@ def main() -> int:
         if not owner:
             continue
         profile = by_swid[owner.strip().upper()]
+        team_name = (team.get("name") or "your team").strip()
         options = options_for(team, ctx)
         options = [o for o in options
                    if (profile["id"], o[1], o[2]) not in already]
