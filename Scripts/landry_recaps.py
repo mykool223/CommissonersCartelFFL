@@ -355,10 +355,18 @@ def main() -> int:
             }], prefer="return=minimal")
             # Unique on (user, kind, subject, season, week), so a re-run cannot
             # send the same manager the same week's post-mortem twice.
-            supabase("POST", "landry_notes", [{
-                "user_id": profile["id"], "kind": "recap",
-                "subject": f"week {week}", "season": season, "week": week,
-            }], prefer="return=minimal", )
+            #
+            # A deliberate resend collides with the note already there. The
+            # message has gone by this point, so failing here would report the
+            # send as an error and leave the run red over bookkeeping.
+            supabase(
+                "POST",
+                "landry_notes?on_conflict=user_id,kind,subject,season,week",
+                [{
+                    "user_id": profile["id"], "kind": "recap",
+                    "subject": f"week {week}", "season": season, "week": week,
+                }],
+                prefer="return=minimal,resolution=ignore-duplicates")
             sent += 1
 
     log(f"{'Would send' if dry_run else 'Sent'} {sent} recap(s) for week {week}.")
