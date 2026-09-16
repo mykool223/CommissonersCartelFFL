@@ -262,7 +262,11 @@ def main() -> int:
     # What he has already said about this week. This, not the clock, is what
     # makes a second run of the same Tuesday harmless — and it has to be read
     # before anything is sent, because the note is written after the message.
-    notes = supabase(
+    #
+    # A dry run ignores it. Nothing is sent, so there is nothing to repeat, and
+    # suppressing the preview because the real thing already went out makes the
+    # preview useless for checking what changed.
+    notes = [] if dry_run else supabase(
         "GET",
         f"landry_notes?select=user_id&kind=eq.recap&season=eq.{season}&week=eq.{week}"
     ) or []
