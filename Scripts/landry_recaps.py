@@ -51,10 +51,15 @@ log = rounds.log
 IN_CHARACTER = rounds.IN_CHARACTER
 
 LEAGUE = ZoneInfo("America/Chicago")
-# The hour the league is told to expect him. GitHub's cron is UTC only and does
-# not move with daylight saving, so the workflow fires twice and this is what
-# makes exactly one of those firings the real one.
-SEND_HOUR = 14
+# The hour the league is told to expect him, and the hour past which a recap is
+# no longer worth waking anybody for.
+#
+# A window rather than an hour, because GitHub's cron is not a clock. It drops
+# scheduled runs under load and delays the rest — the first attempt at this
+# fired 114 minutes late, by which time an exact-hour check refused it and
+# nobody got anything. What stops a delayed run sending twice is the record of
+# what was already sent, not the time on the wall.
+SEND_FROM, SEND_UNTIL = 14, 23
 
 
 def league_path(season: int, league: str) -> str:
@@ -166,11 +171,15 @@ def main() -> int:
             log(f"{name} is required.")
             return 1
 
-    # The workflow fires at both candidate hours so that daylight saving cannot
-    # move him; this is where the wrong one is thrown away.
+    # The workflow fires at several candidate hours so that neither daylight
+    # saving nor GitHub's scheduling can move him out of the afternoon. Any
+    # firing inside the window does the job; the rest find the work already
+    # done and send nothing.
     now = dt.datetime.now(LEAGUE)
-    if now.hour != SEND_HOUR and not (dry_run or os.environ.get("RECAP_IGNORE_CLOCK")):
-        log(f"It is {now:%H:%M} in Chicago, not {SEND_HOUR}:00. Not his hour.")
+    if not (SEND_FROM <= now.hour < SEND_UNTIL) \
+            and not (dry_run or os.environ.get("RECAP_IGNORE_CLOCK")):
+        log(f"It is {now:%H:%M} in Chicago, outside "
+            f"{SEND_FROM}:00-{SEND_UNTIL}:00. Not his hours.")
         return 0
 
     league = os.environ["ESPN_LEAGUE_ID"]
@@ -214,6 +223,17 @@ def main() -> int:
         log("Landry has no profile; nothing to send from.")
         return 1
 
+    # What he has already said about this week. This, not the clock, is what
+    # makes a second run of the same Tuesday harmless — and it has to be read
+    # before anything is sent, because the note is written after the message.
+    notes = supabase(
+        "GET",
+        f"landry_notes?select=user_id&kind=eq.recap&season=eq.{season}&week=eq.{week}"
+    ) or []
+    done = {n["user_id"] for n in notes}
+    if done:
+        log(f"{len(done)} manager(s) already have week {week}'s post-mortem.")
+
     sent = 0
     for game in data.get("schedule") or []:
         if game.get("matchupPeriodId") != week:
@@ -227,6 +247,8 @@ def main() -> int:
             team_id = side.get("teamId")
             profile = by_team.get(team_id)
             if not profile:
+                continue
+            if profile["id"] in done:
                 continue
 
             mine = review(rosters.get(team_id) or [], slots)

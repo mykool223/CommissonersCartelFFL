@@ -8,12 +8,18 @@ name: Landry's recaps
 
 on:
   schedule:
-    # 2pm in Chicago, whatever the calendar is doing. GitHub's cron is UTC and
-    # does not follow daylight saving, so this fires at both candidate hours
-    # and the script drops the one that is not 14:00 there. Two runs a week,
-    # one of which exits immediately, is cheaper than being an hour out for
-    # half the season.
-    - cron: "0 19,20 * * 2"
+    # Tuesday afternoon in Chicago. Four candidate firings, none on the hour.
+    #
+    # GitHub's cron is not a clock: it drops scheduled runs under load —
+    # minute 0 worst of all — and delays the rest. The first attempt at this
+    # was scheduled at 19:00 and 20:00 UTC; the first was dropped outright and
+    # the second arrived 114 minutes late, at which point it was no longer the
+    # afternoon and nobody got anything.
+    #
+    # Whichever firing lands first inside the window does the work. The others
+    # find it already done and send nothing, because what prevents a second
+    # message is the record of the first, not the time of day.
+    - cron: "7 19,20,21,22 * * 2"
   workflow_dispatch:
     inputs:
       week:
