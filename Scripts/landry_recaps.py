@@ -307,12 +307,16 @@ def main() -> int:
 
             body = in_landrys_words(
                 brief,
-                "Write this as a short private message to that manager about "
-                "the week just gone. Three or four sentences. Tell them how it "
-                "went, then the one thing that would have changed it. Speak to "
-                "them directly, no greeting and no sign-off. If points were "
+                "Write this as a private message to that manager. First the "
+                "week just gone: how it went, then the one thing that would "
+                "have changed it, in three or four sentences. If points were "
                 "left on the bench, be clear it is hindsight — they could not "
                 "have known, it is only worth knowing how much was there. "
+                "Then, if the brief lists moves available to them, name every "
+                "one of them and what it would add. Do not drop a move for "
+                "brevity and do not pick a favourite: that half of the message "
+                "is the half they can still act on. Speak to them directly, no "
+                "greeting and no sign-off. "
                 + IN_CHARACTER + "Do not invent any number you were not given.",
                 plain,
             )
