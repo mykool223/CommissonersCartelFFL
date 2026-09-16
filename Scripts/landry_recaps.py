@@ -1,10 +1,17 @@
 #!/usr/bin/env python3
 """Landry's Tuesday post-mortem: one private message to each manager.
 
-How their week actually went, and the one thing that would have changed it.
-Sent as a direct message rather than a notification, for the same reason his
-rounds are: a notification is gone the moment it is dismissed, and this is the
-kind of thing somebody wants to re-read on Wednesday.
+How their week actually went, what would have changed it, and every move worth
+making now — the free agents worth signing, the trades that would improve both
+sides, and any starter who may not play. Sent as a direct message rather than a
+notification, for the same reason his rounds are: a notification is gone the
+moment it is dismissed, and this is the kind of thing somebody wants to re-read
+on Wednesday.
+
+The moves come from the same builder his rounds use, so the two cannot disagree
+about what the best one is. His rounds say the single best; this says all of
+them, because a post-mortem that only tells you what went wrong is half a
+message.
 
 The arithmetic is all done here — result, margin, the best and worst starter,
 and what the optimal lineup from the same roster would have scored. He is asked
@@ -20,6 +27,7 @@ Environment:
     SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
     PUSH_SECRET                  for his voice
     RECAP_WEEK                   override the week (defaults to the last finished)
+    RECAP_MIN_GAIN               points a move must add to be worth naming
     RECAP_IGNORE_CLOCK           run regardless of the time in Chicago
     DRY_RUN                      print instead of sending
 
@@ -131,8 +139,21 @@ def review(roster: list[dict], slots: list[int]) -> dict | None:
     }
 
 
+def moves_section(options: list) -> tuple[list[str], list[str]]:
+    """The briefs and the plain lines for everything worth doing now."""
+    if not options:
+        return ([], [])
+    briefs = ["", "Moves available to them, best first:"]
+    plains = ["", "Worth doing now:"]
+    for _, _, _, brief, plain in options:
+        briefs.append(f"- {brief}")
+        plains.append(f"- {plain}")
+    return (briefs, plains)
+
+
 def brief_for(name: str, mine: dict, result: str, opponent: str,
-              their_score: float, week: int) -> tuple[str, str]:
+              their_score: float, week: int, options: list | None = None
+              ) -> tuple[str, str]:
     """The facts for Landry, and the plain version if he cannot be reached."""
     lines = [
         f"Manager: {name}",
@@ -159,7 +180,9 @@ def brief_for(name: str, mine: dict, result: str, opponent: str,
     )
     if mine["left"] >= 0.1:
         plain += f" {mine['left']:.1f} points were left on your bench."
-    return "\n".join(lines), plain
+
+    move_briefs, move_plains = moves_section(options or [])
+    return "\n".join(lines + move_briefs), "\n".join([plain] + move_plains)
 
 
 def main() -> int:
@@ -199,6 +222,19 @@ def main() -> int:
         if slot in (coach.BENCH, coach.IR):
             continue
         slots.extend([slot] * int(count))
+
+    # What to do next is about the roster as it stands, not the one that played
+    # last week, so this is a second look at the league in its current state.
+    current = coach.espn(
+        league_path(season, league), "view=mRoster&view=mTeam&view=mSettings")
+    ctx = rounds.gather(
+        current, season, league,
+        (current.get("status") or {}).get("currentMatchupPeriod") or week + 1,
+        float(os.environ.get("RECAP_MIN_GAIN") or rounds.DEFAULT_MIN_GAIN))
+    options_by_team = {
+        team["id"]: rounds.options_for(team, ctx)
+        for team in current.get("teams") or []
+    }
 
     rosters = rosters_for(season, league, week)
     if not rosters:
@@ -262,7 +298,8 @@ def main() -> int:
 
             brief, plain = brief_for(
                 profile["display_name"], mine, result,
-                names.get(other.get("teamId"), "their opponent"), theirs, week)
+                names.get(other.get("teamId"), "their opponent"), theirs, week,
+                options_by_team.get(team_id, []))
 
             body = in_landrys_words(
                 brief,

@@ -110,24 +110,114 @@ def probabilities(season: int, week: int) -> dict[int, float]:
     return out
 
 
-def main() -> int:
-    for name in ("ESPN_LEAGUE_ID", "ESPN_S2", "SUPABASE_URL",
-                 "SUPABASE_SERVICE_ROLE_KEY"):
-        if not os.environ.get(name):
-            log(f"{name} is required.")
-            return 1
+def options_for(team: dict, ctx: dict) -> list[tuple[float, str, str, str, str]]:
+    """Everything worth saying to one manager, most valuable first.
 
-    dry_run = bool(os.environ.get("DRY_RUN"))
-    min_gain = float(os.environ.get("ROUNDS_MIN_GAIN") or DEFAULT_MIN_GAIN)
-    season = coach.current_season()
-    league = os.environ["ESPN_LEAGUE_ID"]
+    (value, kind, subject, brief, plain). The brief is what the coach is given
+    to phrase; the plain version is sent verbatim when he cannot be reached.
 
-    data = coach.espn(
-        f"/apis/v3/games/ffl/seasons/{season}/segments/0/leagues/{league}",
-        "view=mRoster&view=mTeam&view=mSettings")
-    week = int(os.environ.get("ROUNDS_WEEK")
-               or (data.get("status") or {}).get("currentMatchupPeriod") or 1)
+    His rounds say the single best of these, because a coach who sends four
+    messages is a coach nobody reads. The Tuesday post-mortem says all of them,
+    because that message is already an accounting of the week and the useful
+    half of it is what to do next. Both read the same list, so they cannot
+    disagree about what the best move is.
+    """
+    slots, pool = ctx["slots"], ctx["pool"]
+    chances, ideas, pronouns = ctx["chances"], ctx["ideas"], ctx["pronouns"]
+    min_gain, week = ctx["min_gain"], ctx["week"]
 
+    team_name = (team.get("name") or "your team").strip()
+    players = waivers.roster_players(team, week)
+    before, _ = coach.best_lineup(players, slots)
+
+    # Everything he could say, most valuable first. He says one of them.
+    options: list[tuple[float, str, str, str, str]] = []
+
+    # A starter who may not play. Ranked highest: it expires at kickoff.
+    for entry in (team.get("roster") or {}).get("entries") or []:
+        if entry.get("lineupSlotId") in (coach.BENCH, coach.IR):
+            continue
+        raw = (entry.get("playerPoolEntry") or {}).get("player") or {}
+        chance = chances.get(raw.get("id"))
+        status = (raw.get("injuryStatus") or "").upper()
+        if chance is not None and chance < UNLIKELY_TO_PLAY:
+            options.append((
+                100.0, "injury", raw.get("fullName") or "A player",
+                f"{team_name} is starting {raw.get('fullName')}, who is "
+                f"{round(chance * 100)}% likely to play this week.",
+                f"{raw.get('fullName')} is only {round(chance * 100)}% "
+                "likely to play and is in your starting lineup.",
+            ))
+        elif status in ("OUT", "DOUBTFUL", "INJURY_RESERVE", "SUSPENSION"):
+            options.append((
+                100.0, "injury", raw.get("fullName") or "A player",
+                f"{team_name} is starting {raw.get('fullName')}, who is "
+                f"listed {status.title()}.",
+                f"{raw.get('fullName')} is {status.lower()} and is in "
+                "your starting lineup.",
+            ))
+
+    # The best free agent, measured by what he adds to the best lineup.
+    weakest = min((p["points"] for p in players
+                   if p.get("slot") not in (coach.BENCH, coach.IR)), default=0)
+    best_add = None
+    for candidate in pool:
+        if waivers.upper_bound(candidate, weakest) <= min_gain:
+            continue
+        gain = waivers.value_added(players, candidate, slots, before)
+        if gain > min_gain and (best_add is None or gain > best_add[0]):
+            best_add = (gain, candidate)
+    if best_add:
+        gain, candidate = best_add
+        droppable = sorted(
+            (p for p in players if p.get("slot") in (coach.BENCH,)),
+            key=lambda p: p["points"])
+        drop = droppable[0]["name"] if droppable else "somebody"
+        options.append((
+            gain, "waiver", candidate["name"],
+            f"{team_name} could sign {candidate['name']}, a free agent "
+            f"projecting {candidate['points']:.1f} and owned in "
+            f"{candidate['owned']}% of leagues. It would add "
+            f"{gain:.1f} points to their best lineup. The lowest "
+            f"projected player on their bench is {drop}.",
+            f"{candidate['name']} is free and would add {gain:.1f} points "
+            f"to your lineup. {drop} is your lowest bench piece.",
+        ))
+
+    # A trade the finder already confirmed improves both sides.
+    for idea in ideas:
+        mine = idea["team_a"] == team["id"]
+        if not mine and idea["team_b"] != team["id"]:
+            continue
+        other = idea["team_b_name"] if mine else idea["team_a_name"]
+        send = idea["a_sends"] if mine else idea["b_sends"]
+        get = idea["b_sends"] if mine else idea["a_sends"]
+        gain = float(idea["a_gain"] if mine else idea["b_gain"])
+        other_id = idea["team_b"] if mine else idea["team_a"]
+        says = pronouns.get(other_id, "they/them")
+        options.append((
+            gain, "trade", f"{other}:{send}",
+            f"{team_name} could offer {send} to {other} for {get}. It "
+            f"would add {gain:.1f} points to their lineup and improve "
+            f"{other}'s as well, which is why it is worth asking. The "
+            f"manager of {other} uses {says}.",
+            f"Offer {send} to {other} for {get} — it would add "
+            f"{gain:.1f} to your lineup and help theirs too.",
+        ))
+
+    options.sort(key=lambda o: -o[0])
+    return options
+
+
+def gather(data: dict, season: int, league: str, week: int,
+           min_gain: float) -> dict:
+    """The league-wide facts every manager's options are measured against.
+
+    Built once and handed to options_for for each team: the starting slots, the
+    free agent pool, this week's injury probabilities, the confirmed trades and
+    the counterparties' pronouns. Both the rounds and the Tuesday post-mortem
+    build it the same way, so neither can be working from a different league.
+    """
     counts = ((data.get("settings") or {}).get("rosterSettings") or {}) \
         .get("lineupSlotCounts") or {}
     slots: list[int] = []
@@ -135,14 +225,6 @@ def main() -> int:
         if slot in (coach.BENCH, coach.IR):
             continue
         slots.extend([slot] * int(count))
-
-    profiles = supabase("GET", "profiles?select=id,espn_swid,display_name") or []
-    by_swid = {(p.get("espn_swid") or "").strip().upper(): p
-               for p in profiles if p.get("espn_swid")}
-    landry = next((p["id"] for p in profiles if p["display_name"] == "Landry"), None)
-    if not landry:
-        log("Landry has no profile; nothing to send from.")
-        return 1
 
     pool = []
     for entry in waivers.free_agents(season, league):
@@ -173,6 +255,42 @@ def main() -> int:
             "team_bios?select=espn_team_id,manager_pronouns"
             f"&season=eq.{season}&manager_pronouns=not.is.null") or []
     }
+    log(f"Week {week}: {len(pool)} free agent(s), {len(ideas)} trade idea(s)")
+    return {"slots": slots, "pool": pool, "chances": chances, "ideas": ideas,
+            "pronouns": pronouns, "min_gain": min_gain, "week": week}
+
+
+def main() -> int:
+    for name in ("ESPN_LEAGUE_ID", "ESPN_S2", "SUPABASE_URL",
+                 "SUPABASE_SERVICE_ROLE_KEY"):
+        if not os.environ.get(name):
+            log(f"{name} is required.")
+            return 1
+
+    dry_run = bool(os.environ.get("DRY_RUN"))
+    min_gain = float(os.environ.get("ROUNDS_MIN_GAIN") or DEFAULT_MIN_GAIN)
+    season = coach.current_season()
+    league = os.environ["ESPN_LEAGUE_ID"]
+
+    data = coach.espn(
+        f"/apis/v3/games/ffl/seasons/{season}/segments/0/leagues/{league}",
+        "view=mRoster&view=mTeam&view=mSettings")
+    week = int(os.environ.get("ROUNDS_WEEK")
+               or (data.get("status") or {}).get("currentMatchupPeriod") or 1)
+
+    profiles = supabase("GET", "profiles?select=id,espn_swid,display_name") or []
+    by_swid = {(p.get("espn_swid") or "").strip().upper(): p
+               for p in profiles if p.get("espn_swid")}
+    landry = next((p["id"] for p in profiles if p["display_name"] == "Landry"), None)
+    if not landry:
+        log("Landry has no profile; nothing to send from.")
+        return 1
+
+    ctx = gather(data, season, league, week, min_gain)
+
+    # What he has already said this week, so a re-run does not repeat itself.
+    # Bookkeeping for these rounds rather than a fact about the league, which
+    # is why it does not live in the context the post-mortem shares.
     already = {
         (row["user_id"], row["kind"], row["subject"])
         for row in supabase(
@@ -180,7 +298,6 @@ def main() -> int:
             f"landry_notes?select=user_id,kind,subject&season=eq.{season}&week=eq.{week}") or []
     }
 
-    log(f"Week {week}; {len(pool)} free agent(s), {len(ideas)} trade idea(s)")
     sent = 0
 
     for team in data.get("teams") or []:
@@ -189,90 +306,11 @@ def main() -> int:
         if not owner:
             continue
         profile = by_swid[owner.strip().upper()]
-        team_name = (team.get("name") or "your team").strip()
-        players = waivers.roster_players(team, week)
-        before, _ = coach.best_lineup(players, slots)
-
-        # Everything he could say, most valuable first. He says one of them.
-        options: list[tuple[float, str, str, str, str]] = []
-
-        # A starter who may not play. Ranked highest: it expires at kickoff.
-        for entry in (team.get("roster") or {}).get("entries") or []:
-            if entry.get("lineupSlotId") in (coach.BENCH, coach.IR):
-                continue
-            raw = (entry.get("playerPoolEntry") or {}).get("player") or {}
-            chance = chances.get(raw.get("id"))
-            status = (raw.get("injuryStatus") or "").upper()
-            if chance is not None and chance < UNLIKELY_TO_PLAY:
-                options.append((
-                    100.0, "injury", raw.get("fullName") or "A player",
-                    f"{team_name} is starting {raw.get('fullName')}, who is "
-                    f"{round(chance * 100)}% likely to play this week.",
-                    f"{raw.get('fullName')} is only {round(chance * 100)}% "
-                    "likely to play and is in your starting lineup.",
-                ))
-            elif status in ("OUT", "DOUBTFUL", "INJURY_RESERVE", "SUSPENSION"):
-                options.append((
-                    100.0, "injury", raw.get("fullName") or "A player",
-                    f"{team_name} is starting {raw.get('fullName')}, who is "
-                    f"listed {status.title()}.",
-                    f"{raw.get('fullName')} is {status.lower()} and is in "
-                    "your starting lineup.",
-                ))
-
-        # The best free agent, measured by what he adds to the best lineup.
-        weakest = min((p["points"] for p in players
-                       if p.get("slot") not in (coach.BENCH, coach.IR)), default=0)
-        best_add = None
-        for candidate in pool:
-            if waivers.upper_bound(candidate, weakest) <= min_gain:
-                continue
-            gain = waivers.value_added(players, candidate, slots, before)
-            if gain > min_gain and (best_add is None or gain > best_add[0]):
-                best_add = (gain, candidate)
-        if best_add:
-            gain, candidate = best_add
-            droppable = sorted(
-                (p for p in players if p.get("slot") in (coach.BENCH,)),
-                key=lambda p: p["points"])
-            drop = droppable[0]["name"] if droppable else "somebody"
-            options.append((
-                gain, "waiver", candidate["name"],
-                f"{team_name} could sign {candidate['name']}, a free agent "
-                f"projecting {candidate['points']:.1f} and owned in "
-                f"{candidate['owned']}% of leagues. It would add "
-                f"{gain:.1f} points to their best lineup. The lowest "
-                f"projected player on their bench is {drop}.",
-                f"{candidate['name']} is free and would add {gain:.1f} points "
-                f"to your lineup. {drop} is your lowest bench piece.",
-            ))
-
-        # A trade the finder already confirmed improves both sides.
-        for idea in ideas:
-            mine = idea["team_a"] == team["id"]
-            if not mine and idea["team_b"] != team["id"]:
-                continue
-            other = idea["team_b_name"] if mine else idea["team_a_name"]
-            send = idea["a_sends"] if mine else idea["b_sends"]
-            get = idea["b_sends"] if mine else idea["a_sends"]
-            gain = float(idea["a_gain"] if mine else idea["b_gain"])
-            other_id = idea["team_b"] if mine else idea["team_a"]
-            says = pronouns.get(other_id, "they/them")
-            options.append((
-                gain, "trade", f"{other}:{send}",
-                f"{team_name} could offer {send} to {other} for {get}. It "
-                f"would add {gain:.1f} points to their lineup and improve "
-                f"{other}'s as well, which is why it is worth asking. The "
-                f"manager of {other} uses {says}.",
-                f"Offer {send} to {other} for {get} — it would add "
-                f"{gain:.1f} to your lineup and help theirs too.",
-            ))
-
+        options = options_for(team, ctx)
         options = [o for o in options
                    if (profile["id"], o[1], o[2]) not in already]
         if not options:
             continue
-        options.sort(key=lambda o: -o[0])
         _, kind, subject, brief, plain = options[0]
 
         # Say plainly who is being written to. Without this the brief named

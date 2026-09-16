@@ -80,6 +80,46 @@ class Review(unittest.TestCase):
         self.assertIsNone(recaps.review(side(player("Ben", BENCH, 9.0, [RB])), SLOTS))
 
 
+class Moves(unittest.TestCase):
+    """The half of the message that says what to do about it."""
+
+    OPTIONS = [
+        (9.1, "waiver", "Spare Sam",
+         "They could sign Spare Sam, who would add 9.1 points.",
+         "Sign Spare Sam — 9.1 points to your lineup."),
+        (4.2, "trade", "Rivals:Ruth",
+         "They could offer Ruth to Rivals for Rex.",
+         "Offer Ruth to Rivals for Rex."),
+    ]
+
+    def test_every_move_is_named_not_just_the_best(self):
+        # His rounds pick one. The post-mortem is the place for all of them:
+        # a recap that only says what went wrong is half a message.
+        briefs, plains = recaps.moves_section(self.OPTIONS)
+        self.assertIn("Spare Sam", "\n".join(briefs))
+        self.assertIn("Rivals", "\n".join(briefs))
+        self.assertIn("Sign Spare Sam", "\n".join(plains))
+        self.assertIn("Offer Ruth", "\n".join(plains))
+
+    def test_a_manager_with_nothing_to_do_gets_no_section(self):
+        self.assertEqual(([], []), recaps.moves_section([]))
+
+    def test_the_moves_ride_along_with_the_post_mortem(self):
+        mine = recaps.review(side(
+            player("Quinn", QB, 20.0, [QB]),
+            player("Ruth", RB, 5.0, [RB, FLEX]),
+            player("Wes", WR, 12.0, [WR, FLEX]),
+            player("Flo", FLEX, 10.0, [RB, WR, FLEX]),
+        ), SLOTS)
+        brief, plain = recaps.brief_for(
+            "Devon", mine, "lost", "Rivals", 60.0, 3, self.OPTIONS)
+        # Both halves present: what happened, and what to do now.
+        self.assertIn("lost 47.0 to 60.0", brief)
+        self.assertIn("Spare Sam", brief)
+        self.assertIn("Week 3", plain)
+        self.assertIn("Sign Spare Sam", plain)
+
+
 class Brief(unittest.TestCase):
     def setUp(self):
         self.mine = recaps.review(side(
