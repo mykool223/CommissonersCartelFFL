@@ -318,8 +318,10 @@ def main() -> int:
                 "Then, if the brief lists moves available to them, name every "
                 "one of them and what it would add. Do not drop a move for "
                 "brevity and do not pick a favourite: that half of the message "
-                "is the half they can still act on. Speak to them directly, no "
-                "greeting and no sign-off. "
+                "is the half they can still act on. If the brief lists no "
+                "moves, say nothing about moves at all — do not describe what "
+                "you do not have and do not promise to send anything later. "
+                "Speak to them directly, no greeting and no sign-off. "
                 + IN_CHARACTER + "Do not invent any number you were not given.",
                 plain,
                 # A week's accounting plus every move does not fit in the
