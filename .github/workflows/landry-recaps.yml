@@ -29,6 +29,13 @@ on:
         description: "Run now, whatever the time is in Chicago"
         type: boolean
         default: true
+      only:
+        description: "Send to this manager alone (display name)"
+        type: string
+      resend:
+        description: "Send again to somebody who already has this week's"
+        type: boolean
+        default: false
       dry_run:
         description: "Print what he would send, without sending"
         type: boolean
@@ -50,6 +57,8 @@ jobs:
           ESPN_LEAGUE_ID: ${{ secrets.ESPN_LEAGUE_ID }}
           RECAP_WEEK: ${{ inputs.week }}
           RECAP_IGNORE_CLOCK: ${{ inputs.ignore_clock && '1' || '' }}
+          RECAP_ONLY: ${{ inputs.only }}
+          RECAP_RESEND: ${{ inputs.resend && '1' || '' }}
           DRY_RUN: ${{ inputs.dry_run && '1' || '' }}
         run: |
           if [ -z "$ESPN_S2" ]; then

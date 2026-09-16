@@ -29,6 +29,8 @@ Environment:
     RECAP_WEEK                   override the week (defaults to the last finished)
     RECAP_MIN_GAIN               points a move must add to be worth naming
     RECAP_IGNORE_CLOCK           run regardless of the time in Chicago
+    RECAP_ONLY                   send to this manager alone, by display name
+    RECAP_RESEND                 send again to somebody who already has it
     DRY_RUN                      print instead of sending
 
 Usage:
@@ -268,7 +270,11 @@ def main() -> int:
     # A dry run ignores it. Nothing is sent, so there is nothing to repeat, and
     # suppressing the preview because the real thing already went out makes the
     # preview useless for checking what changed.
-    notes = [] if dry_run else supabase(
+    only = os.environ.get("RECAP_ONLY", "").strip()
+    if only:
+        log(f"Restricted to managers matching '{only}'.")
+
+    notes = [] if (dry_run or os.environ.get("RECAP_RESEND")) else supabase(
         "GET",
         f"landry_notes?select=user_id&kind=eq.recap&season=eq.{season}&week=eq.{week}"
     ) or []
@@ -289,6 +295,11 @@ def main() -> int:
             team_id = side.get("teamId")
             profile = by_team.get(team_id)
             if not profile:
+                continue
+            # Sending one real message to one person is the only way to see
+            # what this actually looks like in the app, and it should not mean
+            # writing to the whole league to find out.
+            if only and only.lower() not in profile["display_name"].lower():
                 continue
             if profile["id"] in done:
                 continue
