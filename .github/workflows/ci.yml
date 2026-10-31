@@ -145,6 +145,7 @@ jobs:
           ./Scripts/test_trade_finder.py
           ./Scripts/test_award_trophies.py
           ./Scripts/test_landry_recaps.py
+          ./Scripts/test_landry_scouting.py
 
   lint:
     name: SwiftLint
