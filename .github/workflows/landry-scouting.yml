@@ -1,0 +1,55 @@
+# Landry's scouting report: a private look at this week's opponent.
+#
+# Every manager with a game gets one, about the team across from them — both
+# projected totals, where the opponent is strong and thin, any flagged starter,
+# and the position most likely to decide it. A direct message, like his rounds:
+# a report on somebody's weaknesses is between Landry and the man playing them.
+name: Landry's scouting
+
+on:
+  schedule:
+    # 13:30 UTC Thursday — mid-morning Central, the same hour as his rounds.
+    # Early enough to make a claim or a swap before Thursday night's game,
+    # late enough that the week's injury reports mean something.
+    - cron: "30 13 * * 4"
+  workflow_dispatch:
+    inputs:
+      week:
+        description: "Force a week (defaults to ESPN's current)"
+        type: string
+      only:
+        description: "Send to this manager alone, by display name"
+        type: string
+      resend:
+        description: "Send again to somebody who already has this week's"
+        type: boolean
+        default: false
+      dry_run:
+        description: "Print what he would send, without sending"
+        type: boolean
+        default: true
+
+jobs:
+  scouting:
+    name: Scouting
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Scouting
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          PUSH_SECRET: ${{ secrets.PUSH_SECRET }}
+          ESPN_S2: ${{ secrets.ESPN_S2 }}
+          ESPN_SWID: ${{ secrets.ESPN_SWID }}
+          ESPN_LEAGUE_ID: ${{ secrets.ESPN_LEAGUE_ID }}
+          SCOUT_WEEK: ${{ inputs.week }}
+          SCOUT_ONLY: ${{ inputs.only }}
+          SCOUT_RESEND: ${{ inputs.resend && '1' || '' }}
+          DRY_RUN: ${{ inputs.dry_run && '1' || '' }}
+        run: |
+          if [ -z "$ESPN_S2" ]; then
+            echo "ESPN secrets are not set; nobody to scout."
+            exit 0
+          fi
+          ./Scripts/landry_scouting.py
