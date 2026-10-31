@@ -282,7 +282,9 @@ def main() -> int:
                 "paragraph, five or six sentences: the projected totals, where "
                 "the opponent is strong and where they are thin, any flagged "
                 "starter, and the position most likely to decide it. If the "
-                "projections are far apart, say so plainly. Speak to them "
+                "projections are far apart, say so plainly. The manager "
+                "cannot affect the opponent's players — advise only on their "
+                "own lineup, waiver claims and trades. Speak to them "
                 "directly, no greeting and no sign-off. " + IN_CHARACTER
                 + " Do not invent any number or player you were not given.",
                 plain_for(report, their_name, injuries),
