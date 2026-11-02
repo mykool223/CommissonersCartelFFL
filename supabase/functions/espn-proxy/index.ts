@@ -34,7 +34,8 @@ const ALLOWED_IMAGE_PATH =
 const ESPN_IMAGE_HOST = "https://mystique-api.fantasy.espn.com";
 
 // ESPN's stock logo art (#16). Public, but SVG, which neither UIImage nor
-// Android's image loader can decode — so eight of twelve teams showed initials.
+// Android's image loader can decode — so the seven teams on stock art showed
+// initials.
 // The function fetches the SVG and hands back a PNG, and both apps get a
 // picture without either taking on an SVG dependency.
 //
