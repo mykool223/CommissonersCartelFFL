@@ -88,16 +88,35 @@ class EspnClient(
         return json.decodeFromString(response.bodyAsText())
     }
 
-    /** The URL to load a team logo from, or null when it cannot be displayed. */
-    fun logoUrl(raw: String?): String? {
+    /**
+     * The URL to load a team logo from, or null when it cannot be displayed.
+     *
+     * `proxyBase` is the espn-proxy function, or null when there is no Supabase
+     * to reach it — in which case nothing that needs it can be shown.
+     */
+    fun logoUrl(
+        raw: String?,
+        proxyBase: String? = if (Config.hasSupabase) "${Config.supabaseUrl}/functions/v1/espn-proxy" else null,
+    ): String? {
         val url = raw?.takeIf { it.isNotBlank() } ?: return null
-        // Android's image loaders cannot decode ESPN's stock SVG crests, and
-        // there is no point downloading one to fail. Same rule as iOS.
-        if (url.substringBefore('?').endsWith(".svg", ignoreCase = true)) return null
+        // Parsed only where a path is needed, so an ordinary URL the parser
+        // dislikes is still handed to the loader untouched, as it always was.
+        fun parsed() = runCatching { java.net.URI(url) }.getOrNull()
+
+        // ESPN's stock crests are SVG, which Android's image loaders cannot
+        // decode. The proxy draws them as PNGs (#16), so a stock crest goes
+        // through it like an uploaded logo. Any other SVG, or one with no proxy
+        // to draw it, is not worth downloading to fail. Same rule as iOS.
+        if (url.substringBefore('?').endsWith(".svg", ignoreCase = true)) {
+            val uri = parsed() ?: return null
+            val path = uri.path ?: return null
+            if (uri.host != "g.espncdn.com" || !path.startsWith("/lm-static/")) return null
+            return proxyBase?.let { it + path }
+        }
         // Uploaded logos live behind a host that requires the league cookies,
         // so they have to come back through the proxy.
         if (!url.contains("mystique")) return url
-        val path = runCatching { java.net.URI(url).path }.getOrNull() ?: return null
-        return "${Config.supabaseUrl}/functions/v1/espn-proxy$path"
+        val path = parsed()?.path ?: return null
+        return proxyBase?.let { it + path }
     }
 }

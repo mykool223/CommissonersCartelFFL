@@ -111,10 +111,38 @@ class TeamMappingTest {
 class LogoRuleTest {
     private val client = com.commissionerscartel.app.data.EspnClient()
 
+    private val proxy = "https://abc.supabase.co/functions/v1/espn-proxy"
+
     @Test
-    fun `svg crests are refused rather than downloaded to fail`() {
-        assertNull(client.logoUrl("https://g.espncdn.com/lm-static/logo-packs/x.svg"))
-        assertNull(client.logoUrl("https://g.espncdn.com/lm-static/logo-packs/x.svg?v=2"))
+    fun `stock svg crests are drawn by the proxy`() {
+        // #16. Same path, query dropped: the proxy matches on the path alone.
+        assertEquals(
+            "$proxy/lm-static/ffl/images/default_logos/20.svg",
+            client.logoUrl("https://g.espncdn.com/lm-static/ffl/images/default_logos/20.svg", proxy),
+        )
+        assertEquals(
+            "$proxy/lm-static/logo-packs/x.svg",
+            client.logoUrl("https://g.espncdn.com/lm-static/logo-packs/x.svg?v=2", proxy),
+        )
+    }
+
+    @Test
+    fun `an svg anywhere else is refused rather than downloaded to fail`() {
+        assertNull(client.logoUrl("https://example.com/UPPERCASE.SVG", proxy))
+    }
+
+    @Test
+    fun `without a proxy nothing that needs one is shown`() {
+        assertNull(client.logoUrl("https://g.espncdn.com/lm-static/logo-packs/x.svg", null))
+        assertNull(client.logoUrl("https://mystique-api.fantasy.espn.com/apis/v1/domains/lm/images/abc", null))
+    }
+
+    @Test
+    fun `an uploaded logo goes through the proxy`() {
+        assertEquals(
+            "$proxy/apis/v1/domains/lm/images/abc",
+            client.logoUrl("https://mystique-api.fantasy.espn.com/apis/v1/domains/lm/images/abc", proxy),
+        )
     }
 
     @Test

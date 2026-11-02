@@ -13,6 +13,8 @@
 // Point the app at it with `ESPNConfiguration.viaProxy(...)`. The path shape
 // matches ESPN's exactly, so nothing else in the client changes.
 
+import { initWasm, Resvg } from "npm:@resvg/resvg-wasm@2.6.2";
+
 const ESPN_HOST = "https://lm-api-reads.fantasy.espn.com";
 
 // The request path is anchored on ESPN's own "/apis/" segment rather than by
@@ -26,11 +28,84 @@ const ESPN_PATH_MARKER = "/apis/";
 const ALLOWED_PATH = /^\/apis\/v3\/games\/ffl\/seasons\/\d{4}\/segments\/0\/leagues\/\d+$/;
 
 // Uploaded team logos. ESPN serves these from a different host and returns 401
-// without session cookies, so the app cannot fetch them directly. Stock logos
-// come from the public CDN and never reach this function.
+// without session cookies, so the app cannot fetch them directly.
 const ALLOWED_IMAGE_PATH =
   /^\/apis\/v1\/domains\/lm\/images\/[A-Za-z0-9-]+$/;
 const ESPN_IMAGE_HOST = "https://mystique-api.fantasy.espn.com";
+
+// ESPN's stock logo art (#16). Public, but SVG, which neither UIImage nor
+// Android's image loader can decode — so eight of twelve teams showed initials.
+// The function fetches the SVG and hands back a PNG, and both apps get a
+// picture without either taking on an SVG dependency.
+//
+// Anchored on its own marker, as the API paths are. The pattern allows no dot
+// before ".svg", so "../" cannot walk off the logo directories.
+const ESPN_STATIC_MARKER = "/lm-static/";
+const ALLOWED_STATIC_PATH = /^\/lm-static\/[A-Za-z0-9_\/-]+\.svg$/i;
+const ESPN_STATIC_HOST = "https://g.espncdn.com";
+
+// A crest is a few kilobytes. Anything near this is not a logo, and parsing it
+// would only spend the function's memory.
+const MAX_SVG_BYTES = 512 * 1024;
+// Twice the largest size either app draws a logo, for sharp edges on a 3x
+// screen, and still a few kilobytes of PNG.
+const RASTER_WIDTH = 256;
+
+// The renderer's WebAssembly, pinned to the same version as the import. Loaded
+// once per isolate, on the first logo rather than at start-up, so a league
+// request never pays for it. A failed load is forgotten, so the next logo
+// tries again instead of every logo failing until the isolate is recycled.
+const RESVG_WASM =
+  "https://cdn.jsdelivr.net/npm/@resvg/resvg-wasm@2.6.2/index_bg.wasm";
+let resvgReady: Promise<void> | null = null;
+
+function loadRenderer(): Promise<void> {
+  resvgReady ??= initWasm(fetch(RESVG_WASM)).catch((error) => {
+    resvgReady = null;
+    throw error;
+  });
+  return resvgReady;
+}
+
+/// The stock logo at `path`, as a PNG response.
+async function stockLogo(path: string): Promise<Response> {
+  let upstream: Response;
+  try {
+    // No cookies: this is ESPN's public CDN, and the league's credentials
+    // have no business going anywhere they are not needed.
+    upstream = await fetch(ESPN_STATIC_HOST + path);
+  } catch (error) {
+    return json({ message: `Could not reach ESPN: ${error}` }, 502);
+  }
+  if (!upstream.ok) {
+    return json({ message: `ESPN returned ${upstream.status}.` }, upstream.status);
+  }
+
+  const svg = await upstream.text();
+  if (svg.length > MAX_SVG_BYTES) {
+    return json({ message: "That logo is too large to draw." }, 422);
+  }
+
+  try {
+    await loadRenderer();
+    const png = new Resvg(svg, { fitTo: { mode: "width", value: RASTER_WIDTH } })
+      .render()
+      .asPng();
+    return new Response(png, {
+      headers: {
+        ...CORS_HEADERS,
+        "Content-Type": "image/png",
+        // Stock art never changes at a given path. A week keeps it off ESPN
+        // and off the renderer almost entirely.
+        "Cache-Control": "public, max-age=604800",
+      },
+    });
+  } catch (error) {
+    // The apps treat a failed logo as no logo, so this ends in initials —
+    // exactly what they showed before.
+    return json({ message: `Could not draw that logo: ${error}` }, 500);
+  }
+}
 
 const ALLOWED_VIEWS = new Set([
   "mSettings",
@@ -108,6 +183,18 @@ Deno.serve(async (request: Request) => {
   }
 
   const url = new URL(request.url);
+
+  // Stock logos take their own road: a public fetch and a render, with none
+  // of the league's views or cookies involved.
+  const staticIndex = url.pathname.indexOf(ESPN_STATIC_MARKER);
+  if (staticIndex >= 0) {
+    const staticPath = url.pathname.slice(staticIndex);
+    if (!ALLOWED_STATIC_PATH.test(staticPath)) {
+      return json({ message: `Path not allowed: ${staticPath}` }, 400);
+    }
+    return await stockLogo(staticPath);
+  }
+
   const markerIndex = url.pathname.indexOf(ESPN_PATH_MARKER);
   const path = markerIndex >= 0
     ? url.pathname.slice(markerIndex)
