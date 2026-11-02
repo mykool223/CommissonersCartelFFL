@@ -11,8 +11,7 @@ actor LogoCache {
 
     private var images: [URL: UIImage] = [:]
     /// URLs that failed. Retrying every time a row scrolls into view would
-    /// hammer the proxy for logos that are never going to load — most of them
-    /// are SVGs, which UIImage cannot decode at all.
+    /// hammer the proxy for logos that are never going to load.
     private var failed: Set<URL> = []
 
     func image(for url: URL, headers: [String: String]) async -> UIImage? {
@@ -25,11 +24,15 @@ actor LogoCache {
         }
 
         guard let (data, response) = try? await URLSession.shared.data(for: request),
-              let http = response as? HTTPURLResponse,
-              (200...299).contains(http.statusCode),
-              let image = UIImage(data: data)
+              let http = response as? HTTPURLResponse
         else {
             failed.insert(url)
+            return nil
+        }
+        guard (200...299).contains(http.statusCode), let image = UIImage(data: data) else {
+            // A refusal is about who was asking, not the logo: the proxy is
+            // members only (#15), so after signing in the same URL loads.
+            if ![401, 403].contains(http.statusCode) { failed.insert(url) }
             return nil
         }
 
@@ -40,9 +43,9 @@ actor LogoCache {
 
 /// A team's logo, falling back to the league's own avatar.
 ///
-/// The fallback is the common case, not an error path: only managers who upload
-/// their own image get a picture. ESPN's stock art is SVG, which `UIImage`
-/// cannot decode, so `ESPNMapper` reports those as no logo at all.
+/// The fallback is for a team with no logo, or one that failed to load. ESPN's
+/// stock art is SVG, which `UIImage` cannot decode, so the proxy draws it as a
+/// PNG (#16) and `ESPNMapper` points stock logos there.
 ///
 /// The logo URL is re-read from ESPN on every launch and on pull-to-refresh, so
 /// a manager who uploads an image simply has it appear next time the app is
@@ -70,7 +73,7 @@ struct TeamLogoView: View {
                 return
             }
             image = await LogoCache.shared.image(
-                for: logoURL, headers: environment.espnImageHeaders
+                for: logoURL, headers: await environment.espnImageHeaders()
             )
         }
     }

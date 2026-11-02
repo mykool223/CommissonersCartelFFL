@@ -108,6 +108,56 @@ async function stockLogo(path: string): Promise<Response> {
   }
 }
 
+// Members-only mode (#15) checks each caller against the league roster. A
+// profile row exists only for an invited address, and its RLS shows a caller
+// their own row only if they are a member, so asking PostgREST as the caller
+// answers the question without any key beyond theirs.
+//
+// Confirmed members are remembered for a few minutes, keyed by the whole
+// token rather than the user id: the token is what PostgREST verified, so a
+// forged one naming a real member's id cannot ride on that member's answer.
+// Refusals are not remembered, so a newly invited member gets in at once.
+const MEMBER_TTL_MS = 5 * 60 * 1000;
+const MAX_REMEMBERED_TOKENS = 500;
+const confirmedMembers = new Map<string, number>();
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/// Whether the caller is on the league roster, or null when that could not be
+/// found out.
+async function isLeagueMember(
+  authorization: string,
+  userID: string | null,
+): Promise<boolean | null> {
+  const confirmedUntil = confirmedMembers.get(authorization);
+  if (confirmedUntil && confirmedUntil > Date.now()) return true;
+  if (!userID || !UUID.test(userID)) return false;
+
+  const supabaseURL = Deno.env.get("SUPABASE_URL");
+  const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
+  if (!supabaseURL || !anonKey) return null;
+
+  let response: Response;
+  try {
+    response = await fetch(
+      `${supabaseURL}/rest/v1/profiles?select=id&id=eq.${userID}`,
+      { headers: { Authorization: authorization, apikey: anonKey } },
+    );
+  } catch {
+    return null;
+  }
+  // PostgREST refuses a token it cannot verify, which is a refusal here too.
+  if (response.status === 401) return false;
+  if (!response.ok) return null;
+
+  const rows = await response.json();
+  const member = Array.isArray(rows) && rows.length > 0;
+  if (member) {
+    if (confirmedMembers.size >= MAX_REMEMBERED_TOKENS) confirmedMembers.clear();
+    confirmedMembers.set(authorization, Date.now() + MEMBER_TTL_MS);
+  }
+  return member;
+}
+
 const ALLOWED_VIEWS = new Set([
   "mSettings",
   "mTeam",
@@ -124,20 +174,42 @@ const CORS_HEADERS: Record<string, string> = {
   "Access-Control-Allow-Methods": "GET, OPTIONS",
 };
 
-/// Reads the `role` claim without verifying the signature — Supabase already
-/// verified it before this function ran, so re-checking here would be theatre.
-function jwtRole(authorization: string): string | null {
+/// Reads the `role` and `sub` claims without verifying the signature —
+/// Supabase already verified it before this function ran, and the membership
+/// check has PostgREST verify it again.
+function jwtClaims(
+  authorization: string,
+): { role: string | null; sub: string | null } {
   const token = authorization.replace(/^Bearer\s+/i, "");
   const parts = token.split(".");
-  if (parts.length !== 3) return null;
+  if (parts.length !== 3) return { role: null, sub: null };
   try {
     const payload = JSON.parse(
       atob(parts[1].replace(/-/g, "+").replace(/_/g, "/")),
     );
-    return typeof payload.role === "string" ? payload.role : null;
+    return {
+      role: typeof payload.role === "string" ? payload.role : null,
+      sub: typeof payload.sub === "string" ? payload.sub : null,
+    };
   } catch {
-    return null;
+    return { role: null, sub: null };
   }
+}
+
+// Marks a refusal as the proxy's own members-only rule rather than ESPN's,
+// which also answers 401/403 when the league cookies go stale. The apps tell
+// the two apart by this header and say "sign in" or "cookies" accordingly.
+const MEMBERS_ONLY_HEADER = "X-Cartel-Members-Only";
+
+function membersOnly(body: unknown): Response {
+  return new Response(JSON.stringify(body), {
+    status: 403,
+    headers: {
+      ...CORS_HEADERS,
+      "Content-Type": "application/json",
+      [MEMBERS_ONLY_HEADER]: "1",
+    },
+  });
 }
 
 function json(body: unknown, status: number): Response {
@@ -164,23 +236,27 @@ Deno.serve(async (request: Request) => {
   }
 
   // The anon key is a valid JWT and ships inside the app, so by default anyone
-  // holding it can read the league through here. That is still a large net win
-  // over shipping ESPN session cookies in the binary, but it is not the end
-  // state.
-  //
-  // Once sign-in exists, tighten it without touching this code:
+  // holding it can read the league through here. Both apps now send a signed-in
+  // member's own token, so once those builds are out, close it (#15):
   //   supabase secrets set ESPN_PROXY_REQUIRE_AUTH=true
   //
-  // after which only signed-in league members get through.
+  // after which only signed-in league members get through. Signing in alone is
+  // not enough, since anyone can make an account.
   const requireAuthenticated =
     (Deno.env.get("ESPN_PROXY_REQUIRE_AUTH") ?? "false").toLowerCase() === "true";
-  const role = jwtRole(authorization);
 
-  if (requireAuthenticated && role !== "authenticated") {
-    return json(
-      { message: "Sign in to view the league.", role },
-      403,
-    );
+  if (requireAuthenticated) {
+    const { role, sub } = jwtClaims(authorization);
+    if (role !== "authenticated") {
+      return membersOnly({ message: "Sign in to view the league.", role });
+    }
+    const member = await isLeagueMember(authorization, sub);
+    if (member === null) {
+      return json({ message: "Could not check league membership." }, 503);
+    }
+    if (!member) {
+      return membersOnly({ message: "Only league members can view the league." });
+    }
   }
 
   const url = new URL(request.url);

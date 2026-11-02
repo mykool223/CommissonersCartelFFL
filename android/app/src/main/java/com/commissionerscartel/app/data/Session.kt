@@ -50,6 +50,14 @@ object Session {
     /** The signed-in member's access token, for calling edge functions as them. */
     fun accessToken(): String? = auth.currentAccessTokenOrNull()
 
+    /**
+     * The bearer token for the ESPN proxy: the member's own, so a locked proxy
+     * can tell members from strangers (#15), or the anon key for someone
+     * signed out, which gets through only while the proxy is still open.
+     */
+    fun proxyToken(): String =
+        (if (Config.hasSupabase) accessToken() else null) ?: Config.supabaseAnonKey
+
     suspend fun signOut() = auth.signOut()
 
     /** The ESPN member id this account has claimed, or null. */

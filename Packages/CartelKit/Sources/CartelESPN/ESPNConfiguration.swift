@@ -49,6 +49,11 @@ public struct ESPNConfiguration: Sendable {
     /// when `baseURL` points at the `espn-proxy` edge function instead of ESPN.
     public let additionalHeaders: [String: String]
 
+    /// The bearer token for the `espn-proxy` function, read per request so a
+    /// token refreshed mid-session is used without rebuilding the client. Nil
+    /// when talking to ESPN directly.
+    public let accessToken: (@Sendable () async -> String)?
+
     /// Base for rewriting cookie-protected team logos. Nil when talking to ESPN
     /// directly, since the app has no way to authenticate an image request.
     public let imageProxyBase: URL?
@@ -64,6 +69,7 @@ public struct ESPNConfiguration: Sendable {
         cacheTTL: Duration = .seconds(120),
         baseURL: URL = ESPNConfiguration.defaultBaseURL,
         additionalHeaders: [String: String] = [:],
+        accessToken: (@Sendable () async -> String)? = nil,
         imageProxyBase: URL? = nil
     ) {
         self.leagueID = leagueID
@@ -72,17 +78,22 @@ public struct ESPNConfiguration: Sendable {
         self.cacheTTL = cacheTTL
         self.baseURL = baseURL
         self.additionalHeaders = additionalHeaders
+        self.accessToken = accessToken
         self.imageProxyBase = imageProxyBase
     }
 
     /// Routes requests through the `espn-proxy` edge function, which holds the
     /// ESPN cookies as a server-side secret so they never ship in the app.
     /// The proxy preserves ESPN's path shape, so only the base URL changes.
+    ///
+    /// `accessToken` is asked for on every request: the signed-in member's
+    /// token, which is what lets a locked proxy tell members from strangers
+    /// (#15), or the anon key for a caller with no session.
     public static func viaProxy(
         leagueID: String,
         season: Int,
         supabaseURL: URL,
-        accessToken: String,
+        accessToken: @escaping @Sendable () async -> String,
         cacheTTL: Duration = .seconds(120)
     ) -> ESPNConfiguration {
         ESPNConfiguration(
@@ -91,7 +102,7 @@ public struct ESPNConfiguration: Sendable {
             credentials: nil,
             cacheTTL: cacheTTL,
             baseURL: supabaseURL.appending(path: "/functions/v1/espn-proxy"),
-            additionalHeaders: ["Authorization": "Bearer \(accessToken)"],
+            accessToken: accessToken,
             // Uploaded logos 401 without ESPN cookies, so they go through the
             // same function. Fetching them needs the same Authorization header
             // as any other call, which is why the app loads logos with

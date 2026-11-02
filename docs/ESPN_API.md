@@ -74,19 +74,24 @@ caller chose. Path handling anchors on ESPN's own `/apis/` segment rather than
 stripping a fixed prefix: Supabase strips `/functions/v1` before invoking, so a
 hardcoded public prefix rejects every request as "Path not allowed".
 
-**One gap while there is no sign-in.** The app authenticates to the function
-with the anon key, which is public, so anyone holding it can read the league
-through the proxy. That is still far better than shipping ESPN session cookies
-in the binary — those grant access to a whole ESPN account, not just scores.
-Close it the moment sign-in lands:
+**Members only.** Both apps send the signed-in member's own token, and the anon
+key only when nobody is signed in. Until the switch below is set, the function
+accepts either, so anyone holding the public anon key can read the league.
+Once every member is on a build that sends their token, close it (#15):
 
 ```bash
 supabase secrets set ESPN_PROXY_REQUIRE_AUTH=true
 ```
 
-The function then rejects any caller whose JWT role is not `authenticated`. No
-redeploy needed. Switch `accessToken:` in `AppEnvironment.makeESPNClient` from
-the anon key to the signed-in user's token at the same time.
+No redeploy needed. The function then lets in only callers who are signed in
+*and* have a profile row, which only an invited address gets. It asks PostgREST
+as the caller, so the profiles RLS policy decides. Its refusals are 403s marked
+`X-Cartel-Members-Only`, which the apps show as "sign in"; ESPN's own 401/403
+for stale cookies pass through unmarked.
+
+The iOS widget has no session. The app lends it the current access token
+through the app group, and once that runs out (about an hour after the app last
+ran) the widget asks for the app to be opened.
 
 ### Cookies expire
 

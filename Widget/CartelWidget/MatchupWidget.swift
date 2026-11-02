@@ -142,6 +142,13 @@ struct MatchupProvider: TimelineProvider {
                 ),
                 message: fixture.status == .scheduled ? "Not started" : nil
             )
+        } catch CartelError.server(statusCode: 403, _) {
+            // The proxy is members only and the token the app lent has run
+            // out. Opening the app lends a fresh one.
+            return MatchupEntry(
+                date: .now, week: 0, mine: nil, theirs: nil,
+                message: "Open the Cartel to update."
+            )
         } catch {
             return MatchupEntry(
                 date: .now, week: 0, mine: nil, theirs: nil,
