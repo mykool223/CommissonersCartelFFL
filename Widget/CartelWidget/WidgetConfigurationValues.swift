@@ -26,7 +26,10 @@ struct WidgetConfigurationValues {
                 leagueID: leagueID,
                 season: Season.current(),
                 supabaseURL: url,
-                accessToken: anonKey
+                // The token the app lent, while it lasts. Without it the
+                // anon key, which a members-only proxy turns away (#15) —
+                // the widget then asks for the app to be opened.
+                accessToken: { SharedStore.proxyToken(validAt: .now) ?? anonKey }
             )
         )
     }

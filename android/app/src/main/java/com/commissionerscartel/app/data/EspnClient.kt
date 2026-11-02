@@ -77,8 +77,15 @@ class EspnClient(
             "/apis/v3/games/ffl/seasons/$season/segments/0/leagues/$leagueId?$query"
 
         val response = http.get(url) {
-            header("Authorization", "Bearer ${Config.supabaseAnonKey}")
+            header("Authorization", "Bearer ${Session.proxyToken()}")
             header("apikey", Config.supabaseAnonKey)
+        }
+        // The proxy's own refusal: it lets in league members only (#15). ESPN's
+        // refusals pass through it unmarked, and mean stale cookies.
+        if (response.status == HttpStatusCode.Forbidden && response.headers["X-Cartel-Members-Only"] != null) {
+            throw IllegalStateException(
+                "Only league members can see the league. Sign in from Settings with the email you were invited on."
+            )
         }
         if (response.status != HttpStatusCode.OK) {
             throw IllegalStateException(

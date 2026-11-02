@@ -255,6 +255,19 @@ private final class Captured: @unchecked Sendable {
     }
 }
 
+/// A token that changes between requests, as a refreshed session's does.
+private final class TokenBox: @unchecked Sendable {
+    private let lock = NSLock()
+    private var token: String
+
+    init(_ token: String) { self.token = token }
+
+    var value: String {
+        get { lock.lock(); defer { lock.unlock() }; return token }
+        set { lock.lock(); token = newValue; lock.unlock() }
+    }
+}
+
 @Suite("ESPN mapping")
 struct ESPNMappingTests {
     @Test("League settings map across")
@@ -470,7 +483,7 @@ struct ESPNProxyTests {
             leagueID: "1234567",
             season: 2025,
             supabaseURL: URL(string: "https://abcdefgh.supabase.co")!,
-            accessToken: "jwt-abc"
+            accessToken: { "jwt-abc" }
         )
         let url = try #require(config.requestURL(views: ["mTeam"]))
 
@@ -478,7 +491,84 @@ struct ESPNProxyTests {
         #expect(url.path() == "/functions/v1/espn-proxy/apis/v3/games/ffl/seasons/2025/segments/0/leagues/1234567")
         // Cookies stay server-side; the app only sends its Supabase token.
         #expect(config.credentials == nil)
-        #expect(config.additionalHeaders["Authorization"] == "Bearer jwt-abc")
+        #expect(config.accessToken != nil)
+    }
+
+    @Test("The proxy token is asked for on every request")
+    func readsTokenPerRequest() async throws {
+        let captured = Captured()
+        let transport = StubTransport { request in
+            captured.store(request)
+            return (Data("{\"id\":1}".utf8), HTTPURLResponse(
+                url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil
+            )!)
+        }
+        let token = TokenBox("first")
+        let client = ESPNClient(
+            configuration: .viaProxy(
+                leagueID: "1", season: 2025,
+                supabaseURL: URL(string: "https://abcdefgh.supabase.co")!,
+                accessToken: { token.value },
+                cacheTTL: .zero
+            ),
+            transport: transport
+        )
+        _ = try await client.league()
+        #expect(captured.value?.value(forHTTPHeaderField: "Authorization") == "Bearer first")
+
+        // A refreshed token goes out on the next request, unrebuilt.
+        token.value = "second"
+        _ = try await client.league()
+        #expect(captured.value?.value(forHTTPHeaderField: "Authorization") == "Bearer second")
+    }
+
+    @Test("The proxy's members-only refusal says so, not ESPN credentials")
+    func proxyRefusalIsAboutMembership() async throws {
+        let transport = StubTransport { request in
+            (Data("{\"message\":\"no\"}".utf8), HTTPURLResponse(
+                url: request.url!, statusCode: 403, httpVersion: nil,
+                headerFields: ["X-Cartel-Members-Only": "1"]
+            )!)
+        }
+        let client = ESPNClient(
+            configuration: .viaProxy(
+                leagueID: "1", season: 2025,
+                supabaseURL: URL(string: "https://abcdefgh.supabase.co")!,
+                accessToken: { "anon" }
+            ),
+            transport: transport
+        )
+        do {
+            _ = try await client.league()
+            Issue.record("Expected the proxy's 403 to throw")
+        } catch let CartelError.server(statusCode, message) {
+            #expect(statusCode == 403)
+            #expect(message?.contains("league members") == true)
+        }
+    }
+
+    @Test("ESPN's own refusal through the proxy still means stale cookies")
+    func espnRefusalThroughProxy() async throws {
+        let transport = StubTransport { request in
+            (Data("{}".utf8), HTTPURLResponse(
+                url: request.url!, statusCode: 401, httpVersion: nil, headerFields: nil
+            )!)
+        }
+        let client = ESPNClient(
+            configuration: .viaProxy(
+                leagueID: "1", season: 2025,
+                supabaseURL: URL(string: "https://abcdefgh.supabase.co")!,
+                accessToken: { "member" }
+            ),
+            transport: transport
+        )
+        do {
+            _ = try await client.league()
+        } catch CartelError.notAuthorized {
+            // Expected.
+        } catch {
+            Issue.record("Expected notAuthorized, got \(error)")
+        }
     }
 
     @Test("Additional headers are sent on the request")

@@ -100,12 +100,22 @@ public actor ESPNClient: LeagueDataSource {
         for (field, value) in configuration.additionalHeaders {
             request.setValue(value, forHTTPHeaderField: field)
         }
+        if let accessToken = configuration.accessToken {
+            request.setValue("Bearer \(await accessToken())", forHTTPHeaderField: "Authorization")
+        }
 
         let (data, response) = try await transport.send(request)
 
         switch response.statusCode {
         case 200...299:
             break
+        case 403 where response.value(forHTTPHeaderField: "X-Cartel-Members-Only") != nil:
+            // The proxy's own refusal: it lets in league members only (#15).
+            // ESPN's refusals pass through it unmarked, and mean stale cookies.
+            throw CartelError.server(
+                statusCode: response.statusCode,
+                message: "Only league members can see the league. Sign in from Settings with the email you were invited on."
+            )
         case 401, 403:
             // ESPN returns these for private leagues with missing or stale cookies.
             throw CartelError.notAuthorized

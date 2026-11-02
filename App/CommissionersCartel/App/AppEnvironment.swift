@@ -26,7 +26,11 @@ final class AppEnvironment {
     /// where there is no server to notify anyone.
     private(set) var push: (any PushRepository)?
     /// The signed-in member, or nil. Observed by the UI.
-    private(set) var session: AuthSession?
+    private(set) var session: AuthSession? {
+        // The widget borrows the token to reach the proxy, so it must hear
+        // about sign-in and sign-out, not only about the next ESPN request.
+        didSet { SharedStore.shareProxyToken(session?.accessToken, expiresAt: session?.expiresAt) }
+    }
     /// True once the stored session has been checked, so the UI does not flash
     /// a sign-in screen at someone who is already signed in.
     private(set) var hasCheckedSession = false
@@ -41,14 +45,17 @@ final class AppEnvironment {
 
     var season: Int { configuration.season }
 
+    /// The bearer token for the ESPN proxy. See `proxyToken(auth:anonKey:)`.
+    private let proxyToken: @Sendable () async -> String
+
     /// Headers required to fetch team logos through the proxy. Empty when
     /// talking to ESPN directly, where uploaded logos are unreachable anyway.
-    var espnImageHeaders: [String: String] {
+    func espnImageHeaders() async -> [String: String] {
         guard configuration.usesESPNProxy, !configuration.supabaseAnonKey.isEmpty else {
             return [:]
         }
         return [
-            "Authorization": "Bearer \(configuration.supabaseAnonKey)",
+            "Authorization": "Bearer \(await proxyToken())",
             "apikey": configuration.supabaseAnonKey,
         ]
     }
@@ -67,44 +74,50 @@ final class AppEnvironment {
 
         let forceMock = AppEnvironment.isForcedToMockData
 
-        if let leagueData {
-            self.leagueData = leagueData
-            self.isUsingMockLeagueData = false
-        } else if configuration.hasESPN, !forceMock {
-            self.leagueData = AppEnvironment.makeESPNClient(configuration)
-            self.isUsingMockLeagueData = false
-        } else {
-            self.leagueData = MockLeagueDataSource()
-            self.isUsingMockLeagueData = true
-        }
-
+        // Sign-in comes first: the league client signs its proxy requests
+        // with the member's token once there is one.
+        var auth: SupabaseAuth?
         if let content {
-            self.auth = nil
             self.push = nil
             self.content = content
             self.isUsingMockContent = false
         } else if let url = configuration.supabaseURL, configuration.hasSupabase, !forceMock {
             let supabase = SupabaseConfiguration(url: url, anonKey: configuration.supabaseAnonKey)
-            let auth = SupabaseAuth(configuration: supabase, store: KeychainSessionStore())
-            self.auth = auth
+            let signIn = SupabaseAuth(configuration: supabase, store: KeychainSessionStore())
+            auth = signIn
             let client = SupabaseClient(
                 configuration: supabase,
                 // Read per request rather than captured once, so a token
                 // refreshed mid-session is picked up without rebuilding
                 // anything.
-                accessToken: { await auth.accessToken() }
+                accessToken: { await signIn.accessToken() }
             )
             self.content = SupabaseContentRepository(client: client)
             self.push = SupabasePushRepository(
                 client: client,
-                userID: { await auth.currentSession()?.userID }
+                userID: { await signIn.currentSession()?.userID }
             )
             self.isUsingMockContent = false
         } else {
-            self.auth = nil
             self.push = nil
             self.content = MockContentRepository()
             self.isUsingMockContent = true
+        }
+        self.auth = auth
+        let proxyToken = AppEnvironment.proxyToken(
+            auth: auth, anonKey: configuration.supabaseAnonKey
+        )
+        self.proxyToken = proxyToken
+
+        if let leagueData {
+            self.leagueData = leagueData
+            self.isUsingMockLeagueData = false
+        } else if configuration.hasESPN, !forceMock {
+            self.leagueData = AppEnvironment.makeESPNClient(configuration, accessToken: proxyToken)
+            self.isUsingMockLeagueData = false
+        } else {
+            self.leagueData = MockLeagueDataSource()
+            self.isUsingMockLeagueData = true
         }
 
         // Wrapped last, once both halves exist: teams come from ESPN, the
@@ -177,7 +190,7 @@ final class AppEnvironment {
     /// private league starts working without relaunching the app.
     func reloadESPNCredentials() {
         guard configuration.hasESPN else { return }
-        leagueData = AppEnvironment.makeESPNClient(configuration)
+        leagueData = AppEnvironment.makeESPNClient(configuration, accessToken: proxyToken)
         isUsingMockLeagueData = false
     }
 
@@ -198,7 +211,28 @@ final class AppEnvironment {
         #endif
     }
 
-    private static func makeESPNClient(_ configuration: AppConfiguration) -> ESPNClient {
+    /// The bearer token for the ESPN proxy, asked for on every request.
+    ///
+    /// A signed-in member's own token, so a locked proxy can tell members from
+    /// strangers (#15). Otherwise the anon key, which gets through only while
+    /// the proxy is still open. Each token in use is also lent to the widget,
+    /// which has no session of its own — refreshes included, so the widget's
+    /// copy is never older than the app's last request.
+    private static func proxyToken(
+        auth: SupabaseAuth?,
+        anonKey: String
+    ) -> @Sendable () async -> String {
+        {
+            guard let session = await auth?.currentSession() else { return anonKey }
+            SharedStore.shareProxyToken(session.accessToken, expiresAt: session.expiresAt)
+            return session.accessToken
+        }
+    }
+
+    private static func makeESPNClient(
+        _ configuration: AppConfiguration,
+        accessToken: @escaping @Sendable () async -> String
+    ) -> ESPNClient {
         // Preferred path: the edge function holds the ESPN cookies as a
         // server-side secret, so nothing sensitive ships in the app binary and
         // an expired cookie is fixed once for the whole league rather than by
@@ -209,10 +243,7 @@ final class AppEnvironment {
                     leagueID: configuration.espnLeagueID,
                     season: configuration.season,
                     supabaseURL: supabaseURL,
-                    // The anon key until sign-in exists; swap in the user's
-                    // access token then, and flip ESPN_PROXY_REQUIRE_AUTH on
-                    // the function to lock anon out.
-                    accessToken: configuration.supabaseAnonKey
+                    accessToken: accessToken
                 )
             )
         }

@@ -19,8 +19,9 @@ and it installs. No store, no review, no expiry.
 
 Do **not** put the APK in the GitHub repo: it is public, and the APK contains
 the Supabase anon key. Row level security means that key cannot read league
-data without a signed-in member, but the ESPN proxy currently accepts it (see
-issue #15), so there is no reason to publish it.
+data without a signed-in member, and the ESPN proxy turns it away once
+`ESPN_PROXY_REQUIRE_AUTH` is on (see issue #15), but there is still no reason
+to publish it.
 
 **Updates** are the weak point: every new version has to be sent round again,
 and `versionCode` in `android/app/build.gradle.kts` must go up or the install

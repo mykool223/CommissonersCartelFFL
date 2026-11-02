@@ -68,7 +68,9 @@ class CartelApp : Application(), SingletonImageLoader.Factory {
                         request
                     } else {
                         request.newBuilder()
-                            .header("Authorization", "Bearer ${Config.supabaseAnonKey}")
+                            // The member's own token, which the members-only
+                            // ESPN proxy needs for logos (#15).
+                            .header("Authorization", "Bearer ${Session.proxyToken()}")
                             .header("apikey", Config.supabaseAnonKey)
                             .build()
                     }
