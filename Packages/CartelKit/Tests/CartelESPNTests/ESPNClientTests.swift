@@ -655,16 +655,36 @@ struct ESPNLogoSourceTests {
         )
     }
 
-    /// ESPN's stock art is SVG and UIImage cannot decode it. Reporting nil lets
-    /// the UI show the league's own avatar immediately, rather than firing a
-    /// request per team on every launch that can only fail.
+    /// ESPN's stock art is SVG, which UIImage cannot decode, so it goes through
+    /// the proxy to be drawn as a PNG (#16) — on the same path, which is what
+    /// the function matches on.
     @Test(arguments: [
-        "https://g.espncdn.com/lm-static/ffl/images/default_logos/20.svg",
-        "https://g.espncdn.com/lm-static/logo-packs/ffl/BoneHeads/BoneHeads-05.svg",
-        "https://example.com/UPPERCASE.SVG",
+        "/lm-static/ffl/images/default_logos/20.svg",
+        "/lm-static/logo-packs/ffl/BoneHeads/BoneHeads-05.svg",
     ])
-    func svgLogosAreTreatedAsAbsent(url: String) {
-        #expect(ESPNMapper.logoURL(for: team(logo: url), imageProxyBase: Self.proxyBase) == nil)
+    func stockSVGLogosAreDrawnByTheProxy(path: String) {
+        let url = ESPNMapper.logoURL(
+            for: team(logo: "https://g.espncdn.com" + path), imageProxyBase: Self.proxyBase
+        )
+        #expect(url?.absoluteString == "https://abc.supabase.co/functions/v1/espn-proxy" + path)
+    }
+
+    /// Only ESPN's own CDN. The proxy will not fetch from anywhere else, so any
+    /// other SVG is a request that can only fail — the UI shows the league's
+    /// own avatar at once instead.
+    @Test("An SVG anywhere else is still treated as absent")
+    func otherSVGLogosAreAbsent() {
+        #expect(ESPNMapper.logoURL(
+            for: team(logo: "https://example.com/UPPERCASE.SVG"), imageProxyBase: Self.proxyBase
+        ) == nil)
+    }
+
+    @Test("A stock SVG with no proxy to draw it is absent")
+    func stockSVGWithoutProxy() {
+        #expect(ESPNMapper.logoURL(
+            for: team(logo: "https://g.espncdn.com/lm-static/ffl/images/default_logos/20.svg"),
+            imageProxyBase: nil
+        ) == nil)
     }
 
     @Test("An uploaded raster logo still routes through the proxy")
@@ -685,7 +705,7 @@ struct ESPNLogoSourceTests {
     }
 
     /// The behaviour the league asked for: upload an image and it replaces the
-    /// placeholder next time the app reads from ESPN. Nothing is cached across
+    /// stock crest next time the app reads from ESPN. Nothing is cached across
     /// launches, so the switch needs no other action.
     @Test("Switching from stock art to an upload changes the resolved URL")
     func uploadReplacesPlaceholder() {
@@ -697,8 +717,9 @@ struct ESPNLogoSourceTests {
             for: team(logo: "https://mystique-api.fantasy.espn.com/apis/v1/domains/lm/images/new"),
             imageProxyBase: Self.proxyBase
         )
-        #expect(before == nil, "placeholder while on stock art")
-        #expect(after != nil, "real logo once uploaded")
+        #expect(before?.path().hasSuffix("/default_logos/20.svg") == true, "the stock crest, drawn by the proxy")
+        #expect(after?.path().hasSuffix("/images/new") == true, "the upload, once there is one")
+        #expect(before != after)
     }
 }
 
